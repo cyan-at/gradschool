@@ -13,7 +13,25 @@ import matplotlib.animation as animation
 
 import time
 
+import argparse
+
 # from wall_borg.interaction.utils import globals_check_decorator
+
+class NpRowRB(object):
+    # not sparse
+    def __init__(self, data):
+        self._data = data
+
+    def add(self, new_data):
+        # slicing is the fastest way
+        self._data[:-1, :] = self._data[1:, :]
+        self._data[-1, :] = new_data
+
+    def add_batch(self, new_data_batch):
+        # slicing is the fastest way
+        n = new_data_batch.shape[0]
+        self._data[:-n, :] = self._data[n:, :]
+        self._data[-n :] = new_data_batch
 
 def globals_check_decorator(gs, globals_to_assert):
     def decorator(func):  # func should return void
@@ -37,11 +55,12 @@ class Swingbot(object):
     init_state = [120, 0, -20, 0],
     L1=10.0,  # length of pendulum 1 in m
     L2=1.0,  # length of pendulum 2 in m
-    M1=1.0,  # mass of pendulum 1 in kg
+    M1=10.0,  # mass of pendulum 1 in kg
     M2=1.0,  # mass of pendulum 2 in kg
     G=9.8,  # acceleration due to gravity, in m/s^2
-    B=5.0, # damping
-    origin=(0, 0)):
+    B=1.0, # damping
+    origin=(0, 0),
+    buffer = 1000):
     self.params = (L1, L2, M1, M2, G, B)
     self.origin = origin
     self.time_elapsed = 0
@@ -50,7 +69,12 @@ class Swingbot(object):
     self.state = self.init_state * np.pi / 180.
 
     self.last_state = init_state
-    self.max_amp = init_state[0]
+
+    # track sensed amplitude
+    self.buffer = buffer
+    self.amps = NpRowRB(np.zeros((buffer, 2)))
+    self.amps.add([0, 0])
+
     self.ut = 0.0
 
   def position(self):
@@ -83,6 +107,9 @@ class Swingbot(object):
     ])
     return (x, y)
 
+  def amplitude_history(self):
+    return list(range(self.buffer)), self.amps._data[:, 1]
+
   def energy(self):
     """compute the energy of the current state"""
     (L1, L2, M1, M2, G, B) = self.params
@@ -108,8 +135,8 @@ class Swingbot(object):
 
     # deserialize
     (L1, L2, M1, M2, G, B) = self.params
-    c = -M1 * G * L1
-    a = M1*L1**2
+    c = -G
+    a = L1
 
     # finish
     return c / a * np.sin(state[0]) - B / a * state[1]
@@ -121,6 +148,7 @@ class Swingbot(object):
     c = 10.0
     y = c * state[0] # D = 0
     u = reference - y
+    u = 0
     return u
 
   def loop(self, state, t):
@@ -146,17 +174,23 @@ class Swingbot(object):
     dydx = np.zeros_like(state)
     dydx[0] = state[1]
 
-    # dispatch
-    # track amplitude
-    if state[1] < 0:
-      # 'left'
+    # # dispatch
+    # # track amplitude
+    # if state[1] < 0:
+    #   # 'left'
+
+    # normalized = state[0] - 2*np.pi * np.floor((state[0] + np.pi) / 2*np.pi)
+
+
+    self.amps.add([self.amps._data[-1, 0] + 1, state[0]])
 
     self.last_state = state
 
     # classical controls approach:
     reference = np.pi / 4 # semantically, desired amplitude of swing
-    self.ut = self.output_cd_and_control(reference, state, t)
-    dydx[1] = self.a_matrix(state)
+    # self.ut = self.output_cd_and_control(reference, state, t)
+    dydx[1] = self.a_matrix(state) + 1 * self.ut
+    # self.ut = 0.0
 
     # this is a controlled revolute joint
     dydx[2] = 0
@@ -206,17 +240,14 @@ def init():
   theta_text.set_text('')
   ut_text.set_text('')
 
-  line.set_data([], [])
   line.set_data(*pendulum.position())
-
-  line2.set_data([], [])
   line2.set_data(*pendulum.robot_pos())
 
   return line, line2, time_text, theta_text, ut_text
 
-@globals_check_decorator(globals(),
-  ['pendulum', 'dt', 'line', 'line2', 'time_text', 'theta_text', 'ut_text'])
-def animate(i):
+# @globals_check_decorator(globals(),
+#   ['pendulum', 'dt', 'line', 'line2', 'time_text', 'theta_text', 'ut_text'])
+def animate(i, line, line2):
   """perform animation step"""
   global pendulum, dt
   pendulum.step(dt)
@@ -230,26 +261,51 @@ def animate(i):
 
   return line, line2, time_text, theta_text, ut_text
 
-def plot_conclusion(plt, xlim, ylim, title):
-  plt.xlim(xlim[0], xlim[1])
-  plt.ylim(ylim[0], ylim[1])
-  plt.grid(True)
-  plt.gca().set_aspect(
-      'equal', adjustable='box')
-  plt.title(title)
+
+@globals_check_decorator(globals(),
+  ['line3', 'time_text', 'theta_text', 'ut_text'])
+def init2():
+  line3.set_data(*pendulum.amplitude_history())
+
+  return line3,
+
+@globals_check_decorator(globals(),
+  ['pendulum', 'dt', 'line3', 'time_text', 'theta_text', 'ut_text'])
+def animate2(i, line):
+  """perform animation step"""
+  # global pendulum, dt
+
+  line3.set_data(*pendulum.amplitude_history())
+
+  return line3,
+
+
+def plot_conclusion(ax, xlim, ylim, title):
+  ax.set_xlim(xlim[0], xlim[1])
+  ax.set_ylim(ylim[0], ylim[1])
+  ax.grid(True)
+  # ax.gca().set_aspect(
+  #     'equal', adjustable='box')
+  ax.set_title(title)
 
 if __name__ == "__main__":
+  parser = argparse.ArgumentParser(
+      description='')
+  parser.add_argument('--buffer',
+      type=int, default=5000, help='')
+  args = parser.parse_args()
+
   pendulum = Swingbot(
-    [45., -2.0, 0., 0.0])
+    [90., 0.0, 0., 0.0], buffer = args.buffer)
   dt = 1./30 # 30 fps
 
   #------------------------------------------------------------
   # set up figure and animation
 
-  fig = plt.figure(1)
+  fig = plt.figure()
   ax = plt.subplot(111)
   bounds = 15
-  plot_conclusion(plt,
+  plot_conclusion(ax,
     [-bounds, bounds], [-bounds, bounds], "")
 
   time_text = ax.text(
@@ -268,7 +324,7 @@ if __name__ == "__main__":
     [], [], 'ro-', lw=2)
 
   t0 = time.time()
-  animate(0)
+  # animate(0)
   t1 = time.time()
 
   interval = 1000 * dt - (t1 - t0)
@@ -277,7 +333,37 @@ if __name__ == "__main__":
     frames=300,
     interval=interval,
     blit=True,
-    init_func=init)
+    init_func=init,
+    fargs=[line, line2])
+
+  def press(event):
+    # if event.key == 'enter':
+    #   print "entered"
+    if event.key == 'u':
+      print("u!")
+      pendulum.ut += 2.0
+    elif event.key == 'i':
+      print("i!")
+      pendulum.ut -= 2.0
+  fig.canvas.mpl_connect(
+      'key_press_event', press)
+
+  fig2 = plt.figure()
+  ax2 = plt.subplot(111)
+  plot_conclusion(ax2,
+    [0, args.buffer], [-2*np.pi, 2*np.pi], "")
+
+
+  line3, = ax2.plot(
+    [], [], 'b-', lw=2)
+
+  ani2 = animation.FuncAnimation(
+    fig2, animate2,
+    frames=300,
+    interval=interval,
+    blit=True,
+    init_func=init2,
+    fargs=[line3])
 
   plt.show()
 
