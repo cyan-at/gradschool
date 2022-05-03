@@ -240,3 +240,39 @@ def animate(i):
 ani = animation.FuncAnimation(
     fig, animate, len(y), interval=dt*1000, blit=True)
 plt.show()
+
+'''
+alpha1 = l2 / l1 * (m2 / (m1 + m2))*cos(t1 - t2)
+alph2 = l1 / l2 * cos(t1 - t2)
+alpha2 = l1 / l2 * cos(t1 - t2)
+A = Matrix([1, alpha1; alpha2, 1])
+A = Matrix([1, alpha1], [alpha2, 1])
+A = Matrix([[1, alpha1], [alpha2, 1]])
+A
+Ainv = inv(A)
+Ainv = A.inv
+Ainv
+Ainv = A.inv()
+Ainv
+f1 = -l2 / l1 * (m2 / (m1 + m2)) * (t2.diff(t))**2 * sin(t1 - t2) - g / l1*sin(t1)
+f1
+f2 = l1 / l2 * (t1.diff(t))**2 * sin(t1 - t2) - g / l2*sin(t2)
+f2
+fs = Matrix([[f1], [f2]])
+fs
+Ainv * fs
+test = Ainv * fs
+test[0]
+simplify(test[0])
+(f1 - alpha1 * f2) / (1 - alpha1*alpha2)
+simplify((f1 - alpha1 * f2) / (1 - alpha1*alpha2))
+simplify(test[1])
+clear
+simplify(test[0])
+clear
+simplify(test[1])
+simplify((f1 - alpha1 * f2) / (1 - alpha1*alpha2))
+(f1 - alpha1 * f2) / (1 - alpha1*alpha2)
+simplify((-alpha2*f1 + f2) / (1 - alpha1*alpha2))
+simplify(test[0])
+'''
