@@ -10,19 +10,36 @@ http://www.physics.usyd.edu.au/~wheat/dpend_html/solve_dpend.c
 
 ##########################################################
 
-qualifications:
+qualifications / modeling choices:
 NOT compound pendulum, modeled as simple point-mass pendulums
 modeled *not* a compound pendulum, but massless links and masses
 this impacts the kinetic energy definitions (only translation, no rotational KE)
 and therefore the derived equations of motion
 
+from MIT underactuated you see at a meta level what you are doing
+
+1. use Lagrange physics to create <equations of motion>
 equations of motion equivalent to derivation here:
 https://diego.assencio.com/?index=1500c66ae7ab27bb0106467c68feebc6
+http://underactuated.mit.edu/acrobot.html#Spong96
 
 ##########################################################
 
-decompose equations of motion to standard manipulator equation:
-mass-matrix M, C, tau_g, B
+2. RE-write equations of motion to <manipulator matrices: M, C, tau_g>
+
+##########################################################
+
+3. linearize to get dynamics of the system
+linearizing actuated joints = collated linearization
+linearizing unactuated joints = non-collated linearization
+
+"
+We'll use the term collocated partial feedback linearization to describe a controller which
+linearizes the dynamics of the actuated joints.
+What's more surprising is that it is often possible to achieve non-collocated
+partial feedback linearization - a controller which linearizes the dynamics of the unactuated joints.
+The treatment presented here follows from [9].
+"
 
 ##########################################################
 

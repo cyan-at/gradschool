@@ -56,3 +56,143 @@ https://www.semanticscholar.org/paper/Time-optimal-control-of-a-swing-Kulkarni/5
 http://people.ece.cornell.edu/land/courses/ece4760/ideas/swing.pdf
 https://math.cornell.edu/~rand/randpdf/swing.pdf
 http://hplgit.github.io/pysketcher/doc/pub/tutorial/._pysketcher002.html
+
+##################################################################
+
+   1: from sympy.physics.mechanics import *
+   2: x, y = dynamicsymbols('x y')
+   3: f = cos(x + y)
+   4: from sympy import *
+   5: f = cos(x + y)
+   6: f.diff(t)
+   7: t = Symbol('t')
+   8: f.diff(t)
+   9: sympy.init_printing()
+  10: import sympy
+  11: sympy.init_printing()
+  12: import sympy
+  13: sympy.init_printing()
+  14: f.diff(t)
+  15: f = cos(x - y)
+  16: f.diff(t)
+  17: t1, t2, t3 = dynamicsymbols('t1 t2 t3')
+  18: from sympy import *; import sympy;
+  19: m1, l1, m2, l2, m3, l3 = symbols('m1 l1 m2 l2 m3 l3');
+  20: dt1 = t1.diff(t)
+  21: dt1
+  22: dt1.diff(t)
+  23: dt2 = t2.diff(t)
+  24: dt3 = t3.diff(t)
+  25: T = m1 / 2 * l1**2 * dt1**2 + m2 / 2 * (l1**2 * dt1**2 + l2**2*dt2**2 - 2 * l1 * l2 * dt1 * dt2 * cos(t1 + t2)) + m3 / 2 * (l1**2 * dt1**2 + l3 * dt3**2 + 2*l1*l3*dt1*dt3*cos(t1 - t3))
+  26: V = (m1 + m2 + m3)*g*(-l1)*cos(t1) + m2*g*(-l2)*cos(t2) + m3*g*(-l3)*cos(t3)
+  27: g = Symbol('g')
+  28: V = (m1 + m2 + m3)*g*(-l1)*cos(t1) + m2*g*(-l2)*cos(t2) + m3*g*(-l3)*cos(t3)
+  29: L = T - V
+  30: L
+  31: L.diff(dt1)
+  32: simplify(L.diff(dt1))
+  33: p1 = L.diff(dt1)
+  34: p1
+  35: p1.diff(t)
+  36: p1
+  37: p1_byhand = l1**2*(m1+m2+m3)*dt1 - m2*l1*l2*dt2*cos(t1+t2) + m3*l1*l3*dt3*cos(t1-t3)
+  38: p1
+  39: p1_byhand
+  40: p1_byhand.diff(t)
+  41: L
+  42: L.diff(t1)
+  43: L.diff(t2)
+  44: L.diff(t3)
+  45: p1_byhand.diff(t) - L.diff(t1)
+  46: el1 = p1_byhand.diff(t) - L.diff(t1)
+  47: el1 / l1
+  48: simplify(el1 / l1)
+  49: x
+  50: y
+  51: temp = cos(x + y)
+  52: temp.diff(t)
+  53: temp = cos(x - y)
+  54: temp.diff(t)
+  55: p2_byhand = m2*l2**2*dt2 - m2*l1*l2*dt1*cos(t1+t2)
+  56: p2_byhand.diff(t)
+  57: p3_byhand = m3*l3**2*dt3 + m3*l1*l3*dt1*cos(t1-t3)
+  58: p3_byhand.diff(t)
+  59: el1 = (p1_byhand.diff(t) - L.diff(t1)) / l1
+  60: el1
+  61: el1 = simplify((p1_byhand.diff(t) - L.diff(t1)) / l1)
+  62: el1
+  63: el2 = p2_byhand.diff(t) - L.diff(t2)
+  64: el2
+  65: el3 = p3_byhand.diff(t) - L.diff(t3)
+  66: el3
+  67: el2 = (p2_byhand.diff(t) - L.diff(t2)) / l2
+  68: el2
+  69: el2 = simplify((p2_byhand.diff(t) - L.diff(t2)) / l2)
+  70: el2
+  71: el2 = simplify((p2_byhand.diff(t) - L.diff(t2)) / (m2*l2))
+  72: el2
+  73: el3 = simplify((p3_byhand.diff(t) - L.diff(t3)) / (m3*l3))
+
+##################################################################
+
+https://www.overleaf.com/project/624ae4da6c2c0b395e28a8c2
+https://www.overleaf.com/learn/latex/Inserting_Images
+https://www.youtube.com/watch?v=wBaPoKMoCmM
+https://www.semanticscholar.org/paper/Time-optimal-control-of-a-swing-Kulkarni/5004636cf30e26d9106ddb4d8769640084c9c6af#paper-header
+http://people.ece.cornell.edu/land/courses/ece4760/ideas/swing.pdf
+http://nereus.mech.ntua.gr/Documents/pdf_ps/med09_2.pdf
+https://www.semanticscholar.org/paper/How-to-Pump-a-Swing-Wirkus-Rand/b44488a7e77e3b41b75c5d2a2c4f0dd523f2ad13
+https://web.ma.utexas.edu/users/og/TEACHING/M472/swing.pdf
+https://www.google.com/search?q=center+of+mass+formula&sxsrf=ALiCzsass2D94rrbCxIMOw-aQrhxf_O4oA:1651249780428&tbm=isch&source=iu&ictx=1&vet=1&fir=4aehnznSB6R_TM%252C4PXPLmpV6Hms9M%252C_%253BhLNNwEvUSuPJRM%252C4PXPLmpV6Hms9M%252C_%253BakrLpIA1sLaQbM%252C4PXPLmpV6Hms9M%252C_%253B2UvD0DFlq7eBSM%252Ch7zUFUpISuFSAM%252C_%253Bb_RBrv5N02wCeM%252CBoAAT-57yOwhWM%252C_%253BV0iLMigRp_NSmM%252C4PXPLmpV6Hms9M%252C_%253BXXGjmFjG8lhVdM%252C4PXPLmpV6Hms9M%252C_%253Bey8Z4p6MY5Ke0M%252CfdqOQ0feeo_PyM%252C_%253B4hw36JQP0aaRXM%252C4PXPLmpV6Hms9M%252C_%253BAtBTuqe_fESLkM%252CEsdvy-9p92BkBM%252C_%253ByduA2nNrmwygZM%252CBzbSFTrqL8rBAM%252C_%253BGaZbn2smlaW9uM%252C3-84OpoDL61TeM%252C_&usg=AI4_-kSfyH_OCmUTGL2Al7Db9VfRVs2Sow&sa=X&ved=2ahUKEwiW7uPk2Ln3AhUwFzQIHUmuCIQQ9QF6BAgEEAE#imgrc=4aehnznSB6R_TM
+https://physics.stackexchange.com/questions/43232/force-applied-off-center-on-an-object
+https://physics.stackexchange.com/questions/184067/conservation-of-angular-momentum-about-combined-center-of-mass
+https://physics.stackexchange.com/questions/702366/does-the-angular-velocity-of-a-rotating-rod-change-when-its-axis-of-rotation-cha
+https://www.google.com/search?q=angular+momentum+center+of+mass&oq=angular+momentum+center+of+mass&aqs=chrome..69i57j69i60.12398j0j7&sourceid=chrome&ie=UTF-8
+https://en.wikipedia.org/wiki/Angular_momentum#:~:text=Definition%20in%20classical%20mechanics,-Main%20articles%3A%20Scalar&text=Just%20as%20for%20angular%20velocity,a%20chosen%20center%20of%20rotation.
+https://physics.stackexchange.com/questions/183524/angular-momentum-with-respect-to-the-centre-of-mass
+https://www.google.com/search?q=sympy+time+dependent+variable+dynamics&sxsrf=ALiCzsaivGOFeuMxD4H1ri1WzHtGGlBU4Q%3A1651370689104&ei=weptYqD6BYG-tAbjvrvQBA&ved=0ahUKEwjg3sOam733AhUBH80KHWPfDkoQ4dUDCA8&uact=5&oq=sympy+time+dependent+variable+dynamics&gs_lcp=Cgdnd3Mtd2l6EAMyBggAEBYQHjIFCAAQhgMyBQgAEIYDMgUIABCGAzoHCAAQRxCwA0oECEEYAEoECEYYAFDMAljzCmCqC2gBcAF4AIAB6gGIAeoBkgEDMi0xmAEAoAEByAEIwAEB&sclient=gws-wiz
+https://stackoverflow.com/questions/56361125/sympy-scipy-involving-time-dependent-values
+https://github.com/dassencio/double-pendulum
+https://stackoverflow.com/questions/25124037/ipython-print-complete-history-not-just-current-session
+https://www.google.com/search?q=revolute+joint+torque+equation+of+motion&oq=revolute+joint+torque+equation+of+motion&aqs=chrome..69i57.7637j0j4&sourceid=chrome&ie=UTF-8
+https://modernrobotics.northwestern.edu/nu-gm-book-resource/11-3-motion-control-with-velocity-inputs-part-2-of-3/#department
+https://www.google.com/search?q=underactuated+control+law&oq=underactuated+control+law&aqs=chrome..69i57.7091j0j7&sourceid=chrome&ie=UTF-8
+https://homes.cs.washington.edu/~todorov/courses/amath579/Tedrake_notes.pdf
+https://www.scientific.net/AMM.849.13
+https://www.semanticscholar.org/paper/A-novel-energy-pumping-strategy-for-robotic-Papadopoulos-Papadopoulos/b6fb84463b835dd198b81802d167b05043bc8e90
+http://nereus.mech.ntua.gr/Documents/pdf_ps/med09_2.pdf
+https://github.com/bolderflight/control
+https://github.com/mikeferguson/graceful_controller
+https://galileo-unbound.blog/2020/10/18/the-ups-and-downs-of-the-compound-double-pendulum/
+https://diego.assencio.com/?index=1500c66ae7ab27bb0106467c68feebc6
+https://github.com/cyan-at/double-pendulum
+https://manipulation.csail.mit.edu/force.html
+http://underactuated.mit.edu/pend.html
+http://www.taumuon.co.uk/2016/10/optimal-control-of-double-integrator-with-dynamic-programming.html
+https://ieeexplore.ieee.org/document/6402421
+https://rrpress.utsa.edu/handle/20.500.12588/53
+https://gereshes.com/2018/02/19/how-to-pump-a-swing-using-math/
+https://web.ece.ucsb.edu/~hespanha/ece229/references/AstromFurutaAUTOM00.pdf
+https://www.researchgate.net/publication/252276262_The_pumping_of_a_swing_from_the_seated_position
+https://authors.library.caltech.edu/76878/1/04282946.pdf
+https://elib.dlr.de/79899/1/energy_shaping.pdf
+https://www.google.com/search?q=double+pendulum+energy+pumping+control&sxsrf=ALiCzsavvkAAYdAKHDAhp2JmyPTN68BDOQ%3A1651427829786&ei=9cluYtXTL8e4tQat0o_YCA&ved=0ahUKEwiVoqqJ8L73AhVHXM0KHS3pA4sQ4dUDCA4&uact=5&oq=double+pendulum+energy+pumping+control&gs_lcp=Cgdnd3Mtd2l6EAMyBQghEKABOgcIABBHELADOgQIIxAnOgUIABCRAjoLCC4QgAQQsQMQgwE6DgguEIAEELEDEMcBENEDOhEILhCABBCxAxCDARDHARCjAjoLCC4QgAQQxwEQowI6BAgAEEM6EQguEIAEELEDEIMBEMcBENEDOggIABCxAxCRAjoICAAQgAQQsQM6BQgAEIAEOgoIABCABBCHAhAUOgsIABCABBCxAxCDAToGCAAQFhAeOgUIABCGAzoICCEQFhAdEB46BQghEKsCSgQIQRgASgQIRhgAUNoKWJc7YMA8aAVwAXgAgAHgAYgBoiaSAQYyLjMzLjKYAQCgAQHIAQjAAQE&sclient=gws-wiz
+https://www.sciencedirect.com/science/article/pii/S1474667017571013
+https://reader.elsevier.com/reader/sd/pii/S1474667017571013?token=BB8173D939D6ACD4CAC67A191006151CAF882DF887562DCE6EA72580AB76022DCE50C909DD76BA53A9CBDF5CAF081D59&originRegion=us-east-1&originCreation=20220501180840
+https://www.google.com/search?q=double+pendulum+swing+up+with+second+joint&sxsrf=ALiCzsZPLJkgz0p0x7pdAmRwEmujetZkJA%3A1651428518436&ei=psxuYuWlGsTF0PEPqoCmgAY&ved=0ahUKEwjlkNrR8r73AhXEIjQIHSqACWAQ4dUDCA4&uact=5&oq=double+pendulum+swing+up+with+second+joint&gs_lcp=Cgdnd3Mtd2l6EAMyBQghEKABMgUIIRCgATIFCCEQoAEyBQghEKABMgUIIRCgAToHCAAQRxCwAzoECCMQJzoFCAAQkQI6CwguEIAEELEDEIMBOg4ILhCABBCxAxDHARDRAzoRCC4QgAQQsQMQgwEQxwEQowI6CwguEIAEEMcBEKMCOgQIABBDOg0ILhCxAxDHARCjAhBDOhEILhCABBCxAxCDARDHARDRAzoICAAQsQMQkQI6CAgAEIAEELEDOg4ILhCABBCxAxCDARDUAjoFCAAQgAQ6CggAEIAEEIcCEBQ6CwgAEIAEELEDEIMBOgYIABAWEB46BQgAEIYDOgUIIRCrAjoICCEQFhAdEB5KBAhBGABKBAhGGABQug5Y5DVg7zZoA3ABeACAAcICiAHjMZIBCDAuMzUuNS4xmAEAoAEByAEEwAEB&sclient=gws-wiz
+https://www.sciencedirect.com/science/article/abs/pii/S0921889016306996
+https://deepnote.com/workspace/cyan-e143-f2ffa632-57f8-49f4-9a55-43c577d7dc69/project/Ch-2-The-Simple-Pendulum-Duplicate-3c7de171-c87f-48eb-9a3d-4d203c202d2f/%2Fpend.ipynb#00010-f59c6071-da10-4b0f-a7dc-cdc26a061e0e
+https://github.com/tsitsimis/underactuated
+https://www.google.com/search?q=Analysis+of+a+Double+Pendulum+System+with+Joint+Actuation+by+a+Non-Linear+Control+pdf&sxsrf=ALiCzsaufC5-zoAnb16ggC9U_n2E0wsxpQ%3A1651426516271&ei=1MRuYpeaENDR0PEPtqiJqAQ&ved=0ahUKEwiX1P-W6773AhXQKDQIHTZUAkUQ4dUDCA4&uact=5&oq=Analysis+of+a+Double+Pendulum+System+with+Joint+Actuation+by+a+Non-Linear+Control+pdf&gs_lcp=Cgdnd3Mtd2l6EANKBAhBGAFKBAhGGABQwQ1Y9BFggBNoA3AAeACAAYoBiAHmA5IBAzAuNJgBAKABAcABAQ&sclient=gws-wiz
+file:///home/a/Desktop/applsci-11-07615.pdf
+https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.622.6114&rep=rep1&type=pdf
+https://www.lirmm.fr/~chemori/Temp/Wafa/double%20pendule%20inverse.pdf
+
+
+
+Acrobot underactuated with another actuated joint
+2 double pendulums
+
+Energy shaping part of the problem
+
+
