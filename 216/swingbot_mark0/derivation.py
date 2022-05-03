@@ -120,11 +120,11 @@ tau_g =-tau_g
 
 ##########################################################
 
-# 3. collated linearize to get:
+# 3. collocated linearize to get:
 # dynamics of the NONactuated joints = f(actuated joints)
 
-# linearizing actuated joints = collated linearization
-# collated linearize means to rewrite the manipulator matrice expressions
+# linearizing actuated joints = collocated linearization
+# collocated linearize means to rewrite the manipulator matrice expressions
 # to solve for non-actuated dynamics q** and the actuated q** in terms of something
 
 # here is also where we add in + u control input (which can be 0)
@@ -215,3 +215,16 @@ Out[289]: dict_keys([Derivative(t3(t), t)**2, 1])
 we find no part of the q** derives from q**, which is good
 '''
 
+##########################################################
+
+'''
+5. control law derivation
+
+0. construct the energy function
+
+1. construct a desired energy E_d (t1 = t1_target), it is NOT stable
+t1dot != 0, other joints are unconstrained
+
+2. 
+
+'''

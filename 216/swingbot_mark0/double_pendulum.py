@@ -57,6 +57,7 @@ import matplotlib.pyplot as plt
 import scipy.integrate as integrate
 import matplotlib.animation as animation
 from collections import deque
+import argparse
 
 G = 9.8  # acceleration due to gravity, in m/s^2
 L1 = 10.0  # length of pendulum 1 in m
@@ -66,6 +67,10 @@ M1 = 1.0  # mass of pendulum 1 in kg
 M2 = 1.0  # mass of pendulum 2 in kg
 t_stop = 60  # how many seconds to simulate
 history_len = 500  # how many trajectory points to display
+
+KD = 1.0
+KP = 1.0
+ALPHA = 1
 
 def derivs_original(state, t):
     '''
@@ -109,60 +114,140 @@ def derivs_original(state, t):
 
     return dydx
 
-def derivs_sympy(state, t):
-    '''
-        state = x = [
-            theta1
-            theta1*
-            theta2
-            theta2*
-        ]
+def insert_into_dict_of_arrays(d, k, v, mode="append"):
+    """ Aggregates or assigns a dictionary with k, v
 
-        state = x* = [
-            theta1*
-            theta1**
-            theta2*
-            theta2**
-        ]
-    '''
-    dydx = np.zeros_like(state)
+    Parameters
+    ----------
+    d : dict
+        dict to modify
+    k : any hashable type
+        key into dict d
+    v : any type
+        value to modify at d[k]
+    mode : str
+        aggregation mode to modify d in, append, add, or override
 
-    dydx[0] = state[1]
-    dydx[2] = state[3]
+    Notes
+    -----
+    side-effect: d is updated
+    in 'append' mode, if v is a list it is extend'd into d[k]
+    """
 
-    t1 = state[0]
-    t1_dot = state[1]
-    t2 = state[2]
-    t2_dot = state[3]
-    t1_t2 = t1 - t2
+    if k in d.keys():
+        if mode == "append":
+            d[k].append(v)
+        if mode == "extend":
+            if type(v) == list:
+                d[k].extend(v)
+            else:
+                d[k].append(v)
+        elif mode == "add":
+            d[k][0] += v
+        elif mode == "override":
+            d[k] = [v]
+    else:
+        d[k] = [v]
 
-    # both work below, are equivalent
+class Container(object):
+    def __init__(self):
+        self._data = {
+        }
 
-    # this set is from matrix math
-    # den1 = L1 * (M1 - M2 * cos(t1_t2)**2 + M2)
-    # mine_dydx1 = -G * (M1 + M2) * sin(t1)\
-    #     - L2*M2*sin(t1_t2)*t2_dot**2\
-    #     + M2*(G*sin(t2) - L1*sin(t1_t2)*t1_dot**2)*cos(t1_t2)
-    # dydx[1] = mine_dydx1 / den1
+    def derivs_sympy(self, state, t):
+        '''
+            state = x = [
+                theta1
+                theta1*
+                theta2
+                theta2*
+            ]
 
-    # den2 = L2*(M1 - M2*cos(t1-t2)**2 + M2)
-    # mine_dydx2 = -(M1 + M2)*(G*sin(t2) - L1*sin(t1_t2)*t1_dot**2)\
-    #     + (G*(M1+M2)*sin(t1) + L2*M2*sin(t1_t2)*t2_dot**2)*cos(t1_t2)
-    # dydx[3] = mine_dydx2 / den2
+            state = x* = [
+                theta1*
+                theta1**
+                theta2*
+                theta2**
+            ]
+        '''
+        dydx = np.zeros_like(state)
 
-    # this set is from by hand simplification calculus
-    den1 = L1*(-M1 - M2 + M2 * cos(t1_t2)**2)
-    num1 = G*(M1 + M2)*sin(t1) \
-        + M2*(L2*sin(t1_t2)*t2_dot**2 \
-        - (G*sin(t2) - L1*sin(t1_t2)*t1_dot**2)*cos(t1_t2))
-    dydx[1] = num1 / den1
+        dydx[0] = state[1]
+        dydx[2] = state[3]
 
-    den2 = L2*(-M1 + M2*cos(t1_t2)**2 - M2)
-    num2 = (-M1 - M2) * (-G*sin(t2) + L1*sin(t1_t2)*t1_dot**2) \
-        - (G*(M1 + M2)*sin(t1) + L2*M2*sin(t1_t2)*t2_dot**2)*cos(t1_t2)
-    dydx[3] = num2 / den2
+        t1 = state[0]
+        t1_dot = state[1]
+        t2 = state[2]
+        t2_dot = state[3]
+        t1_t2 = t1 - t2
 
-    return dydx
+        # both work below, are equivalent
+
+        # this set is from matrix math
+        # den1 = L1 * (M1 - M2 * cos(t1_t2)**2 + M2)
+        # mine_dydx1 = -G * (M1 + M2) * sin(t1)\
+        #     - L2*M2*sin(t1_t2)*t2_dot**2\
+        #     + M2*(G*sin(t2) - L1*sin(t1_t2)*t1_dot**2)*cos(t1_t2)
+        # dydx[1] = mine_dydx1 / den1
+
+        # den2 = L2*(M1 - M2*cos(t1-t2)**2 + M2)
+        # mine_dydx2 = -(M1 + M2)*(G*sin(t2) - L1*sin(t1_t2)*t1_dot**2)\
+        #     + (G*(M1+M2)*sin(t1) + L2*M2*sin(t1_t2)*t2_dot**2)*cos(t1_t2)
+        # dydx[3] = mine_dydx2 / den2
+
+        '''
+        # this set is from by hand simplification calculus
+        den1 = L1*(-M1 - M2 + M2 * cos(t1_t2)**2)
+        num1 = G*(M1 + M2)*sin(t1) \
+            + M2*(L2*sin(t1_t2)*t2_dot**2 \
+            - (G*sin(t2) - L1*sin(t1_t2)*t1_dot**2)*cos(t1_t2))
+        dydx[1] = num1 / den1
+
+        den2 = L2*(-M1 + M2*cos(t1_t2)**2 - M2)
+        num2 = (-M1 - M2) * (-G*sin(t2) + L1*sin(t1_t2)*t1_dot**2) \
+            - (G*(M1 + M2)*sin(t1) + L2*M2*sin(t1_t2)*t2_dot**2)*cos(t1_t2)
+        dydx[3] = num2 / den2
+        '''
+
+        '''
+            with a torque term u2 added in derivations
+        # print(np.arctan(t1_dot))
+        # U2 = 0.7 / (np.pi * np.arctan(t1_dot))
+        U2 = 0
+
+        num1 = -(G*(M1 + M2)*sin(t1) + L2*M2*sin(t1_t2)*t2_dot**2 + M2*(-G*sin(t2) + L1*sin(t1_t2)*t1_dot**2 + L2*U2)*cos(t1_t2))
+        den1 = L1*(M1 - M2*cos(t1_t2)**2 + M2)
+        dydx[1] = num1 / den1
+
+        num2 = (M1 + M2)*(-G*sin(t2) + L1*sin(t1_t2)*t1_dot**2 + L2*U2)\
+            + (G*(M1 + M2)*sin(t1) + L2*M2*sin(t1_t2)*t2_dot**2)*cos(t1_t2)
+        den2 = L2*(M1 - M2*cos(t1_t2)**2 + M2)
+        dydx[3] = num2/den2
+        '''
+
+        '''
+            these are SEPARATE THINGS
+            TRAJECTORY / GOAL, related artifacts
+            ACTUATOR TORQUE 'U'
+            Q**
+        '''
+
+        v = -KD*t2_dot + KP*(0.636619772367581*ALPHA*np.arctan(t1_dot) - t2)
+
+        # u == input torque
+        u = G*sin(t2)/L2 + L1*(-G*sin(t1)/L1 - L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2)))*cos(t1_t2)/L2 - L1*sin(t1_t2)*t1_dot**2/L2 + (-KD*t2 + KP*(0.63661977236758138*ALPHA*np.arctan(t1_dot) - t2))*(-M2*cos(t1_t2)**2/(M1 + M2) + 1)
+        # print("u=",u)
+
+        dydx[1] = -G*sin(t1)/L1 + L2*M2*cos(t1+t2)*v - L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2))
+        dydx[3] = v
+
+        # aux data
+        q2_desired = 2*ALPHA/np.pi*np.arctan(t1_dot)
+        data = np.append(dydx, q2_desired)
+        
+        insert_into_dict_of_arrays(self._data, "q2_desired", q2_desired)
+
+        return dydx
 
 # create a time array from 0..t_stop sampled at 0.02 second steps
 dt = 0.02
@@ -170,7 +255,7 @@ t = np.arange(0, t_stop, dt)
 
 # th1 and th2 are the initial angles (degrees)
 # w10 and w20 are the initial angular velocities (degrees per second)
-th1 = 120.0
+th1 = 0.0
 w1 = 0.0
 th2 = -10.0
 w2 = 0.0
@@ -179,7 +264,8 @@ w2 = 0.0
 state = np.radians([th1, w1, th2, w2])
 
 # integrate your ODE using scipy.integrate.
-y = integrate.odeint(derivs_sympy, state, t)
+c = Container()
+y = integrate.odeint(c.derivs_sympy, state, t)
 x1 = L1*sin(y[:, 0])
 y1 = -L1*cos(y[:, 0])
 x2 = L2*sin(y[:, 2]) + x1
@@ -193,7 +279,7 @@ y2 = -L2*cos(y[:, 2]) + y1
 # y2_orig = -L2*cos(y_original[:, 2]) + y1_orig
 
 fig = plt.figure(figsize=(5, 4))
-ax = fig.add_subplot(autoscale_on=False, xlim=(-L, L), ylim=(-L, 1.))
+ax = fig.add_subplot(autoscale_on=False, xlim=(-L, L), ylim=(-L, L))
 ax.set_aspect('equal')
 ax.grid()
 time_template = 'time = %.1fs'
@@ -202,6 +288,13 @@ time_text = ax.text(0.05, 0.9, '', transform=ax.transAxes)
 line, = ax.plot([], [], 'o-', lw=2)
 trace, = ax.plot([], [], '.-', lw=1, ms=2)
 history_x, history_y = deque(maxlen=history_len), deque(maxlen=history_len)
+
+# aux
+q2_desired = c._data["q2_desired"]
+print(q2_desired)
+
+line1, = ax.plot([], [], 'o-', lw=2)
+line2, = ax.plot([], [], 'o-', lw=2)
 
 # line_orig, = ax.plot([], [], 'o-', lw=2)
 # trace_orig, = ax.plot([], [], '.-', lw=1, ms=2)
@@ -234,7 +327,7 @@ def animate(i):
     time_text.set_text(time_template % (i*dt))
 
     # return line, trace, line_orig, trace_orig, time_text
-    return line, trace, time_text
+    return line, line1, line2, trace, time_text
 
 
 ani = animation.FuncAnimation(
@@ -243,21 +336,11 @@ plt.show()
 
 '''
 alpha1 = l2 / l1 * (m2 / (m1 + m2))*cos(t1 - t2)
-alph2 = l1 / l2 * cos(t1 - t2)
 alpha2 = l1 / l2 * cos(t1 - t2)
-A = Matrix([1, alpha1; alpha2, 1])
-A = Matrix([1, alpha1], [alpha2, 1])
 A = Matrix([[1, alpha1], [alpha2, 1]])
-A
-Ainv = inv(A)
-Ainv = A.inv
-Ainv
 Ainv = A.inv()
-Ainv
 f1 = -l2 / l1 * (m2 / (m1 + m2)) * (t2.diff(t))**2 * sin(t1 - t2) - g / l1*sin(t1)
-f1
 f2 = l1 / l2 * (t1.diff(t))**2 * sin(t1 - t2) - g / l2*sin(t2)
-f2
 fs = Matrix([[f1], [f2]])
 fs
 Ainv * fs
@@ -275,4 +358,67 @@ simplify((f1 - alpha1 * f2) / (1 - alpha1*alpha2))
 (f1 - alpha1 * f2) / (1 - alpha1*alpha2)
 simplify((-alpha2*f1 + f2) / (1 - alpha1*alpha2))
 simplify(test[0])
+
+'''
+
+
+
+'''
+alpha1 = l2 / l1 * (m2 / (m1 + m2))*cos(t1 - t2)
+alpha2 = l1 / l2 * cos(t1 - t2)
+double_M = Matrix([[1, alpha1], [alpha2, 1]])
+
+double_tau1 = -l2 / l1 * (m2 / (m1 + m2)) * (t2.diff(t))**2 * sin(t1 - t2) - g / l1*sin(t1)
+
+# ADDING AN INPUT TORQUE ON Q2
+double_tau2 = l1 / l2 * (t1.diff(t))**2 * sin(t1 - t2) - g / l2*sin(t2) + u2
+
+double_tau = Matrix([[double_tau1], [double_tau2]])
+
+double_M_inv = simplify(double_M.inv())
+
+double_qdotdot_derived = simplify(double_M_inv * double_tau)
+
+print(python(double_qdotdot_derived[0]))
+print(python(double_qdotdot_derived[1]))
+'''
+
+
+'''
+do PFL (partial feedback linearization) (collocated)
+to decouple the influence of link 1 on link 2's dynamics
+
+double_M * q** = double_tau
+
+double_pfl_tau1 = -l2 / l1 * (m2 / (m1 + m2)) * (t2.diff(t))**2 * sin(t1 - t2) - g / l1*sin(t1)
+
+# NO U
+double_pfl_tau2 = l1 / l2 * (t1.diff(t))**2 * sin(t1 - t2) - g / l2*sin(t2)
+
+double_pfl_tau = Matrix([[double_pfl_tau1], [double_pfl_tau2]])
+
+double_q1dot = 1 / double_M[0, 0] * (double_pfl_tau[0] - M[0, 1] * dt2.diff(t))
+
+
+double_mblob = (double_M[1, 1] - double_M[1, 0] * double_M[0, 1] / double_M[0, 0])
+
+aaa, kp, kd = symbols('aaa kp kd')
+q2d = (2 * aaa / np.pi) * atan(dt1)
+v = kp * (q2d - t2) - kd * t2dot
+u = double_mblob * v - double_pfl_tau[1] + double_M[1, 0] / double_M[0, 0] * double_pfl_tau[0]
+double_q2dot = v
+
+'''
+
+'''
+double_U = -(m1 + m2)*g*l1*cos(t1) - m2*g*l2*cos(t2)
+
+double_E = simplify(transpose(qdot) * double_M * qdot / 2 + double_U)
+
+t1_goal = symbols('t1_goal')
+
+double_E_goal = double_U.subs({t1 : t1_goal, t2: 0})
+
+double_E_err = simplify(double_E - double_E_goal)
+
 '''
