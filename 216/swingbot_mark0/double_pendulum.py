@@ -113,13 +113,13 @@ L2 = 1.0  # length of pendulum 2 in m
 L = 1.05*(L1 + L2)  # maximal length of the combined pendulum
 M1 = 1.0  # mass of pendulum 1 in kg
 M2 = 1.0  # mass of pendulum 2 in kg
-t_stop = 60  # how many seconds to simulate
+t_stop = 120  # how many seconds to simulate
 history_len = 500  # how many trajectory points to display
 dt = 0.02
 t = np.arange(0, t_stop, dt)
 
 ALPHA = 1.
-K1 = 1.0
+K1 = 5.0
 K2 = 1.0
 K3 = 1.0
 
@@ -202,8 +202,9 @@ def insert_into_dict_of_arrays(d, k, v, mode="append"):
 
 class Container(object):
     def __init__(self):
-        self._data = {
-        }
+        self._data = {}
+
+        self._t = 0.0
 
     def derivs_freebody(self, state, t):
         dydx = np.zeros_like(state)
@@ -258,8 +259,35 @@ class Container(object):
 
         return dydx
 
-    def derivs_pfl_noncollated_strategy2(self, state, t):
-        pass
+    def derivs_pfl_noncollocated_strategy1(self, state, t):
+        print(self._t)
+
+        dydx = np.zeros_like(state)
+
+        dydx[0] = state[1]
+        dydx[2] = state[3]
+
+        t1 = state[0]
+        t1_dot = state[1]
+        t2 = state[2]
+        t2_dot = state[3]
+        t1_t2 = t1 - t2
+
+        target_q1_norm = np.pi / 2
+        speed = 1
+        freq = 1
+        amp = min(target_q1_norm, self._t / speed)
+        q1d = amp * np.sin(t * freq)
+
+        # ---PFL noncollocated control strategy 1
+        v = -K2*t1_dot + K1*(q1d - t1)
+
+        dydx[1] = v
+        dydx[3] = -(G*(M1 + M2)*sin(t1) + L1*(M1 + M2)*v + L2*M2*sin(t1_t2)*t2_dot**2)/(L2*M2*cos(t1_t2))
+
+        self._t += dt
+
+        return dydx
 
     def derivs_sympy(self, state, t):
         '''
@@ -411,8 +439,10 @@ if __name__ == '__main__':
 
     # integrate your ODE using scipy.integrate.
     c = Container()
+    print("t", t)
+    # state = integrate.odeint(c.derivs_freebody, state, t)
     # state = integrate.odeint(c.derivs_pfl_collocated_strategy1, state, t)
-    state = integrate.odeint(c.derivs_freebody, state, t)
+    state = integrate.odeint(c.derivs_pfl_noncollocated_strategy1, state, t)
 
     x1 = L1*sin(state[:, 0])
     y1 = -L1*cos(state[:, 0])
