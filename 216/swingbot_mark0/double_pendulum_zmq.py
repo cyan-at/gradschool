@@ -21,6 +21,23 @@ import numpy as np
 
 from double_pendulum import *
 
+# constants
+G = 9.8  # acceleration due to gravity, in m/s^2
+L1 = 10.0  # length of pendulum 1 in m
+L2 = 1.0  # length of pendulum 2 in m
+L = 1.05*(L1 + L2)  # maximal length of the combined pendulum
+M1 = 1.0  # mass of pendulum 1 in kg
+M2 = 1.0  # mass of pendulum 2 in kg
+t_stop = 120  # how many seconds to simulate
+history_len = 500  # how many trajectory points to display
+dt = 0.02
+t = np.arange(0, t_stop, dt)
+
+ALPHA = 1.
+K1 = 1.0
+K2 = 1.0
+K3 = 1.0
+
 class Sender(IterableObject):
   def __init__(self, args):
     super(Sender, self).__init__()
