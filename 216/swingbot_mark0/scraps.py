@@ -564,3 +564,16 @@ h_bar_pinv
 print(python(h_bar_pinv))
 print(python(yd_blob))
 '''
+
+G*sin(t1(t))/L1 + p1_damping*Derivative(t1(t), t) + L2*M2*sin(t1(t) - t2(t))*Derivative(t2(t), t)**2/(L1*(M1 + M2))
+
+
+h_bar_pinv_blob = -L1*(M1 + M2)/(L2*M2*cos(t1_t2))
+
+yd_blob = -(G*(M1 + M2)*sin(t1) + L1*p1_damping*(M1 + M2)*t1_dot + L2*M2*sin(t1 - t2)*t2_dot**2)/(L1*(M1 + M2))
+
+
+
+yd_dotdot = -t⋅sin(t) + 2⋅cos(t)
+
+h_bar_pinv_blob * (yd_dotdot - yd_blob)
