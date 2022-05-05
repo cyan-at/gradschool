@@ -113,7 +113,7 @@ L2 = 1.0  # length of pendulum 2 in m
 L = 1.05*(L1 + L2)  # maximal length of the combined pendulum
 M1 = 1.0  # mass of pendulum 1 in kg
 M2 = 1.0  # mass of pendulum 2 in kg
-t_stop = 120  # how many seconds to simulate
+t_stop = np.pi * 10 # how many seconds to simulate
 history_len = 500  # how many trajectory points to display
 dt = 0.02
 t = np.arange(0, t_stop, dt)
@@ -123,6 +123,9 @@ ALPHA = 1.
 K1 = 1.0
 K2 = 1.0
 K3 = 1.0
+
+K4 = 5.0
+K5 = 5.0
 
 def derivs_original(state, t):
     '''
@@ -261,6 +264,61 @@ class Container(object):
 
         return dydx
 
+    def derivs_pfl_collocated_taskspace(self, state, t):
+        dydx = np.zeros_like(state)
+
+        # q1_dot
+        dydx[0] = state[1]
+
+        # q2_dot
+        dydx[2] = state[3]
+
+        t1 = state[0]
+        t1_dot = state[1]
+        t2 = state[2]
+        t2_dot = state[3]
+        t1_t2 = t1 - t2
+
+        # yd = 0.5 * sin(t)
+        # yd_dot = cos(t)
+        # yd_dotdot = -sin(t)
+
+        # if t < np.pi * k:
+        #     print("hi")
+        #     yd = t / k * sin(t / k)
+        #     yd_dot = t/(k**2)*cos(t/k) + sin(t/k) / k
+        #     yd_dotdot = -t*sin(t/k)/(k**3) + 2*cos(t/k)/(k**2)
+        # else:
+        #     print("bye")
+        #     yd = np.pi * sin(t / k)
+        #     yd_dot = np.pi * cos(t / k) / k
+        #     yd_dotdot = -np.pi * sin(t / k) / k**2
+
+        # these 2 sets show it working on y = q2
+        # this will converge to the task space goal
+        # so NO need to ramp up
+        k = 1
+        a = np.pi / 4
+
+        # k = 2
+        # a = np.pi / 2
+
+        k = 1
+        a = np.pi / 3
+
+        yd = a * sin(t / k)
+        yd_dot = a * cos(t / k) / k
+        yd_dotdot = -a * sin(t / k) / k**2
+
+        v = yd_dotdot + K5 * (yd_dot - t2_dot) + K4 * (yd - t2)
+
+        dydx[3] = v
+        dydx[1] = -G*sin(t1)/L1 + L2*M2*cos(t1+t2)*v - L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2)) - Q1_DAMPING*t1_dot
+
+        return dydx
+
+    #####################################################################
+
     def derivs_pfl_noncollocated_strategy1(self, state, t):
         print(self._t)
 
@@ -289,6 +347,70 @@ class Container(object):
         print("den", den)
         dydx[3] = -(G*(M1 + M2)*sin(t1) + L1*(M1 + M2)*v + L2*M2*sin(t1_t2)*t2_dot**2)/den
         self._t += dt
+
+        return dydx
+
+    def derivs_pfl_collocated_taskspace_2(self, state, t):
+        dydx = np.zeros_like(state)
+
+        # q1_dot
+        dydx[0] = state[1]
+
+        # q2_dot
+        dydx[2] = state[3]
+
+        t1 = state[0]
+        t1_dot = state[1]
+        t2 = state[2]
+        t2_dot = state[3]
+        t1_t2 = t1 - t2
+
+
+        # this will converge to the task space goal
+        # so NO need to ramp up
+        k = 1
+        a = 0.1
+
+        # k = 2
+        # a = np.pi / 2
+
+        yd = a * sin(t / k)
+        yd_dot = a * cos(t / k) / k
+        yd_dotdot = -a * sin(t / k) / k**2
+
+        # control law stays the same
+        v = 0 + K5 * (yd_dot - t1_dot) + K4 * (yd - t1)
+
+        tau_blob = G*sin(t1)/L1 + Q1_DAMPING*t1_dot + L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2))
+
+        '''
+        It is state dependent; in the cart-pole example above  and drops rank exactly when .
+        A system has Global Strong Inertial Coupling
+        if it exhibits Strong Inertial Coupling in every state.
+        '''
+        if np.abs(cos(t1_t2)) < 1e-2:
+            print("WARNNNNNINGGGG SINGULAR DROPPPP RANKKKK!!!!")
+
+        if np.abs(cos(t1_t2)) > 1e-2:
+            coupling_term = cos(t1_t2)
+            print("coupling_term", coupling_term)
+            gain = -L1*(M1 + M2)/(L2*M2*coupling_term)
+            dydx[3] = gain*v - tau_blob
+
+
+            # dydx[1] = L2*M2*cos(t1+t2)*v - G*sin(t1)/L1 - L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2)) - Q1_DAMPING*t1_dot
+
+        else:
+            dydx[3] = 0
+
+
+        # q1_gain = -L2*M2*cos(t1_t2)/(L1*(M1 + M2))
+        q1_gain = L2*M2*cos(t1+t2)
+        dydx[1] = q1_gain * dydx[3] - tau_blob
+
+        # print("dydx", dydx)
+
+        # dydx[1] = -G*sin(t1)/L1 + L2*M2*cos(t1+t2)*dydx[3] - L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2)) - Q1_DAMPING*t1_dot
 
         return dydx
 
@@ -411,7 +533,7 @@ def animate(i):
     # trace_orig.set_data(history_x_orig, history_y_orig)
 
     aux1_text.set_text(aux1_template % (state[i, 0]))
-    # aux2_text.set_text('hello')
+    aux2_text.set_text(aux2_template % (state[i, 2]))
     # aux3_text.set_text('hello')
     # aux4_text.set_text('hello')
 
@@ -422,7 +544,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="")
     parser.add_argument('--playback', type=int, default=1, help='')
-    parser.add_argument('--initial', type=str, default="10,0,1,0", help='')
+    parser.add_argument('--initial', type=str, default="0,0,1,0", help='')
+    '''
+    q2_dot [3] cannot be 0
+    http://underactuated.mit.edu/pend.html#energy_shaping
+    This is true for any  theta_dot, except for theta_dot = 0
+    (so it will not actually swing us up from the downright fixed point...
+    but if you nudge the system just a bit, then it will start
+    pumping energy and will swing all of the way up).
+    '''
     args = parser.parse_args()
 
     t1_goal = 1.0
@@ -443,8 +573,14 @@ if __name__ == '__main__':
     # integrate your ODE using scipy.integrate.
     c = Container()
     # state = integrate.odeint(c.derivs_freebody, state, t)
-    state = integrate.odeint(c.derivs_pfl_collocated_strategy1, state, t)
+    # state = integrate.odeint(c.derivs_pfl_collocated_strategy1, state, t)
     # state = integrate.odeint(c.derivs_pfl_noncollocated_strategy1, state, t)
+    state = integrate.odeint(c.derivs_pfl_collocated_taskspace, state, t)
+    print("done")
+
+    # state = np.zeros((len(t), 3))
+    # state[:, 0] = t
+    # state[:, 0] = np.sin(state[:, 0])
 
     x1 = L1*sin(state[:, 0])
     y1 = -L1*cos(state[:, 0])
@@ -464,6 +600,8 @@ if __name__ == '__main__':
     ax.grid()
     aux1_template = 'aux1 = %.2f'
     aux1_text = ax.text(0.05, 0.9, '', transform=ax.transAxes)
+
+    aux2_template = 'aux2 = %.2f'
     aux2_text = ax.text(0.05, 0.8, '', transform=ax.transAxes)
     aux3_text = ax.text(0.05, 0.7, '', transform=ax.transAxes)
     aux4_text = ax.text(0.05, 0.6, '', transform=ax.transAxes)
@@ -531,7 +669,6 @@ so we are commanding the *actuated* joints aka we derive our control law based o
 and we are *hoping* that the dynamics cause our real goal, q1, to change how we want it to
 
 #############################
-
 
 t = Symbol('t')
 t1, t2, t3 = dynamicsymbols('t1 t2 t3')
@@ -602,5 +739,58 @@ double_E_goal = double_U.subs({t1 : t1_goal, t2: 0})
 double_E_err = simplify(double_E - double_E_goal)
 '''
 
+#####################################################################
+
+'''
+double_M11 = double_M[0, 0]
+double_M12 = double_M[0, 1]
+
+h_bar = h2 - h1 / double_M11 * double_M12
+h1, h2 = symbols('h1 h2')
+double_M11 = double_M[0, 0]
+double_M12 = double_M[0, 1]
+
+h_bar = h2 - h1 / double_M11 * double_M12
+h_bar
+h_bar * h_bar
+h_bar * (1 / h_bar * h_bar)
+h_bar
+1 / h_bar
+simplify(1 / h_bar)
+simplify(h_bar * (1 / (h_bar * h_bar)))
+h_bar_pinv = simplify(h_bar * (1 / (h_bar * h_bar)))
+h.diff(t)
+h
+h = Matrix([h1, h2])
+h2
+h1
+h1 = t1.diff(t)
+h1
+q = t1
+q.diff(t1)
+h1 = q.diff(t1)
+h2 = q.diff(t2)
+h2
+h1
+h
+h = Matrix([h1, h2])
+h
+h_bar_pinv = simplify(h_bar * (1 / (h_bar * h_bar)))
+double_M11 = double_M[0, 0]
+double_M12 = double_M[0, 1]
 
 
+h_bar = h2 - h1 / double_M11 * double_M12
+h_bar
+h_bar_pinv = simplify(h_bar * (1 / (h_bar * h_bar)))
+h_bar_pinv
+h
+h.diff(t)
+h1 / double_M11
+double_pfl_tau1_with_damping
+simplify(h1 / double_M11 * double_pfl_tau1_with_damping)
+yd_blob = simplify(h1 / double_M11 * double_pfl_tau1_with_damping)
+h_bar_pinv
+print(python(h_bar_pinv))
+print(python(yd_blob))
+'''
