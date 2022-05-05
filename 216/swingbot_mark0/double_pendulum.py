@@ -508,7 +508,16 @@ class Container(object):
 
         return dydx
 
-def animate(i):
+    def data_gen(self):
+        i = 0
+        while True:
+            i = (i + 1) % self._state.shape[0]
+
+            yield i
+
+def animate(data):
+    i = data
+
     thisx = [0, x1[i], x2[i]]
     thisy = [0, y1[i], y2[i]]
 
@@ -534,6 +543,9 @@ def animate(i):
 
     aux1_text.set_text(aux1_template % (state[i, 0]))
     aux2_text.set_text(aux2_template % (state[i, 2]))
+
+    aux2_text.set_text(aux2_template % (energy[i]))
+
     # aux3_text.set_text('hello')
     # aux4_text.set_text('hello')
 
@@ -573,10 +585,21 @@ if __name__ == '__main__':
     # integrate your ODE using scipy.integrate.
     c = Container()
     # state = integrate.odeint(c.derivs_freebody, state, t)
-    # state = integrate.odeint(c.derivs_pfl_collocated_strategy1, state, t)
+    state = integrate.odeint(c.derivs_pfl_collocated_strategy1, state, t)
+    # state = integrate.odeint(c.derivs_pfl_collocated_taskspace, state, t)
+    c._state = state
+
     # state = integrate.odeint(c.derivs_pfl_noncollocated_strategy1, state, t)
-    state = integrate.odeint(c.derivs_pfl_collocated_taskspace, state, t)
+    # state = integrate.odeint(c.derivs_pfl_collocated_taskspace_2, state, t)
     print("done")
+
+    e = 1/2*(state[:,1]**2 + state[:,3]**2)
+    u = M1*G*L1*(1 - cos(state[:,0])) +\
+        M2*G*L1*(1 - cos(state[:,0])) + M2*G*L2*(1 - cos(state[:,2]))
+    energy = e + u
+
+    print(state.shape[0])
+    print(len(energy))
 
     # state = np.zeros((len(t), 3))
     # state[:, 0] = t
@@ -625,7 +648,7 @@ if __name__ == '__main__':
     # history_x_orig, history_y_orig = deque(maxlen=history_len), deque(maxlen=history_len)
 
     ani = animation.FuncAnimation(
-        fig, animate, len(state), interval=dt*1000/args.playback, blit=True)
+        fig, animate, c.data_gen, interval=dt*1000/args.playback, blit=True)
     plt.title('playback speed %dx' % (args.playback))
     plt.show()
 
