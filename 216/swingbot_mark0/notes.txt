@@ -216,3 +216,48 @@ https://www.youtube.com/watch?v=scIVIhChL1I
 https://www.google.com/search?q=double+pendulum+center+of+mass&oq=double+pendulum+center+of+mass&aqs=chrome..69i57.3711j0j4&sourceid=chrome&ie=UTF-8
 https://en.wikipedia.org/wiki/Double_pendulum#:~:text=In%20a%20compound%20pendulum%2C%20the,ml2%20about%20that%20point.
 https://www.google.com/search?q=center+of+mass+of+2+masses+linked&sxsrf=APq-WBvhL04Oqsz1tLgNribS4UeqN__yMQ:1650832838050&tbm=isch&source=iu&ictx=1&vet=1&fir=4aehnznSB6R_TM%252C4PXPLmpV6Hms9M%252C_%253BhLNNwEvUSuPJRM%252C4PXPLmpV6Hms9M%252C_&usg=AI4_-kR8FhtX4fZYQNPvcGaLyOjn_Hobbg&sa=X&ved=2ahUKEwiK2ZTHx633AhXDU80KHV0CBEsQ_h16BAgjEAE&biw=1314&bih=668&dpr=1#imgrc=4aehnznSB6R_TM
+
+
+        e = 1/2*(t1_dot**2 + t2_dot**2)
+        u = M1*G*L1*(1 - cos(t1)) + M2*G*L1*(1 - cos(t1)) + M2*G*L2*(1 - cos(t2))
+
+
+alpha2 = L2 / L1 * (M2 / (M1 + M2))*cos(t1 - t2)
+alpha2 = L1 / L2 * cos(t1 - t2)
+
+################################################################
+
+redo collocated pfl with p1_damping term in sympy
+    done, works fine
+
+plot out and take image of achieved swing up trajectory
+
+non-collated + pd control law make no sense and don't work
+and result in numerical issues when cos(t1_t2) ~= 0, lose 'strongly coupled inertia'
+does this ever work?
+
+http://underactuated.mit.edu/acrobot.html
+"
+In order to swing up and balance the entire system, the controller must reason about and exploit the state-dependent coupling between the actuated degree of freedom and the unactuated degree of freedom.
+
+The rank condition in this context is sometimes called the property of "Strong Inertial Coupling".
+It is state dependent; in the cart-pole example above  and drops rank exactly when cos(theta) = 0
+"
+
+collated pfl as a specific form of task-space where y = q2, with a sinusoidal y_desired works but the coupling between q2 and q1 is not obvious so we cannot command a desired q1 still, but we CAN control for q2 adequately with the right gains, keep values low otherwise behavior becomes really unstable
+
+non-collated as a specific form of task-space where y = q1, translated to q2 command then q1 forward dynamics expression also does not work, again run into integration issues when M12 drops rank near cos(t1_t2):
+M12:
+L2*M2*cos(t1 - t2)/(L1*(M1 + M2))
+    this happens ALL THE TIME
+
+meta: comparing research papers to sanity check the variables used in one vs another for the same expressions. you DO find typos and you reinforce / confirm good ones:
+
+################################################################
+
+https://amme.journals.ekb.eg/article_35735_dcc3d35d0355d73289d6e34c8ada1f23.pdf
+Note that, a linear response from the first degree of freedom could be achieved even
+though it is not directly actuated but driven by the coupling forces arising from the
+motion of the second link. The motion of the second link may be complex and
+precisely defines the zero dynamics of the system. Therefore, the analysis of the
+zero dynamic is important to understand the behavior of the system. 
