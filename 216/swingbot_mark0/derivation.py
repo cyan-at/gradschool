@@ -5,6 +5,18 @@ from sympy.physics.mechanics import *
 sympy.init_printing()
 from IPython.display import display, Math
 
+def sympy_to_expression(sympy_expr):
+  expr = python(sympy_expr).split("\n")[-1].split(" = ")[-1]
+  expr = expr.replace("t2(t)", "t2")
+  expr = expr.replace("t1(t)", "t1")
+  expr = expr.replace("Derivative(t2, t)", "t2_dot")
+  expr = expr.replace("Derivative(t1, t)", "t1_dot")
+  expr = expr.replace("g", "G")
+  expr = expr.replace("m", "M")
+  expr = expr.replace("l", "L")
+  return expr
+
+
 #############################################################
 '''
 1. use Lagrange physics to create <equations of motion>
