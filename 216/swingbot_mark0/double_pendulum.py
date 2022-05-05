@@ -113,11 +113,12 @@ L2 = 1.0  # length of pendulum 2 in m
 L = 1.05*(L1 + L2)  # maximal length of the combined pendulum
 M1 = 1.0  # mass of pendulum 1 in kg
 M2 = 1.0  # mass of pendulum 2 in kg
-t_stop = np.pi * 10 # how many seconds to simulate
+Q1_DAMPING = 0.0
+
+t_stop = 120 # np.pi * 10 # how many seconds to simulate
 history_len = 500  # how many trajectory points to display
 dt = 0.02
 t = np.arange(0, t_stop, dt)
-Q1_DAMPING = 0.1
 
 ALPHA = 1.
 K1 = 1.0
@@ -210,6 +211,10 @@ class Container(object):
 
         self._t = 0.0
 
+        self.total = 0
+
+        self._state = None
+
     def derivs_freebody(self, state, t):
         dydx = np.zeros_like(state)
 
@@ -268,10 +273,10 @@ class Container(object):
         dydx = np.zeros_like(state)
 
         # q1_dot
-        dydx[0] = state[1]
+        dydx[0] = state[1] # state*[0] = q0* = state[1]
 
         # q2_dot
-        dydx[2] = state[3]
+        dydx[2] = state[3] # state*[2] = q1* = state[1]
 
         t1 = state[0]
         t1_dot = state[1]
