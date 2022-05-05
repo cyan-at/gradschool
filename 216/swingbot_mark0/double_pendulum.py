@@ -259,10 +259,6 @@ class Container(object):
         # artifact not used for plotting
         u = G*sin(t2)/L2 + L1*(-G*sin(t1)/L1 - L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2)))*cos(t1_t2)/L2 - L1*sin(t1_t2)*t1_dot**2/L2 + (-K2*t2 + K1*(0.63661977236758138*ALPHA*np.arctan(t1_dot) - t2))*(-M2*cos(t1_t2)**2/(M1 + M2) + 1)
 
-        # err_diff = (G*L1*L2*(M1 + M2)*(L1*(M1 + M2)*cos(t1_goal) + L2*M2) - G*L1*L2*(M1 + M2)*(L1*(M1 + M2)*cos(t1) + L2*M2*cos(t2)) + L1*(M1 + M2)*(L1*cos(t1 - t2)*t2_dot + L2*t1_dot)*t1_dot/2 + L2*(L1*(M1 + M2)*t2_dot + L2*M2*cos(t1 - t2)*t1_dot)*t2_dot/2)/(L1*L2*(M1 + M2))
-        # ubar = err_diff * t1_dot
-        # v = -K1*t2 - K2*t2_dot + K3*ubar
-
         dydx[3] = v # our control law/strategy includes a choice that v is the acceleration(?)
 
         dydx[1] = -G*sin(t1)/L1 + L2*M2*cos(t1+t2)*v - L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2)) - Q1_DAMPING*t1_dot
@@ -318,7 +314,9 @@ class Container(object):
         v = yd_dotdot + K5 * (yd_dot - t2_dot) + K4 * (yd - t2)
 
         dydx[3] = v
-        dydx[1] = -G*sin(t1)/L1 + L2*M2*cos(t1+t2)*v - L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2)) - Q1_DAMPING*t1_dot
+        dydx[1] = -G*sin(t1)/L1 + L2*M2*cos(t1+t2)*dydx[3] -\
+            L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2))\
+            - Q1_DAMPING*t1_dot
 
         return dydx
 
