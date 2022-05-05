@@ -196,3 +196,23 @@ Acrobot underactuated with another actuated joint
 Energy shaping part of the problem
 
 
+
+
+http://underactuated.mit.edu/pend.html
+https://github.com/dfki-ric-underactuated-lab/torque_limited_simple_pendulum
+https://www.youtube.com/watch?v=enzFAid9fxE
+https://www.google.com/search?q=damped+simple+pendulum&oq=damped+simple+pendulum&aqs=chrome..69i57.3081j0j7&sourceid=chrome&ie=UTF-8
+https://scholar.harvard.edu/files/david-morin/files/cmchap6.pdf
+https://openstax.org/books/university-physics-volume-1/pages/10-7-newtons-second-law-for-rotation
+https://www.google.com/search?q=kinetic+energy+of+pendulum+theta&tbm=isch&ved=2ahUKEwi2_MTeva33AhXCEc0KHaYYC5gQ2-cCegQIABAA&oq=kinetic+energy+of+pendulum+theta&gs_lcp=CgNpbWcQAzoHCCMQ7wMQJzoFCAAQgAQ6BggAEAcQHjoGCAAQCBAeOgQIABAeOgYIABAFEB5QwBlYsyRgiSVoAXAAeACAAckBiAH9BpIBBTAuNi4xmAEAoAEBqgELZ3dzLXdpei1pbWfAAQE&sclient=img&ei=eqtlYrbXK8KjtAamsazACQ#imgrc=ZhMy8BdkXNMeVM
+https://physics.stackexchange.com/questions/334282/pendulums-velocity-and-kinetic-energy
+https://www.google.com/search?q=lagrange+euler+external+force&sxsrf=APq-WBvpZzN4c5dLI7HVQni3xdznXt_kDg%3A1650830825027&ei=6a1lYumnAZKttQaA1q7IAQ&ved=0ahUKEwipwKOHwK33AhWSVs0KHQCrCxkQ4dUDCA4&uact=5&oq=lagrange+euler+external+force&gs_lcp=Cgdnd3Mtd2l6EAMyBggAEBYQHjIFCAAQhgMyBQgAEIYDMgUIABCGAzIFCAAQhgM6BAgAEEc6CggAEIAEEIcCEBRKBAhBGABKBAhGGABQzAJY0RBgtRFoAHADeAGAAegCiAHjE5IBBzAuNC42LjGYAQCgAQHIAQjAAQE&sclient=gws-wiz
+https://en.wikipedia.org/wiki/Conservative_force
+https://physics.stackexchange.com/questions/342294/euler-lagrange-equations-with-non-conservative-force-example
+https://phys.libretexts.org/Bookshelves/Classical_Mechanics/Variational_Principles_in_Classical_Mechanics_(Cline)/06%3A_Lagrangian_Dynamics/6.03%3A_Lagrange_Equations_from_dAlemberts_Principle
+http://www.cds.caltech.edu/archive/help/uploads/wiki/files/212/Mechanics_140a_old.pdf
+https://physics.stackexchange.com/questions/314403/how-does-the-change-in-the-center-of-mass-affect-the-time-period-of-bob
+https://www.youtube.com/watch?v=scIVIhChL1I
+https://www.google.com/search?q=double+pendulum+center+of+mass&oq=double+pendulum+center+of+mass&aqs=chrome..69i57.3711j0j4&sourceid=chrome&ie=UTF-8
+https://en.wikipedia.org/wiki/Double_pendulum#:~:text=In%20a%20compound%20pendulum%2C%20the,ml2%20about%20that%20point.
+https://www.google.com/search?q=center+of+mass+of+2+masses+linked&sxsrf=APq-WBvhL04Oqsz1tLgNribS4UeqN__yMQ:1650832838050&tbm=isch&source=iu&ictx=1&vet=1&fir=4aehnznSB6R_TM%252C4PXPLmpV6Hms9M%252C_%253BhLNNwEvUSuPJRM%252C4PXPLmpV6Hms9M%252C_&usg=AI4_-kR8FhtX4fZYQNPvcGaLyOjn_Hobbg&sa=X&ved=2ahUKEwiK2ZTHx633AhXDU80KHV0CBEsQ_h16BAgjEAE&biw=1314&bih=668&dpr=1#imgrc=4aehnznSB6R_TM

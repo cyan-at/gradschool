@@ -117,9 +117,10 @@ t_stop = 120  # how many seconds to simulate
 history_len = 500  # how many trajectory points to display
 dt = 0.02
 t = np.arange(0, t_stop, dt)
+Q1_DAMPING = 0.1
 
 ALPHA = 1.
-K1 = 5.0
+K1 = 1.0
 K2 = 1.0
 K3 = 1.0
 
@@ -255,7 +256,8 @@ class Container(object):
         # v = -K1*t2 - K2*t2_dot + K3*ubar
 
         dydx[3] = v # our control law/strategy includes a choice that v is the acceleration(?)
-        dydx[1] = -G*sin(t1)/L1 + L2*M2*cos(t1+t2)*v - L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2))
+
+        dydx[1] = -G*sin(t1)/L1 + L2*M2*cos(t1+t2)*v - L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2)) - Q1_DAMPING*t1_dot
 
         return dydx
 
@@ -283,8 +285,9 @@ class Container(object):
         v = -K2*t1_dot + K1*(q1d - t1)
 
         dydx[1] = v
-        dydx[3] = -(G*(M1 + M2)*sin(t1) + L1*(M1 + M2)*v + L2*M2*sin(t1_t2)*t2_dot**2)/(L2*M2*cos(t1_t2))
-
+        den = (L2*M2*cos(t1_t2))
+        print("den", den)
+        dydx[3] = -(G*(M1 + M2)*sin(t1) + L1*(M1 + M2)*v + L2*M2*sin(t1_t2)*t2_dot**2)/den
         self._t += dt
 
         return dydx
@@ -419,7 +422,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="")
     parser.add_argument('--playback', type=int, default=1, help='')
-    parser.add_argument('--initial', type=str, default="100,0,1,0", help='')
+    parser.add_argument('--initial', type=str, default="10,0,1,0", help='')
     args = parser.parse_args()
 
     t1_goal = 1.0
@@ -439,10 +442,9 @@ if __name__ == '__main__':
 
     # integrate your ODE using scipy.integrate.
     c = Container()
-    print("t", t)
     # state = integrate.odeint(c.derivs_freebody, state, t)
-    # state = integrate.odeint(c.derivs_pfl_collocated_strategy1, state, t)
-    state = integrate.odeint(c.derivs_pfl_noncollocated_strategy1, state, t)
+    state = integrate.odeint(c.derivs_pfl_collocated_strategy1, state, t)
+    # state = integrate.odeint(c.derivs_pfl_noncollocated_strategy1, state, t)
 
     x1 = L1*sin(state[:, 0])
     y1 = -L1*cos(state[:, 0])
@@ -530,21 +532,36 @@ and we are *hoping* that the dynamics cause our real goal, q1, to change how we 
 
 #############################
 
-double_M * q** = double_tau
+
+t = Symbol('t')
+t1, t2, t3 = dynamicsymbols('t1 t2 t3')
+m1, l1, m2, l2, m3, l3, g, p1_damping = symbols('M1 L1 M2 L2 M3 L3 G p1_damping');
+dt1 = t1.diff(t)
+dt2 = t2.diff(t)
+
+alpha1 = l2 / l1 * (m2 / (m1 + m2))*cos(t1 - t2)
+alpha2 = l1 / l2 * cos(t1 - t2)
+double_M = Matrix([[1, alpha1], [alpha2, 1]])
+
+# double_M * q** = double_tau
 
 double_pfl_tau1 = -l2 / l1 * (m2 / (m1 + m2)) * (t2.diff(t))**2 * sin(t1 - t2) - g / l1*sin(t1)
-
 double_pfl_tau2 = l1 / l2 * (t1.diff(t))**2 * sin(t1 - t2) - g / l2*sin(t2) # NO U
-
 double_pfl_tau = Matrix([[double_pfl_tau1], [double_pfl_tau2]])
 
-double_q1dot = 1 / double_M[0, 0] * (double_pfl_tau[0] - M[0, 1] * dt2.diff(t))
+double_q1dot = 1 / double_M[0, 0] * (double_pfl_tau[0] - double_M[0, 1] * dt2.diff(t))
+
+# p1 = -damping * dt1 => p1 + damping * dt1 = 0
+double_pfl_tau1_with_damping = double_pfl_tau1 - p1_damping * dt1
+double_pfl_tau_with_damping = Matrix([[double_pfl_tau1_with_damping], [double_pfl_tau2]])
+
+double_q1dot_with_damping = 1 / double_M[0, 0] * (double_pfl_tau_with_damping[0] - double_M[0, 1] * dt2.diff(t))
 
 double_mblob = (double_M[1, 1] - double_M[1, 0] * double_M[0, 1] / double_M[0, 0])
 
 aaa, kp, kd = symbols('aaa kp kd')
 q2d = (2 * aaa / np.pi) * atan(dt1) # THIS IS THE REFERENCE
-v = kp * (q2d - t2) - kd * t2dot
+v = kp * (q2d - t2) - kd * dt2
 double_q2dot = v
 
 # artifact for actuation
@@ -555,10 +572,6 @@ You can also 'control' through motor torque directly
 Without a control law, but do 'force' control
 
 #############################
-
-alpha1 = l2 / l1 * (m2 / (m1 + m2))*cos(t1 - t2)
-alpha2 = l1 / l2 * cos(t1 - t2)
-double_M = Matrix([[1, alpha1], [alpha2, 1]])
 
 double_tau1 = -l2 / l1 * (m2 / (m1 + m2)) * (t2.diff(t))**2 * sin(t1 - t2) - g / l1*sin(t1)
 
