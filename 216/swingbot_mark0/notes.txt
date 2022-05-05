@@ -261,3 +261,33 @@ though it is not directly actuated but driven by the coupling forces arising fro
 motion of the second link. The motion of the second link may be complex and
 precisely defines the zero dynamics of the system. Therefore, the analysis of the
 zero dynamic is important to understand the behavior of the system. 
+
+################################################################
+
+https://www.warp.dev/blog/problems-with-promotion-oriented-cultures
+https://www.tomshardware.com/features/best-raspberry-pi-projects
+https://noted.lol/what-are-your-most-used-self-hosted-applications/
+http://underactuated.mit.edu/pend.html#energy_shaping
+https://diego.assencio.com/?index=1500c66ae7ab27bb0106467c68feebc6
+http://underactuated.mit.edu/pend.html
+https://www.google.com/search?q=strong+inertial+coupling&oq=strong+inertial+coupling&aqs=chrome..69i57.2446j0j7&sourceid=chrome&ie=UTF-8
+https://underactuated.mit.edu/acrobot.html#34
+https://github.com/deepmind/dm_control/issues/56
+https://ieeexplore.ieee.org/document/9304408
+https://en.wikipedia.org/wiki/Energy-shaping_control
+https://www.semanticscholar.org/paper/Energy-Shaping-Control-for-a-Class-of-Underactuated-Albu-Sch%C3%A4ffer-Ott/de21c00811b6d3966ae57c8ca8ded0370cac8ab6
+https://elib.dlr.de/79899/1/energy_shaping.pdf
+https://www.google.com/search?q=non-collocated+coupling+double+pendulum&sxsrf=ALiCzsbwJJY4NuPwOf1TRytIXHzpCD-cxQ%3A1651731115454&ei=q2pzYviyG4S5tAa5kYi4Ag&ved=0ahUKEwi4tJrz2cf3AhWEHM0KHbkIAicQ4dUDCA4&uact=5&oq=non-collocated+coupling+double+pendulum&gs_lcp=Cgdnd3Mtd2l6EAMyBQghEKABOgcIABBHELADOgUIIRCrAkoECEEYAEoECEYYAFC6B1ivFWC5FmgBcAF4AIAB8QGIAeQRkgEGMC4xNC4xmAEAoAEByAECwAEB&sclient=gws-wiz
+https://www.google.com/search?q=acrobot+non-collocated+control&oq=acrobot+non-collocated+control&aqs=chrome..69i57.20488j0j7&sourceid=chrome&ie=UTF-8
+https://www.researchgate.net/publication/322588864_Swing-up_control_of_the_acrobot_using_noncollocated_partial_feedback_linearisation_An_algorithmic_approach
+https://github.com/adallolio/Acrobot-SwingUp-Control-Problem/blob/master/makeplot.m
+https://ieeexplore.ieee.org/document/8261130
+https://www.google.com/search?q=Swing-up+control+of+the+acrobot+using+noncollocated+partial+feedback+linearisation%3A+An+algorithmic+approach&sourceid=chrome&ie=UTF-8
+file:///home/a/Desktop/47210047-MIT.pdf
+https://amme.journals.ekb.eg/article_35735_dcc3d35d0355d73289d6e34c8ada1f23.pdf
+https://www.semanticscholar.org/paper/Swing-up-and-stabilization-of-the-Acrobot-via-based-Horibe-Sakamoto/0dd4f82786d4a24c20eda760c2b9992f3cc8cddd
+http://groups.csail.mit.edu/robotics-center/public_papers/Shkolnik08.pdf
+http://underactuated.mit.edu/acrobot.html
+https://www.google.com/search?q=cascade+control+github&sxsrf=ALiCzsZPLRoe5TllQuDutFVlAIwQAPVxIQ%3A1651770820431&ei=xAV0YsHwGYrKtQaOgrTgDw&ved=0ahUKEwjB4oHo7cj3AhUKZc0KHQ4BDfwQ4dUDCA4&uact=5&oq=cascade+control+github&gs_lcp=Cgdnd3Mtd2l6EAMyBQghEKABOgcIIxCwAxAnOgcIABBHELADOgcIABCwAxBDOgQIABBDOgUIABCABDoLCC4QgAQQxwEQrwE6BggAEBYQHjoFCAAQhgM6CAghEBYQHRAeSgQIQRgASgQIRhgAUOEFWOANYOMOaAFwAXgAgAG3AYgB8AaSAQMwLjaYAQCgAQHIAQrAAQE&sclient=gws-wiz
+https://www.controleng.com/articles/fundamentals-of-cascade-control/
+https://github.com/sebnil/Selfbalancing-robot-v2/blob/master/Control%20theory/Cascade%20PID%20implementation%20theory.pdf
