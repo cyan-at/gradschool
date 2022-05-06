@@ -1,0 +1,31 @@
+http://underactuated.mit.edu/acrobot.html#Xin04
+  fbd -> lagrange -> euler-lagrange (equations of motion)
+  (equations of motion) -> manipulator / mass-matrix derivations
+  split into unactuated / actuated joints
+  pfl
+    manipulating / deriving / solving
+    the equations of motion / manipulator matrices s.t.
+    some of the q** = A
+  collated / noncollated pfl 
+    if collated pfl, we are solving the manipulator equations
+    s.t. y (estimated sys output) = actuated q, so we control to converge / track actuated q
+
+    if noncollated pfl, we are solving the manipulator equations
+    s.t. y (estimated sys output) = unactuated q, so we control to converge / track unactuated q (cool)
+
+http://www2.ece.ohio-state.edu/~passino/PapersToPost/acrobot-JIRSTA.pdf
+  feedback linearization explanation
+    use a nonlinear feedback to cancel out nonlinearities in system
+    so we turn controlling a nonlinear system
+    to controlling a linear one
+      which we can PID control / track
+      because PID control converges error to 0
+
+
+what we've done for (partial) feedback linearization is say
+
+let y = tau = d22 q2** + h2 + phi2
+
+
+
+http://groups.csail.mit.edu/robotics-center/public_papers/Shkolnik08.pdf
