@@ -288,7 +288,6 @@ https://amme.journals.ekb.eg/article_35735_dcc3d35d0355d73289d6e34c8ada1f23.pdf
 https://www.semanticscholar.org/paper/Swing-up-and-stabilization-of-the-Acrobot-via-based-Horibe-Sakamoto/0dd4f82786d4a24c20eda760c2b9992f3cc8cddd
 http://groups.csail.mit.edu/robotics-center/public_papers/Shkolnik08.pdf
 http://underactuated.mit.edu/acrobot.html
-https://www.google.com/search?q=cascade+control+github&sxsrf=ALiCzsZPLRoe5TllQuDutFVlAIwQAPVxIQ%3A1651770820431&ei=xAV0YsHwGYrKtQaOgrTgDw&ved=0ahUKEwjB4oHo7cj3AhUKZc0KHQ4BDfwQ4dUDCA4&uact=5&oq=cascade+control+github&gs_lcp=Cgdnd3Mtd2l6EAMyBQghEKABOgcIIxCwAxAnOgcIABBHELADOgcIABCwAxBDOgQIABBDOgUIABCABDoLCC4QgAQQxwEQrwE6BggAEBYQHjoFCAAQhgM6CAghEBYQHRAeSgQIQRgASgQIRhgAUOEFWOANYOMOaAFwAXgAgAG3AYgB8AaSAQMwLjaYAQCgAQHIAQrAAQE&sclient=gws-wiz
 https://www.controleng.com/articles/fundamentals-of-cascade-control/
 https://github.com/sebnil/Selfbalancing-robot-v2/blob/master/Control%20theory/Cascade%20PID%20implementation%20theory.pdf
 
@@ -306,7 +305,6 @@ https://diego.assencio.com/?index=1500c66ae7ab27bb0106467c68feebc6
 https://diego.assencio.com/?index=e5ac36fcb129ce95a61f8e8ce0572dbf
 http://nereus.mech.ntua.gr/Documents/pdf_ps/med09_2.pdf
 https://stackoverflow.com/questions/56361125/sympy-scipy-involving-time-dependent-values
-https://www.google.com/search?q=derivative+of+sin&sxsrf=ALiCzsZVIMmh_tv47S_2eUYY-MYcropKPg:1651362555373&tbm=isch&source=iu&ictx=1&vet=1&fir=qQXEt41XyfUoEM%252CsDZ2P-ZnPIMd7M%252C_%253ByRfHHVJRI51-xM%252CTxAIhKNeq_FOOM%252C_%253BZe01PwLolZPGqM%252CphliWUO5QjjEwM%252C_%253BPiMSrBEu5mfaxM%252Cm7wBjnJj_HwVLM%252C_&usg=AI4_-kTinT95Hc6WAA1UavEd5_q2z8304Q&sa=X&ved=2ahUKEwifooj0_Lz3AhXZbc0KHdvJCiYQ_h16BAhMEAE#imgrc=yRfHHVJRI51-xM
 https://www.khanacademy.org/math/precalculus/x9e81a4f98389efdf:trig/x9e81a4f98389efdf:using-trig-id/a/trig-identity-reference
 https://jdk.java.net/archive/
 https://gluonhq.com/products/javafx/
@@ -327,9 +325,7 @@ https://www.youtube.com/watch?v=ZASVKAlegfQ
 https://www.google.com/search?q=parallel+axis+theorem&oq=parallel+axis+theorem&aqs=chrome.0.69i59j69i61l2.1578j0j7&sourceid=chrome&ie=UTF-8
 https://www.semanticscholar.org/paper/A-novel-energy-pumping-strategy-for-robotic-Papadopoulos-Papadopoulos/b6fb84463b835dd198b81802d167b05043bc8e90
 https://drake.mit.edu/pydrake/pydrake.examples.acrobot.html
-https://www.google.com/search?q=acrobot+spong+controller&sxsrf=ALiCzsZ5VG1mYbdH0fg9exZdjEwdE_nZbA%3A1651455108407&ei=hDRvYuHBGM3I7gKX4qII&ved=0ahUKEwjhk-XY1b_3AhVNpFsKHRexCAEQ4dUDCA4&uact=5&oq=acrobot+spong+controller&gs_lcp=Cgdnd3Mtd2l6EAMyBwghEAoQoAEyBwghEAoQoAE6BwgAEEcQsAM6BQghEKsCSgQIQRgASgQIRhgAULgLWLwVYKwWaAFwAXgAgAGVAYgBygqSAQQwLjEwmAEAoAEByAEIwAEB&sclient=gws-wiz
 https://ieeexplore.ieee.org/document/350934
-https://www.google.com/search?q=Partial+feedback+linearization+github+python&sxsrf=ALiCzsZYc7dBLsY97Vv5KPgmYVSnB1CXDQ:1651456131512&ei=gzhvYvzqHsaQtAaupK_oAQ&start=30&sa=N&ved=2ahUKEwi8uNLA2b_3AhVGCM0KHS7SCx04FBDy0wN6BAgXEDw&biw=1920&bih=946&dpr=1
 https://github.com/ayush9pandey/nonlinear_control
 https://www.mathworks.com/matlabcentral/fileexchange/57884-acrobot-swing-up-control-partial-feedback-linearization?s_tid=FX_rc1_behav
 

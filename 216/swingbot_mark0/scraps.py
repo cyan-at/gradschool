@@ -239,7 +239,7 @@
 
         # this will converge to the task space goal
         # so NO need to ramp up
-        k = 1
+        k = 10
         a = 0.1
 
         # k = 2
@@ -250,7 +250,7 @@
         yd_dotdot = -a * sin(t / k) / k**2
 
         # control law stays the same
-        v = 0 + K5 * (yd_dot - t1_dot) + K4 * (yd - t1)
+        v = yd_dotdot + K5 * (yd_dot - t1_dot) + K4 * (yd - t1)
 
         tau_blob = G*sin(t1)/L1 + Q1_DAMPING*t1_dot + L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2))
 
@@ -275,8 +275,8 @@
             dydx[3] = 0
 
 
-        # q1_gain = -L2*M2*cos(t1_t2)/(L1*(M1 + M2))
-        q1_gain = L2*M2*cos(t1+t2)
+        q1_gain = -L2*M2*cos(t1_t2)/(L1*(M1 + M2))
+        # q1_gain = L2*M2*cos(t1+t2)
         dydx[1] = q1_gain * dydx[3] - tau_blob
 
         # print("dydx", dydx)
@@ -577,3 +577,47 @@ yd_blob = -(G*(M1 + M2)*sin(t1) + L1*p1_damping*(M1 + M2)*t1_dot + L2*M2*sin(t1 
 yd_dotdot = -t⋅sin(t) + 2⋅cos(t)
 
 h_bar_pinv_blob * (yd_dotdot - yd_blob)
+
+
+
+def derivs_original(c.state, t):
+    '''
+        c.state = x = [
+            theta1
+            theta1*
+            theta2
+            theta2*
+        ]
+
+        c.state = x* = [
+            theta1*
+            theta1**
+            theta2*
+            theta2**
+        ]
+    '''
+    dydx = np.zeros_like(c.state)
+
+    dydx[0] = c.state[1]
+    dydx[2] = c.state[3]
+
+    delta = c.state[2] - c.state[0]
+
+    den1 = (M1+M2) * L1 - M2 * L1 * cos(delta) * cos(delta)
+
+    dydx[1] = ((M2 * L1 * c.state[1] * c.state[1] * sin(delta) * cos(delta)
+                + M2 * G * sin(c.state[2]) * cos(delta)
+                + M2 * L2 * c.state[3] * c.state[3] * sin(delta)
+                - (M1+M2) * G * sin(c.state[0]))
+               / den1)
+
+
+    den2 = (L2/L1) * den1
+
+    dydx[3] = ((- M2 * L2 * c.state[3] * c.state[3] * sin(delta) * cos(delta)
+                + (M1+M2) * G * sin(c.state[0]) * cos(delta)
+                - (M1+M2) * L1 * c.state[1] * c.state[1] * sin(delta)
+                - (M1+M2) * G * sin(c.state[2]))
+               / den2)
+
+    return dydx

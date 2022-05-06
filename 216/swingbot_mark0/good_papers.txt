@@ -29,3 +29,5 @@ let y = tau = d22 q2** + h2 + phi2
 
 
 http://groups.csail.mit.edu/robotics-center/public_papers/Shkolnik08.pdf
+
+https://github.com/tsitsimis/underactuated/blob/master/systems/acrobot.py

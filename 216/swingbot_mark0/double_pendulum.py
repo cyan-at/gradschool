@@ -115,12 +115,92 @@ M1 = 1.0  # mass of pendulum 1 in kg
 M2 = 1.0  # mass of pendulum 2 in kg
 Q1_DAMPING = 0.0
 
+'''
+collocated pfl / task-spsace collocated pfl controller works well, intuitive to understand
+  what is done in the literature
+  and it does do what the literature uses it to do, which is reach the 'top'
+  it does not respect the true goal which is a 'q1' target analytically
+'''
 ALPHA = 1.
 K1 = 1
 K2 = 1
+
 K3 = 1.0
 K4 = 1.0
+
+'''
+non-collocated pfl controller blows up as a matrix in system loses rank =>
+divide by 0 => huge acc commands / integration errors
+  this is what is reporte in literature
+  easy to show as the cosine term goes to 0 in denominator
+'''
 K5 = 1.0
+K6 = 1.0
+
+'''
+task-space / collocated pfl derivation, cascade controller based on 'energy', looks interesting
+  it has the advantage that it converges to a 'set' q1
+  it also has a nice property where low-energy => high actuator effort, high-energy => actuator chills out
+    it's behavior at the same q1 state changes depending on how high of a q1 it achieves
+    so it looks 'improviational'
+  the K2 term chills out actuator, which at lower gains works 'too-hard' and gets in its own way
+  it is also interesting with this controller how the actuator seems to behave 'asymmetrically' about q1 = 0
+  because it leverages the dynamics from one half to be lazy in the other half
+  downside is that q2 is high effort
+
+  intuition: if you want higher q1 max, increase energy goal but also increase K8 to chill out actuator
+'''
+# this set works
+K7 = 1.0
+K8 = 1.0
+K9 = 1.0
+energy_goal = 10.0
+
+K7 = 1.0
+K8 = 1.0
+K9 = 1.0
+energy_goal = 20.0
+
+# this does work and is stable around np.pi / 2
+K7 = 5.0
+K8 = 10.0 # this term has the effect of 'chilling out' the actuator
+K9 = 1.0
+energy_goal = 30.0
+
+# this does work and is stable around np.pi / 2
+K7 = 5.0
+K8 = 8.0 # this term has the effect of 'chilling out' the actuator
+K9 = 1.0
+energy_goal = 60.0
+
+# this does work and is stable around > np.pi / 2
+K7 = 5.0
+K8 = 5.0 # this term has the effect of 'chilling out' the actuator
+K9 = 1.0
+energy_goal = 100.0
+
+# works
+K10 = 1.0
+K11 = 1.0 # this term has the effect of 'chilling out' the actuator
+K12 = 1.0
+energy_goal = 30.0
+
+# this does work and is stable around > np.pi / 2
+K10 = 1.0
+K11 = 1.0 # this term has the effect of 'chilling out' the actuator
+K12 = 1.0
+energy_goal = 80.0
+
+# this does work and is stable around > 2*np.pi / 3
+K10 = 1.0
+K11 = 1.0 # this term has the effect of 'chilling out' the actuator
+K12 = 1.0
+energy_goal = 120.0
+
+# K7 = 5.0
+# K8 = 20.0 # this term has the effect of 'chilling out' the actuator 30 is too high / slow, 20 is too low
+# K9 = 1.0
+# energy_goal = 60.0
 
 # derivs_pfl_collocated_strategy1
 # ./double_pendulum.py --playback 20 --initial 10,0,1,0
@@ -201,9 +281,13 @@ class Acrobot(object):
         self.sampletimes = sampletimes
 
         self._modes = [
+            self.derivs_freebody,
             self.derivs_pfl_collocated_strategy1,
             self.derivs_pfl_collocated_taskspace,
-            self.derivs_candidate0,
+            self.derivs_pfl_collocated_energy,
+            self.derivs_pfl_collocated_energy2,
+
+            self.derivs_pfl_noncollocated,
         ]
 
         self._data_gen_cb = None
@@ -406,14 +490,101 @@ class Acrobot(object):
         yd_dot = a * cos(t / k) / k
         yd_dotdot = -a * sin(t / k) / k**2
 
-        v = yd_dotdot + K5 * (yd_dot - t2_dot) + K4 * (yd - t2)
+        # let's say we can't measure this
+        yd_dotdot = 0
+
+        v = yd_dotdot + K3 * (yd_dot - t2_dot) + K4 * (yd - t2)
 
         dydx[3] = v
         dydx[1] = -G*sin(t1)/L1 - L2*M2*cos(t1_t2)*v/(L1*(M1+M2)) - L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2)) - Q1_DAMPING*t1_dot
 
         return dydx
 
-    def derivs_candidate0(self, state, t):
+    def derivs_pfl_collocated_energy(self, state, t):
+        '''
+        https://diego.assencio.com/?index=1500c66ae7ab27bb0106467c68feebc6
+        https://underactuated.mit.edu/acrobot.html (collocated linearization derivation)
+
+        SAME
+        partial-feedback linearization as derivs_pfl_collocated_strategy1
+        which guides the derivation of dydx[1] = nonlinearf(dydx[3] = v)
+
+        # based on http://underactuated.mit.edu/acrobot.html#mjx-eqn-eq%3Asimple
+        # which says use collocated pfl with this kind of energy func
+        # it is different in that we set a energy_goal, not a reference q2 trajectory
+        '''
+        dydx = np.zeros_like(state)
+
+        dydx[0] = state[1]
+        dydx[2] = state[3]
+
+        t1 = state[0]
+        t1_dot = state[1]
+        t2 = state[2]
+        t2_dot = state[3]
+        t1_t2 = t1 - t2
+
+        e = 1/2*(state[0]**2 + state[2]**2)
+        u = M1*G*L1*(1 - cos(state[0])) +\
+            M2*G*L1*(1 - cos(state[0])) +\
+            M2*G*L2*(1 - cos(state[2]))
+        energy = u
+        energy_err = energy - energy_goal
+
+        u = t1_dot * energy_err
+
+        v = K7 * u - K8 * (t2_dot) - K9 * (t2)
+
+        dydx[3] = v
+        dydx[1] = -G*sin(t1)/L1 - L2*M2*cos(t1_t2)*v/(L1*(M1+M2))\
+            - L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2))\
+            - Q1_DAMPING*t1_dot
+
+        return dydx
+
+    def derivs_pfl_collocated_energy2(self, state, t):
+        '''
+        https://diego.assencio.com/?index=1500c66ae7ab27bb0106467c68feebc6
+        https://underactuated.mit.edu/acrobot.html (collocated linearization derivation)
+
+        SAME
+        partial-feedback linearization as derivs_pfl_collocated_strategy1
+        which guides the derivation of dydx[1] = nonlinearf(dydx[3] = v)
+
+        # based on http://underactuated.mit.edu/acrobot.html#mjx-eqn-eq%3Asimple
+        # which says use collocated pfl with this kind of energy func
+        # it is different in that we set a energy_goal, not a reference q2 trajectory
+        '''
+        dydx = np.zeros_like(state)
+
+        dydx[0] = state[1]
+        dydx[2] = state[3]
+
+        t1 = state[0]
+        t1_dot = state[1]
+        t2 = state[2]
+        t2_dot = state[3]
+        t1_t2 = t1 - t2
+
+        e = 1/2*(state[0]**2)
+        u = M1*G*L1*(1 - cos(state[0])) +\
+            M2*G*L1*(1 - cos(state[0])) +\
+            M2*G*L2*(1 - cos(state[2]))
+        energy = u
+        energy_err = energy - energy_goal
+
+        u = t1_dot * energy_err
+
+        v = K10 * u - K11 * (t2_dot) - K12 * (t2)
+
+        dydx[3] = v
+        dydx[1] = -G*sin(t1)/L1 - L2*M2*cos(t1_t2)*v/(L1*(M1+M2))\
+            - L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2))\
+            - Q1_DAMPING*t1_dot
+
+        return dydx
+
+    def derivs_pfl_noncollocated(self, state, t):
         dydx = np.zeros_like(state)
 
         dydx[0] = state[1]
@@ -428,7 +599,7 @@ class Acrobot(object):
 
         # this will converge to the task space goal
         # so NO need to ramp up
-        k = 10
+        k = 1
         a = 0.1
 
         # k = 2
@@ -440,32 +611,62 @@ class Acrobot(object):
 
         # control law stays the same
         # we route this to acceleration so that integration
-        v = yd_dotdot + K5 * (yd_dot - t1_dot) + K4 * (yd - t1)
+        # v = yd_dotdot + K5 * (yd_dot - t1_dot) + K4 * (yd - t1)
+        # yd_dotdot = 0 if we can't measure it
+        v = 0.0 + K5 * (yd_dot - t1_dot) + K6 * (yd - t1)
 
-        tau_blob = G*sin(t1)/L1 + Q1_DAMPING*t1_dot + L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2))
+        dydx[1] = v
+
+        # if np.abs(cos(t1 - t2)) > 1e-2:
+        #     den = (L2*M2*cos(t1 - t2))
+        #     unsaturated = L1*(M1 + M2)*(-G*sin(t1)/L1 - dydx[1] - L2*M2*sin(t1 - t2)*t2_dot**2/(L1*(M1 + M2)))/den
+        #     print(unsaturated)
+        #     dydx[3] = min(unsaturated, 1)
+        # else:
+        #     den = (L2*M2*cos(t1 - t2))
+        #     dydx[3] = np.sign(den)
 
         '''
-        It is c.state dependent; in the cart-pole example above  and drops rank exactly when .
-        A system has Global Strong Inertial Coupling
-        if it exhibits Strong Inertial Coupling in every c.state.
+        # task space pfl derivation
+        h2 = 0
+        h1 = 1
+        h2 - h1 / double_M[0, 0] * double_M[0, 1]
+        h_bar = h2 - h1 / double_M[0, 0] * double_M[0, 1]
+        1 / h_bar
+        hbar_pinv = sympy_to_expression(1 / h_bar)
+        double_pfl_tau1_with_damping / double_M[0, 0]
+        double_pfl_tau1_with_damping / (h_bar * double_M[0, 0])
+        simplify(double_pfl_tau1_with_damping / (h_bar * double_M[0, 0]))
+        q2dot = sympy_to_expression(simplify(double_pfl_tau1_with_damping / (h_bar * double_M[0, 0])))
+        dydx[3] = q2dot
         '''
-        if np.abs(cos(t1_t2)) > 1e-2:
-            coupling_term = cos(t1_t2)
-            print("coupling_term", coupling_term)
-            gain = -L1*(M1 + M2)/(L2*M2*coupling_term)
-            dydx[3] = gain*v - tau_blob
+        hbar_pinv = -L1*(M1 + M2)/(L2*M2*cos(t1 - t2))
+        den = (L2*M2*cos(t1 - t2))
+        dydx[3] = hbar_pinv * v - (G*(M1 + M2)*sin(t1) + L1*Q1_DAMPING*(M1 + M2)*t1_dot + L2*M2*sin(t1 - t2)*t2_dot**2)/den
+        # dydx[3] = 0
+        # tau_blob = G*sin(t1)/L1 + Q1_DAMPING*t1_dot + L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2))
+
+        # '''
+        # It is c.state dependent; in the cart-pole example above  and drops rank exactly when .
+        # A system has Global Strong Inertial Coupling
+        # if it exhibits Strong Inertial Coupling in every c.state.
+        # '''
+        # if np.abs(cos(t1_t2)) > 1e-2:
+        #     coupling_term = cos(t1_t2)
+        #     print("coupling_term", coupling_term)
+        #     gain = -L1*(M1 + M2)/(L2*M2*coupling_term)
+        #     dydx[3] = gain*v - tau_blob
 
 
-            # dydx[1] = L2*M2*cos(t1+t2)*v - G*sin(t1)/L1 - L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2)) - Q1_DAMPING*t1_dot
+        #     # dydx[1] = L2*M2*cos(t1+t2)*v - G*sin(t1)/L1 - L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2)) - Q1_DAMPING*t1_dot
 
-        else:
-            print("WARNNNNNINGGGG SINGULAR DROPPPP RANKKKK!!!!")
-            dydx[3] = 0
+        # else:
+        #     print("WARNNNNNINGGGG SINGULAR DROPPPP RANKKKK!!!!")
+        #     dydx[3] = 0
 
-
-        q1_gain = -L2*M2*cos(t1_t2)/(L1*(M1 + M2))
-        # q1_gain = L2*M2*cos(t1+t2)
-        dydx[1] = q1_gain * dydx[3] - tau_blob
+        # q1_gain = -L2*M2*cos(t1_t2)/(L1*(M1 + M2))
+        # # q1_gain = L2*M2*cos(t1+t2)
+        # dydx[1] = q1_gain * dydx[3] - tau_blob
 
         # print("dydx", dydx)
 
@@ -481,7 +682,7 @@ class Acrobot(object):
         self.texts = texts
 
     def data_gen(self):
-        i = 0
+        i = self.state.shape[0] - 20
         while True:
             i = (i + 1) % self.state.shape[0]
 
@@ -497,21 +698,13 @@ class Acrobot(object):
         thisy = [0, self.state[i, 5], self.state[i, 7]]
         self.line.set_data(thisx, thisy)
 
-        # if i == 0:
-        #     history_x.clear()
-        #     history_y.clear()
-
-        #     # history_x_orig.clear()
-        #     # history_y_orig.clear()
+        if i == 0:
+            self.history_x.clear()
+            self.history_y.clear()
 
         self.history_x.appendleft(thisx[2])
         self.history_y.appendleft(thisy[2])
         self.trace.set_data(self.history_x, self.history_y)
-
-        # # history_x_orig.appendleft(thisx_orig[2])
-        # # history_y_orig.appendleft(thisy_orig[2])
-        # # line_orig.set_data(thisx_orig, thisy_orig)
-        # # trace_orig.set_data(history_x_orig, history_y_orig)
 
         self.texts[0].set_text("q1=%.3f" % (self.state[i, 0]))
         self.texts[1].set_text("energy=%.3f" % (self.state[i, 8]))
