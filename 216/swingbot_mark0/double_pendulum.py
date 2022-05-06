@@ -58,7 +58,7 @@ Q**
 
 one way to think decompose the problem:
 
-control signals(q**, u / torque) = f1(reference, state(actuated q, q*, unactuated q, q*))
+control signals(q**, u / torque) = f1(reference, c.state(actuated q, q*, unactuated q, q*))
 actuated q**   = f2(unactuated q**, actuated q**, control signals(q**, u / torque))
 unactuated q** = f3(unactuated q**, actuated q**, control signals(q**, u / torque))
 
@@ -106,11 +106,6 @@ import matplotlib.animation as animation
 from collections import deque
 import argparse
 
-t_stop = 120 # np.pi * 10 # how many seconds to simulate
-history_len = 500  # how many trajectory points to display
-dt = 0.02
-t = np.arange(0, t_stop, dt)
-
 # constants
 G = 9.8  # acceleration due to gravity, in m/s^2
 L1 = 10.0  # length of pendulum 1 in m
@@ -124,13 +119,15 @@ ALPHA = 1.
 K1 = 1
 K2 = 1
 K3 = 1.0
-K4 = 5.0
-K5 = 5.0
+K4 = 1.0
+K5 = 1.0
 
 # derivs_pfl_collocated_strategy1
 # ./double_pendulum.py --playback 20 --initial 10,0,1,0
 # ALPHA <= 1 does NOT converges back, does not pump up energy
 # gains influence how fast it can pump, but there is a qualitative limit to speed AND max height
+# regardless of what L1 is, ALPHA > 1 guarantees convergence of q1 up to q1 = np.pi (upright)
+# a larger L1 does mean a larger K1, K2 to converge faster
 
 G = 9.8  # acceleration due to gravity, in m/s^2
 L1 = 10.0  # length of pendulum 1 in m
@@ -148,47 +145,17 @@ ALPHA = 10
 K1 = L1*(M1+M2) * 500
 K2 = L1*(M1+M2) * 500
 
-def derivs_original(state, t):
-    '''
-        state = x = [
-            theta1
-            theta1*
-            theta2
-            theta2*
-        ]
+# this shows just about reaching the top
+L1 = 8.0  # length of pendulum 1 in m
+ALPHA = 1.1
+K1 = L1*(M1+M2) * 200
+K2 = L1*(M1+M2) * 200
 
-        state = x* = [
-            theta1*
-            theta1**
-            theta2*
-            theta2**
-        ]
-    '''
-    dydx = np.zeros_like(state)
-
-    dydx[0] = state[1]
-    dydx[2] = state[3]
-
-    delta = state[2] - state[0]
-
-    den1 = (M1+M2) * L1 - M2 * L1 * cos(delta) * cos(delta)
-
-    dydx[1] = ((M2 * L1 * state[1] * state[1] * sin(delta) * cos(delta)
-                + M2 * G * sin(state[2]) * cos(delta)
-                + M2 * L2 * state[3] * state[3] * sin(delta)
-                - (M1+M2) * G * sin(state[0]))
-               / den1)
-
-
-    den2 = (L2/L1) * den1
-
-    dydx[3] = ((- M2 * L2 * state[3] * state[3] * sin(delta) * cos(delta)
-                + (M1+M2) * G * sin(state[0]) * cos(delta)
-                - (M1+M2) * L1 * state[1] * state[1] * sin(delta)
-                - (M1+M2) * G * sin(state[2]))
-               / den2)
-
-    return dydx
+# this shows just about reaching the top
+L1 = 10.0  # length of pendulum 1 in m
+ALPHA = 1.1
+K1 = L1*(M1+M2)
+K2 = L1*(M1+M2)
 
 def insert_into_dict_of_arrays(d, k, v, mode="append"):
     """ Aggregates or assigns a dictionary with k, v
@@ -225,15 +192,44 @@ def insert_into_dict_of_arrays(d, k, v, mode="append"):
     else:
         d[k] = [v]
 
-class Container(object):
-    def __init__(self):
-        self._data = {}
+class Acrobot(object):
+    def __init__(self, args, initial_state, sampletimes):
+        self._args = args
 
-        self._t = 0.0
+        self.initial_state = initial_state
+        self.state = None
+        self.sampletimes = sampletimes
 
-        self.total = 0
+        self._modes = [
+            self.derivs_pfl_collocated_strategy1,
+            self.derivs_pfl_collocated_taskspace,
+            self.derivs_candidate0,
+        ]
 
-        self._state = None
+        self._data_gen_cb = None
+
+    def init_data(self):
+        self.state = integrate.odeint(
+            self._modes[self._args.mode],
+            self.initial_state,
+            self.sampletimes)
+
+        # extra data
+        aux = np.zeros((self.state.shape[0], 5))
+        self.state = np.hstack([self.state, aux])
+
+        self.state[:, 4] = L1*sin(self.state[:, 0]) # x1
+        self.state[:, 5] = -L1*cos(self.state[:, 0]) # y1
+        self.state[:, 6] = L2*sin(self.state[:, 2]) + self.state[:, 4] # x2
+        self.state[:, 7] = -L2*cos(self.state[:, 2]) + self.state[:, 5] # y2
+
+        e = 1/2*(self.state[:,1]**2 + self.state[:,3]**2)
+        u = M1*G*L1*(1 - cos(self.state[:,0])) +\
+            M2*G*L1*(1 - cos(self.state[:,0])) +\
+            M2*G*L2*(1 - cos(self.state[:,2]))
+        self.state[:, 8] = e + u
+
+        print("done")
 
     def derivs_freebody(self, state, t):
         dydx = np.zeros_like(state)
@@ -265,6 +261,16 @@ class Container(object):
         https://diego.assencio.com/?index=1500c66ae7ab27bb0106467c68feebc6
         https://underactuated.mit.edu/acrobot.html (collocated linearization derivation)
 
+        http://www2.ece.ohio-c.state.edu/~passino/PapersToPost/acrobot-JIRSTA.pdf
+        LINEARIZATION
+            matrix-forming, expressing as LHS and RHS
+            PFL refers to the fact that:
+                we solve for non-actuated joints q1**
+                we substitute above to solve for q2** = f(input / tau / u)
+
+                we re-write tau in the actuated joints
+                q2** = f(v) is linear (q2** = v)
+
         import sympy
         from sympy import *
         from sympy.physics.mechanics import *
@@ -293,7 +299,6 @@ class Container(object):
         double_pfl_tau_with_damping = Matrix([[double_pfl_tau1_with_damping], [double_pfl_tau2]])
 
         double_q1dot_with_damping = 1 / double_M[0, 0] * (double_pfl_tau_with_damping[0] - double_M[0, 1] * dt2.diff(t))
-
 
         --------------------------
 
@@ -331,60 +336,203 @@ class Container(object):
         # artifact not used for plotting
         # u = G*sin(t2)/L2 + L1*(-G*sin(t1)/L1 - L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2)))*cos(t1_t2)/L2 - L1*sin(t1_t2)*t1_dot**2/L2 + (-K2*t2 + K1*(0.63661977236758138*ALPHA*np.arctan(t1_dot) - t2))*(-M2*cos(t1_t2)**2/(M1 + M2) + 1)
 
+        '''
+        http://www2.ece.ohio-c.state.edu/~passino/PapersToPost/acrobot-JIRSTA.pdf
+        The arctangent function has the desirable characteristic of straightening out the
+        second joint when q˙1 equals zero at the peak of each swing, allowing a balancing
+        controller to catch the system in the approximately inverted position.
+
+        - in my observation, the q1* = 0 at the tips means the q2d swings back to 0
+        - which causes q2 to swing back the other way (with lag which allows for pumping upward)
+        - which causes q1 to swing back the other way (with lag)
+
+        we would define v to INCLUDE the q2d** but we are assuming that is not measurable realistically
+        '''
+
         dydx[3] = v # our control law/strategy includes a choice that v is the acceleration(?)
 
         dydx[1] = -G*sin(t1)/L1 - L2*M2*cos(t1_t2)*v/(L1*(M1+M2)) - L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2)) - Q1_DAMPING*t1_dot
 
         return dydx
 
+    def derivs_pfl_collocated_taskspace(self, state, t):
+        '''
+        https://diego.assencio.com/?index=1500c66ae7ab27bb0106467c68feebc6
+        https://underactuated.mit.edu/acrobot.html (collocated linearization derivation)
+
+        SAME
+        partial-feedback linearization as derivs_pfl_collocated_strategy1
+        which guides the derivation of dydx[1] = nonlinearf(dydx[3] = v)
+        '''
+        dydx = np.zeros_like(state)
+
+        dydx[0] = state[1]
+        dydx[2] = state[3]
+
+        t1 = state[0]
+        t1_dot = state[1]
+        t2 = state[2]
+        t2_dot = state[3]
+        t1_t2 = t1 - t2
+
+        # yd = 0.5 * sin(t)
+        # yd_dot = cos(t)
+        # yd_dotdot = -sin(t)
+
+        # if t < np.pi * k:
+        #     print("hi")
+        #     yd = t / k * sin(t / k)
+        #     yd_dot = t/(k**2)*cos(t/k) + sin(t/k) / k
+        #     yd_dotdot = -t*sin(t/k)/(k**3) + 2*cos(t/k)/(k**2)
+        # else:
+        #     print("bye")
+        #     yd = np.pi * sin(t / k)
+        #     yd_dot = np.pi * cos(t / k) / k
+        #     yd_dotdot = -np.pi * sin(t / k) / k**2
+
+        # these 2 sets show it working on y = q2
+        # this will converge to the task space goal
+        # so NO need to ramp up
+        k = 1
+        a = np.pi / 4
+
+        # k = 2
+        # a = np.pi / 2
+
+        k = 1
+        a = np.pi / 3
+
+        yd = a * sin(t / k)
+        yd_dot = a * cos(t / k) / k
+        yd_dotdot = -a * sin(t / k) / k**2
+
+        v = yd_dotdot + K5 * (yd_dot - t2_dot) + K4 * (yd - t2)
+
+        dydx[3] = v
+        dydx[1] = -G*sin(t1)/L1 - L2*M2*cos(t1_t2)*v/(L1*(M1+M2)) - L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2)) - Q1_DAMPING*t1_dot
+
+        return dydx
+
+    def derivs_candidate0(self, state, t):
+        dydx = np.zeros_like(state)
+
+        dydx[0] = state[1]
+        dydx[2] = state[3]
+
+        t1 = state[0]
+        t1_dot = state[1]
+        t2 = state[2]
+        t2_dot = state[3]
+        t1_t2 = t1 - t2
+
+
+        # this will converge to the task space goal
+        # so NO need to ramp up
+        k = 10
+        a = 0.1
+
+        # k = 2
+        # a = np.pi / 2
+
+        yd = a * sin(t / k)
+        yd_dot = a * cos(t / k) / k
+        yd_dotdot = -a * sin(t / k) / k**2
+
+        # control law stays the same
+        # we route this to acceleration so that integration
+        v = yd_dotdot + K5 * (yd_dot - t1_dot) + K4 * (yd - t1)
+
+        tau_blob = G*sin(t1)/L1 + Q1_DAMPING*t1_dot + L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2))
+
+        '''
+        It is c.state dependent; in the cart-pole example above  and drops rank exactly when .
+        A system has Global Strong Inertial Coupling
+        if it exhibits Strong Inertial Coupling in every c.state.
+        '''
+        if np.abs(cos(t1_t2)) > 1e-2:
+            coupling_term = cos(t1_t2)
+            print("coupling_term", coupling_term)
+            gain = -L1*(M1 + M2)/(L2*M2*coupling_term)
+            dydx[3] = gain*v - tau_blob
+
+
+            # dydx[1] = L2*M2*cos(t1+t2)*v - G*sin(t1)/L1 - L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2)) - Q1_DAMPING*t1_dot
+
+        else:
+            print("WARNNNNNINGGGG SINGULAR DROPPPP RANKKKK!!!!")
+            dydx[3] = 0
+
+
+        q1_gain = -L2*M2*cos(t1_t2)/(L1*(M1 + M2))
+        # q1_gain = L2*M2*cos(t1+t2)
+        dydx[1] = q1_gain * dydx[3] - tau_blob
+
+        # print("dydx", dydx)
+
+        # dydx[1] = -G*sin(t1)/L1 + L2*M2*cos(t1+t2)*dydx[3] - L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2)) - Q1_DAMPING*t1_dot
+
+        return dydx
+
+    def init_plot(self, fig, ax, texts):
+        self.line, = ax.plot([], [], 'o-', lw=2)
+        self.trace, = ax.plot([], [], '.-', lw=1, ms=2)
+        self.history_x = deque(maxlen=self._args.history)
+        self.history_y = deque(maxlen=self._args.history)
+        self.texts = texts
+
     def data_gen(self):
         i = 0
         while True:
-            i = (i + 1) % self._state.shape[0]
+            i = (i + 1) % self.state.shape[0]
+
+            if self._data_gen_cb is not None:
+                self._data_gen_cb(i)
 
             yield i
 
-def animate(data):
-    i = data
+    def draw_func(self, data):
+        i = data
 
-    thisx = [0, x1[i], x2[i]]
-    thisy = [0, y1[i], y2[i]]
+        thisx = [0, self.state[i, 4], self.state[i, 6]]
+        thisy = [0, self.state[i, 5], self.state[i, 7]]
+        self.line.set_data(thisx, thisy)
 
-    # thisx_orig = [0, x1_orig[i], x2_orig[i]]
-    # thisy_orig = [0, y1_orig[i], y2_orig[i]]
+        # if i == 0:
+        #     history_x.clear()
+        #     history_y.clear()
 
-    if i == 0:
-        history_x.clear()
-        history_y.clear()
+        #     # history_x_orig.clear()
+        #     # history_y_orig.clear()
 
-        # history_x_orig.clear()
-        # history_y_orig.clear()
+        self.history_x.appendleft(thisx[2])
+        self.history_y.appendleft(thisy[2])
+        self.trace.set_data(self.history_x, self.history_y)
 
-    history_x.appendleft(thisx[2])
-    history_y.appendleft(thisy[2])
-    line.set_data(thisx, thisy)
-    trace.set_data(history_x, history_y)
+        # # history_x_orig.appendleft(thisx_orig[2])
+        # # history_y_orig.appendleft(thisy_orig[2])
+        # # line_orig.set_data(thisx_orig, thisy_orig)
+        # # trace_orig.set_data(history_x_orig, history_y_orig)
 
-    # history_x_orig.appendleft(thisx_orig[2])
-    # history_y_orig.appendleft(thisy_orig[2])
-    # line_orig.set_data(thisx_orig, thisy_orig)
-    # trace_orig.set_data(history_x_orig, history_y_orig)
+        self.texts[0].set_text("q1=%.3f" % (self.state[i, 0]))
+        self.texts[1].set_text("energy=%.3f" % (self.state[i, 8]))
+        # aux1_text.set_text(aux1_template % (c.state[i, 0]))
+        # aux2_text.set_text(aux2_template % (c.state[i, 2]))
 
-    aux1_text.set_text(aux1_template % (state[i, 0]))
-    aux2_text.set_text(aux2_template % (state[i, 2]))
+        # aux2_text.set_text(aux2_template % (energy[i]))
 
-    aux2_text.set_text(aux2_template % (energy[i]))
+        # aux3_text.set_text('hello')
+        # aux4_text.set_text('hello')
 
-    # aux3_text.set_text('hello')
-    # aux4_text.set_text('hello')
-
-    # return line, trace, line_orig, trace_orig, time_text
-    return line, line1, line2, trace, aux1_text, aux2_text, aux3_text, aux4_text
+        # return line, trace, line_orig, trace_orig, time_text
+        return self.line, self.trace, *self.texts
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description="")
     parser.add_argument('--playback', type=int, default=1, help='')
+    parser.add_argument('--history', type=int, default=500, help='')
+
+    parser.add_argument('--mode', type=int, default=0, help='')
     parser.add_argument('--initial', type=str, default="0,0,1,0", help='')
     '''
     q2_dot [3] cannot be 0
@@ -394,91 +542,40 @@ if __name__ == '__main__':
     but if you nudge the system just a bit, then it will start
     pumping energy and will swing all of the way up).
     '''
+
+    parser.add_argument('--dt', type=float, default=0.02, help='')
+    parser.add_argument('--t_stop', type=int, default=300, help='')
     args = parser.parse_args()
 
-    t1_goal = 1.0
-
-    # create a time array from 0..t_stop sampled at 0.02 second steps
-
-    # th1 and th2 are the initial angles (degrees)
-    # w10 and w20 are the initial angular velocities (degrees per second)
-    # th1 = 0.0
-    # th1 = 100.0
-    # w1 = 0.0
-    # th2 = 1.0
-    # w2 = 0.0
-
-    # initial state
-    state = np.radians([float(x) for x in args.initial.split(',')])
-
-    # integrate your ODE using scipy.integrate.
-    c = Container()
-    # state = integrate.odeint(c.derivs_freebody, state, t)
-    state = integrate.odeint(c.derivs_pfl_collocated_strategy1, state, t)
-    # state = integrate.odeint(c.derivs_pfl_collocated_taskspace, state, t)
-    c._state = state
-
-    # state = integrate.odeint(c.derivs_pfl_noncollocated_strategy1, state, t)
-    # state = integrate.odeint(c.derivs_pfl_collocated_taskspace_2, state, t)
-    print("done")
-
-    e = 1/2*(state[:,1]**2 + state[:,3]**2)
-    u = M1*G*L1*(1 - cos(state[:,0])) +\
-        M2*G*L1*(1 - cos(state[:,0])) + M2*G*L2*(1 - cos(state[:,2]))
-    energy = e + u
-
-    print(state.shape[0])
-    print(len(energy))
-
-    # state = np.zeros((len(t), 3))
-    # state[:, 0] = t
-    # state[:, 0] = np.sin(state[:, 0])
-
-    x1 = L1*sin(state[:, 0])
-    y1 = -L1*cos(state[:, 0])
-    x2 = L2*sin(state[:, 2]) + x1
-    y2 = -L2*cos(state[:, 2]) + y1
-
-    # state_orig = np.radians([th1, w1, th2, w2])
-    # y_original = integrate.odeint(derivs_original, state_orig, t)
-    # x1_orig = L1*sin(y_original[:, 0])
-    # y1_orig = -L1*cos(y_original[:, 0])
-    # x2_orig = L2*sin(y_original[:, 2]) + x1_orig
-    # y2_orig = -L2*cos(y_original[:, 2]) + y1_orig
+    initial_state = np.radians([float(x) for x in args.initial.split(',')])
+    c = Acrobot(args, initial_state, np.arange(0, args.t_stop, args.dt))
+    c.init_data()
 
     fig = plt.figure(figsize=(5, 4))
     ax = fig.add_subplot(autoscale_on=False, xlim=(-L, L), ylim=(-L, L))
     ax.set_aspect('equal')
     ax.grid()
-    aux1_template = 'aux1 = %.2f'
-    aux1_text = ax.text(0.05, 0.9, '', transform=ax.transAxes)
+    plt.title('playback speed %dx' % (args.playback))
 
-    aux2_template = 'aux2 = %.2f'
-    aux2_text = ax.text(0.05, 0.8, '', transform=ax.transAxes)
-    aux3_text = ax.text(0.05, 0.7, '', transform=ax.transAxes)
-    aux4_text = ax.text(0.05, 0.6, '', transform=ax.transAxes)
-
-    line, = ax.plot([], [], 'o-', lw=2)
-    trace, = ax.plot([], [], '.-', lw=1, ms=2)
-    history_x, history_y = deque(maxlen=history_len), deque(maxlen=history_len)
-
-    # aux
-    # e = c._data["e"]
-
-    line1, = ax.plot([], [], 'c--', lw=1, alpha=0.5)
+    texts = [
+        ax.text(0.05, 0.9, '', transform=ax.transAxes),
+        ax.text(0.05, 0.8, '', transform=ax.transAxes),
+        ax.text(0.05, 0.7, '', transform=ax.transAxes),
+        ax.text(0.05, 0.6, '', transform=ax.transAxes),
+    ]
     ref_x1 = L1*sin(np.pi / 3)
     ref_y1 = -L1*cos(np.pi / 3)
+    line1, = ax.plot([], [], 'c--', lw=1, alpha=0.5)
     line1.set_data([0, ref_x1], [0, ref_y1])
 
-    line2, = ax.plot([], [], 'o-', lw=2)
-
-    # line_orig, = ax.plot([], [], 'o-', lw=2)
-    # trace_orig, = ax.plot([], [], '.-', lw=1, ms=2)
-    # history_x_orig, history_y_orig = deque(maxlen=history_len), deque(maxlen=history_len)
+    c.init_plot(fig, ax, texts)
 
     ani = animation.FuncAnimation(
-        fig, animate, c.data_gen, interval=dt*1000/args.playback, blit=True)
-    plt.title('playback speed %dx' % (args.playback))
+        fig,
+        c.draw_func,
+        c.data_gen,
+        interval=args.dt*1000/args.playback,
+        blit=True)
     plt.show()
 
 #####################################################################

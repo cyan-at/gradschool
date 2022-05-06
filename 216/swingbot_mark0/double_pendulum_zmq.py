@@ -77,44 +77,36 @@ class Sender(IterableObject):
   def setup(self, fig, ax):
     self._fig = fig
     self._ax = ax
-    self.aux1_template = 'aux1 = %.2f'
-    self.aux1_text = self._ax.text(0.05, 0.9, '',
-      transform=self._ax.transAxes)
-    self.aux2_text = self._ax.text(0.05, 0.8, '',
-      transform=self._ax.transAxes)
-    self.aux3_text = self._ax.text(0.05, 0.7, '',
-      transform=self._ax.transAxes)
-    self.aux4_text = self._ax.text(0.05, 0.6, '',
-      transform=self._ax.transAxes)
 
-    self.history_x, self.history_y = deque(maxlen=history_len),\
-      deque(maxlen=history_len)
-    self.ref_x1 = L1*sin(np.pi / 3)
-    self.ref_y1 = -L1*cos(np.pi / 3)
-
-    self.line1, = self._ax.plot([], [], 'c--', lw=1, alpha=0.5)
-    self.line1.set_data([0, self.ref_x1], [0, self.ref_y1])
-
-    self.line, = self._ax.plot([], [], 'o-', lw=2)
-    self.trace, = self._ax.plot([], [], '.-', lw=1, ms=2)
+    self._texts = [
+        ax.text(0.05, 0.9, '', transform=ax.transAxes),
+        ax.text(0.05, 0.8, '', transform=ax.transAxes),
+        ax.text(0.05, 0.7, '', transform=ax.transAxes),
+        ax.text(0.05, 0.6, '', transform=ax.transAxes),
+    ]
 
     # integrate your ODE using scipy.integrate.
-    self._c = Container()
+    initial_state = np.radians([float(x) for x in self._args.initial.split(',')])
+    self.c = Acrobot(args,
+      initial_state,
+      np.arange(0, self._args.t_stop, self._args.dt))
+    self.c.init_data()
 
-    self._state = np.radians([
-      float(x) for x in self._args.initial.split(',')])
-
-    t = np.arange(0, t_stop, 0.02)
-    self._state = integrate.odeint(
-      self._c.derivs_pfl_collocated_strategy1, self._state, t)
-
-    self.x1 = L1*sin(self._state[:, 0])
-    self.y1 = -L1*cos(self._state[:, 0])
-    self.x2 = L2*sin(self._state[:, 2]) + self.x1
-    self.y2 = -L2*cos(self._state[:, 2]) + self.y1
+    self.c.init_plot(fig, ax, self._texts)
+    self.c._data_gen_cb = self.data_gen_cb
 
   def do_init(self, *args, **kwargs):
     pass
+
+  def do_cleanup(self, *args, **kwargs):
+    print("teardown")
+
+  def init_external_blackboard(self, *args):
+    pass
+
+  def data_gen_cb(self, data):
+    self.i = data
+    self._data = self.c.state[self.i, :]
 
   def do_iterate(self, *args, **kwargs):
     # print("do_iterate")
@@ -142,24 +134,18 @@ class Sender(IterableObject):
       # self._data[1] = self._dt_acc # amp * np.sin(self._data[0])
       # self._data[2] = amp * np.cos(self._data[0])
 
-      if self._state is not None:
-        self._data[0] = self._state[self.i, 0]
-        self._data[1] = self._state[self.i, 1]
-        self._data[2] = self._state[self.i, 2]
+      # if self._state is not None:
+      #   self._data[0] = self._state[self.i, 0]
+      #   self._data[1] = self._state[self.i, 1]
+      #   self._data[2] = self._state[self.i, 2]
 
       self.produce("hi", "test")
       time.sleep(0.01)
 
-  def do_cleanup(self, *args, **kwargs):
-    print("teardown")
-
-  def init_external_blackboard(self, *args):
-    pass
+  ###################################
 
   def add_zmq_sub(self, topic_name):
     self._topics.append(topic_name)
-
-  ###################################
 
   def produce(self, k, v):
     for topic in self._topics:
@@ -185,52 +171,6 @@ class Sender(IterableObject):
 
   ###################################
 
-  def data_gen(self):
-    i = 0
-    while i < len(self._state):
-      yield i
-      if self._pressed:
-        i += 1
-
-  def draw_func(self, i):
-    self.i = i
-
-    thisx = [0, self.x1[i], self.x2[i]]
-    thisy = [0, self.y1[i], self.y2[i]]
-
-    # thisx_orig = [0, x1_orig[i], x2_orig[i]]
-    # thisy_orig = [0, y1_orig[i], y2_orig[i]]
-
-    if i == 0:
-        self.history_x.clear()
-        self.history_y.clear()
-
-        # history_x_orig.clear()
-        # history_y_orig.clear()
-
-    self.history_x.appendleft(thisx[2])
-    self.history_y.appendleft(thisy[2])
-    self.line.set_data(thisx, thisy)
-    self.trace.set_data(self.history_x, self.history_y)
-
-    # history_x_orig.appendleft(thisx_orig[2])
-    # history_y_orig.appendleft(thisy_orig[2])
-    # line_orig.set_data(thisx_orig, thisy_orig)
-    # trace_orig.set_data(history_x_orig, history_y_orig)
-
-    self.aux1_text.set_text(self.aux1_template % (self._state[i, 0]))
-    # aux2_text.set_text('hello')
-    # aux3_text.set_text('hello')
-    # aux4_text.set_text('hello')
-
-    return self.line, \
-      self.line1, \
-      self.trace, \
-      self.aux1_text, \
-      self.aux2_text, \
-      self.aux3_text, \
-      self.aux4_text
-
 if __name__ == '__main__':
   import argparse
   from threading import Lock, Condition, Thread
@@ -242,8 +182,23 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser(
     description="")
   parser.add_argument('--autostart', type=int, default=1)
-  parser.add_argument('--initial', type=str, default="0,0,1,0", help='')
+
   parser.add_argument('--playback', type=int, default=1, help='')
+  parser.add_argument('--history', type=int, default=500, help='')
+
+  parser.add_argument('--mode', type=int, default=0, help='')
+  parser.add_argument('--initial', type=str, default="0,0,1,0", help='')
+  '''
+  q2_dot [3] cannot be 0
+  http://underactuated.mit.edu/pend.html#energy_shaping
+  This is true for any  theta_dot, except for theta_dot = 0
+  (so it will not actually swing us up from the downright fixed point...
+  but if you nudge the system just a bit, then it will start
+  pumping energy and will swing all of the way up).
+  '''
+
+  parser.add_argument('--dt', type=float, default=0.02, help='')
+  parser.add_argument('--t_stop', type=int, default=300, help='')
   args = parser.parse_args()
 
   ############### overhead
@@ -333,11 +288,10 @@ if __name__ == '__main__':
   gamepad.setup(fig, ax)
   _ = animation.FuncAnimation(
     fig,
-    gamepad.draw_func,
-    gamepad.data_gen,
+    gamepad.c.draw_func,
+    gamepad.c.data_gen,
     blit=True,
-    interval=dt*1000/args.playback,
-    repeat=False)
+    interval=args.dt*1000/args.playback)
   plt.title('playback speed %dx' % (args.playback))
   plt.show()
 
