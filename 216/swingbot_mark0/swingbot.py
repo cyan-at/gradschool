@@ -161,11 +161,11 @@ if __name__ == '__main__':
             'mass1' : mass1,
             'mass1_symbol' : mass1_symbol,
 
-            'angle3' : angle3,
-            'length3' : length3,
-            'link2' : link2,
-            'mass2' : mass2,
-            'mass2_symbol' : mass2_symbol,
+            # 'angle3' : angle3,
+            # 'length3' : length3,
+            # 'link2' : link2,
+            # 'mass2' : mass2,
+            # 'mass2_symbol' : mass2_symbol,
         })
 
     fig.draw()
