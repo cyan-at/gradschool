@@ -26,21 +26,22 @@ def pull_out_term(expr, term, product_candidates = [], default=0):
     ret = 0
     found = False
 
+    expr_cp = expr
+
     product_candidates.append(1)
     for c in product_candidates:
-        d = collect(expr, term*c, evaluate=False)
+        d = collect(expr_cp, term*c, evaluate=False)
         if term*c in d:
             found = True
             print("found")
             ret += c*d[term*c]
-
-    leftover = simplify(expr - ret * term)
+            expr_cp = d[1]
 
     if not found:
         print("not found")
         ret = default
 
-    return ret, leftover
+    return ret, expr_cp
 
 def sympy_to_expression(sympy_expr):
     expr = python(sympy_expr).split("\n")[-1].split(" = ")[-1]

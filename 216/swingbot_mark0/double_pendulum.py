@@ -215,7 +215,7 @@ L2 = 1.0  # length of pendulum 2 in m
 L = 1.05*(L1 + L2)  # maximal length of the combined pendulum
 M1 = 1.0  # mass of pendulum 1 in kg
 M2 = 1.0  # mass of pendulum 2 in kg
-Q1_DAMPING = 0.0
+Q1_DAMPING = 1.0
 
 ALPHA = 10
 K1 = L1*(M1+M2) * 10
@@ -233,7 +233,7 @@ K2 = L1*(M1+M2) * 200
 
 # this shows just about reaching the top
 L1 = 10.0  # length of pendulum 1 in m
-ALPHA = 1.1
+ALPHA = 5.1
 K1 = L1*(M1+M2)
 K2 = L1*(M1+M2)
 
@@ -327,6 +327,7 @@ class Acrobot(object):
         t2_dot = state[3]
         t1_t2 = t1 - t2
 
+        '''
         den1 = L1 * (M1 - M2 * cos(t1_t2)**2 + M2)
         mine_dydx1 = -G * (M1 + M2) * sin(t1)\
             - L2*M2*sin(t1_t2)*t2_dot**2\
@@ -337,6 +338,14 @@ class Acrobot(object):
         mine_dydx2 = -(M1 + M2)*(G*sin(t2) - L1*sin(t1_t2)*t1_dot**2)\
             + (G*(M1+M2)*sin(t1) + L2*M2*sin(t1_t2)*t2_dot**2)*cos(t1_t2)
         dydx[3] = mine_dydx2 / den2
+        '''
+
+        # derivation_design1
+        print("derivation_design1")
+        den1 = (L1*(M1 - M2*cos(t1 - t2)**2 + M2))
+        dydx[1] = -(G*M1*sin(t1) + G*M2*sin(t1 - 2*t2)/2 + G*M2*sin(t1)/2 + L1*M2*sin(2*t1 - 2*t2)*t1_dot**2/2 + L2*M2*sin(t1 - t2)*t2_dot**2 + Q1_DAMPING*t1_dot)/den1
+        den2 = (L2*(M1 - M2*cos(t1 - t2)**2 + M2))
+        dydx[3] = (-(M1 + M2)*(G*sin(t2) - L1*sin(t1 - t2)*t1_dot**2) + (G*M1*sin(t1) + G*M2*sin(t1) + L2*M2*sin(t1 - t2)*t2_dot**2 + Q1_DAMPING*t1_dot)*cos(t1 - t2))/den2
 
         return dydx
 
@@ -420,6 +429,9 @@ class Acrobot(object):
         # artifact not used for plotting
         # u = G*sin(t2)/L2 + L1*(-G*sin(t1)/L1 - L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2)))*cos(t1_t2)/L2 - L1*sin(t1_t2)*t1_dot**2/L2 + (-K2*t2 + K1*(0.63661977236758138*ALPHA*np.arctan(t1_dot) - t2))*(-M2*cos(t1_t2)**2/(M1 + M2) + 1)
 
+        # use t1_dot to set the behavior to be 'still' around the sides of the swing
+        # and 'aggressive' near the middle of the swing
+
         '''
         http://www2.ece.ohio-c.state.edu/~passino/PapersToPost/acrobot-JIRSTA.pdf
         The arctangent function has the desirable characteristic of straightening out the
@@ -435,10 +447,10 @@ class Acrobot(object):
 
         dydx[3] = v # our control law/strategy includes a choice that v is the acceleration(?)
 
-        dydx[1] = -G*sin(t1)/L1 - L2*M2*cos(t1_t2)*v/(L1*(M1+M2)) - L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2)) - Q1_DAMPING*t1_dot/(L1*(M1 + M2))
-
-        # dydx[1] = (-G*M1*sin(t1) - G*M2*sin(t1) - L2*M2*sin(t1 - t2)*t2_dot**2 - L2*M2*cos(t1 - t2)*v - Q1_DAMPING*t1_dot)/(L1*M1 + L1*M2)
-
+        # dydx[1] = -G*sin(t1)/L1 - L2*M2*cos(t1_t2)*v/(L1*(M1+M2)) - L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2)) - Q1_DAMPING*t1_dot/(L1*(M1 + M2))
+        # this is printed from derivation_design1
+        print("derivation_design1")
+        dydx[1] = (-G*M1*sin(t1) - G*M2*sin(t1) - L2*M2*sin(t1 - t2)*t2_dot**2 - L2*M2*cos(t1 - t2)*v - Q1_DAMPING*t1_dot)/(L1*M1 + L1*M2)
         return dydx
 
     def derivs_pfl_collocated_taskspace(self, state, t):
@@ -534,6 +546,8 @@ class Acrobot(object):
         energy_err = energy - energy_goal
 
         u = t1_dot * energy_err
+        # use t1_dot to set the behavior to be 'still' around the sides of the swing
+        # and 'aggressive' near the middle of the swing
 
         v = K7 * u - K8 * (t2_dot) - K9 * (t2)
 
@@ -576,6 +590,8 @@ class Acrobot(object):
         energy_err = energy - energy_goal
 
         u = t1_dot * energy_err
+        # use t1_dot to set the behavior to be 'still' around the sides of the swing
+        # and 'aggressive' near the middle of the swing
 
         v = K10 * u - K11 * (t2_dot) - K12 * (t2)
 
