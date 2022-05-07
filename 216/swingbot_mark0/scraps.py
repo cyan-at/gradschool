@@ -621,3 +621,11 @@ def derivs_original(c.state, t):
                / den2)
 
     return dydx
+
+
+def pull_out_leftover(expr, terms, default=0):
+    x = expr
+    for t in terms:
+        leftover_dict = collect(expr, t, evaluate=False)
+        x = leftover_dict[1] if 1 in leftover_dict else 0
+    return x

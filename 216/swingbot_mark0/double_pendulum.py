@@ -682,7 +682,7 @@ class Acrobot(object):
         self.texts = texts
 
     def data_gen(self):
-        i = self.state.shape[0] - 20
+        i = 0
         while True:
             i = (i + 1) % self.state.shape[0]
 

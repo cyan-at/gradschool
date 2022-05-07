@@ -1,12 +1,15 @@
 import sympy
 from sympy import *
 from sympy.physics.mechanics import *
-
 sympy.init_printing()
+
 from IPython.display import display, Math
 
 def sympy_to_expression(sympy_expr):
   expr = python(sympy_expr).split("\n")[-1].split(" = ")[-1]
+
+  expr = expr.replace("p1_damping", "Q1_DAMPING")
+
   expr = expr.replace("t2(t)", "t2")
   expr = expr.replace("t1(t)", "t1")
   expr = expr.replace("Derivative(t2, t)", "t2_dot")
@@ -24,6 +27,8 @@ this is the unique part of this, the plant
 for a different plant, change this section
 '''
 
+# define variables
+
 t = Symbol('t')
 t1, t2, t3 = dynamicsymbols('t1 t2 t3')
 m1, l1, m2, l2, m3, l3, g, p1_damping = symbols('m1 l1 m2 l2 m3 l3 g p1_damping');
@@ -33,10 +38,12 @@ dt3 = t3.diff(t)
 
 x1 = l1*sin(t1)
 y1 = -l1*cos(t1)
-x2 = x1 - l2*sin(t2) # key is (-)
-y2 = y1 - l2*cos(t2)
+
 x3 = x1 + l3*sin(t3)
 y3 = y1 - l3*cos(t3)
+
+x2 = x1 - l2*sin(t2) # key is (-)
+y2 = y1 - l2*cos(t2)
 
 x1dot = x1.diff(t)
 y1dot = y1.diff(t)
@@ -49,11 +56,15 @@ v1_2 = simplify(x1dot**2 + y1dot**2)
 v2_2 = simplify(x2dot**2 + y2dot**2)
 v3_2 = simplify(x3dot**2 + y3dot**2)
 
+# Lagrange
+
 T = m1 / 2 * v1_2 + m2 / 2 * v2_2 + m3 / 2 * v3_2
 
 V = m1*g*y1 + m2*g*y2 + m3*g*y3
 
 L = simplify(T - V)
+
+# Euler-Lagrange Eq.
 
 # sympy trick: verify sympy's equation matches yours by hand
 # In [137]: simplify(simplify(L.diff(dt1)) - p1_byhand)                                                       
