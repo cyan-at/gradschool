@@ -435,7 +435,9 @@ class Acrobot(object):
 
         dydx[3] = v # our control law/strategy includes a choice that v is the acceleration(?)
 
-        dydx[1] = -G*sin(t1)/L1 - L2*M2*cos(t1_t2)*v/(L1*(M1+M2)) - L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2)) - Q1_DAMPING*t1_dot
+        dydx[1] = -G*sin(t1)/L1 - L2*M2*cos(t1_t2)*v/(L1*(M1+M2)) - L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2)) - Q1_DAMPING*t1_dot/(L1*(M1 + M2))
+
+        # dydx[1] = (-G*M1*sin(t1) - G*M2*sin(t1) - L2*M2*sin(t1 - t2)*t2_dot**2 - L2*M2*cos(t1 - t2)*v - Q1_DAMPING*t1_dot)/(L1*M1 + L1*M2)
 
         return dydx
 
