@@ -76,10 +76,20 @@ try:
 except:
     pass
 
+el1_latex = latex(Eq(el1, 0))
+el1_latex = el1_latex.replace("t_{1}", "\\theta_{1}")
+el1_latex = el1_latex.replace("t_{2}", "\\theta_{2}")
+print(el1_latex)
+
 try:
     el2 = simplify_eq_with_assumptions(Eq(el2, 0)).lhs
 except:
     pass
+
+el2_latex = latex(Eq(el2, 0))
+el2_latex = el2_latex.replace("t_{1}", "\\theta_{1}")
+el2_latex = el2_latex.replace("t_{2}", "\\theta_{2}")
+print(el2_latex)
 
 '''
 ---------------------------------------------------------------
