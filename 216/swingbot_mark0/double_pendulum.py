@@ -543,7 +543,7 @@ class Acrobot(object):
             M2*G*L1*(1 - cos(state[0])) +\
             M2*G*L2*(1 - cos(state[2]))
         energy = u
-        energy_err = energy - energy_goal
+        energy_err = energy_goal - energy
 
         u = t1_dot * energy_err
         # use t1_dot to set the behavior to be 'still' around the sides of the swing
@@ -586,8 +586,8 @@ class Acrobot(object):
         u = M1*G*L1*(1 - cos(state[0])) +\
             M2*G*L1*(1 - cos(state[0])) +\
             M2*G*L2*(1 - cos(state[2]))
-        energy = u
-        energy_err = energy - energy_goal
+        energy = u + e
+        energy_err = energy_goal - energy
 
         u = t1_dot * energy_err
         # use t1_dot to set the behavior to be 'still' around the sides of the swing
