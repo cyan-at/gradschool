@@ -1,0 +1,38 @@
+In [1]: run ./derivation_design1.py                                                                                                  
+/usr/local/home/cyan3/Dev/jim/gradschool/216/swingbot_mark0/derivation_design1.py:211: SyntaxWarning: assertion is always true, perhaps remove parentheses?
+  assert(expr, expr_expected)
+<class 'sympy.core.mul.Mul'>
+removing a constant l1
+el1_latex
+g m_{1} \sin{\left(\operatorname{\theta_{1}}{\left(t \right)} \right)} + g m_{2} \sin{\left(\operatorname{\theta_{1}}{\left(t \right)} \right)} + l_{1} m_{1} \frac{d^{2}}{d t^{2}} \operatorname{\theta_{1}}{\left(t \right)} + l_{1} m_{2} \frac{d^{2}}{d t^{2}} \operatorname{\theta_{1}}{\left(t \right)} + l_{2} m_{2} \sin{\left(\operatorname{\theta_{1}}{\left(t \right)} - \operatorname{\theta_{2}}{\left(t \right)} \right)} \left(\frac{d}{d t} \operatorname{\theta_{2}}{\left(t \right)}\right)^{2} + l_{2} m_{2} \cos{\left(\operatorname{\theta_{1}}{\left(t \right)} - \operatorname{\theta_{2}}{\left(t \right)} \right)} \frac{d^{2}}{d t^{2}} \operatorname{\theta_{2}}{\left(t \right)} = 0
+<class 'sympy.core.mul.Mul'>
+removing a constant l2
+removing a constant m2
+el2_latex
+g \sin{\left(\operatorname{\theta_{2}}{\left(t \right)} \right)} - l_{1} \sin{\left(\operatorname{\theta_{1}}{\left(t \right)} - \operatorname{\theta_{2}}{\left(t \right)} \right)} \left(\frac{d}{d t} \operatorname{\theta_{1}}{\left(t \right)}\right)^{2} + l_{1} \cos{\left(\operatorname{\theta_{1}}{\left(t \right)} - \operatorname{\theta_{2}}{\left(t \right)} \right)} \frac{d^{2}}{d t^{2}} \operatorname{\theta_{1}}{\left(t \right)} + l_{2} \frac{d^{2}}{d t^{2}} \operatorname{\theta_{2}}{\left(t \right)} = 0
+found
+found
+found
+found
+M_latex
+\left[\begin{matrix}l_{1} m_{1} + l_{1} m_{2} & l_{2} m_{2} \cos{\left(\operatorname{\theta_{1}}{\left(t \right)} - \operatorname{\theta_{2}}{\left(t \right)} \right)}\\l_{1} \cos{\left(\operatorname{\theta_{1}}{\left(t \right)} - \operatorname{\theta_{2}}{\left(t \right)} \right)} & l_{2}\end{matrix}\right]
+not found
+found
+found
+not found
+C_latex
+\left[\begin{matrix}0 & l_{2} m_{2} \sin{\left(\operatorname{\theta_{1}}{\left(t \right)} - \operatorname{\theta_{2}}{\left(t \right)} \right)} \frac{d}{d t} \operatorname{\theta_{2}}{\left(t \right)}\\- l_{1} \sin{\left(\operatorname{\theta_{1}}{\left(t \right)} - \operatorname{\theta_{2}}{\left(t \right)} \right)} \frac{d}{d t} \operatorname{\theta_{1}}{\left(t \right)} & 0\end{matrix}\right]
+tau_g_latex
+\left[\begin{matrix}g m_{1} \sin{\left(\operatorname{\theta_{1}}{\left(t \right)} \right)} + g m_{2} \sin{\left(\operatorname{\theta_{1}}{\left(t \right)} \right)}\\g \sin{\left(\operatorname{\theta_{2}}{\left(t \right)} \right)}\end{matrix}\right]
+Q_latex
+\left[\begin{matrix}- p_{1 damping} \frac{d}{d t} \operatorname{\theta_{1}}{\left(t \right)}\\0\end{matrix}\right]
+tau_latex
+\left[\begin{matrix}- g m_{1} \sin{\left(\operatorname{\theta_{1}}{\left(t \right)} \right)} - g m_{2} \sin{\left(\operatorname{\theta_{1}}{\left(t \right)} \right)} - l_{2} m_{2} \sin{\left(\operatorname{\theta_{1}}{\left(t \right)} - \operatorname{\theta_{2}}{\left(t \right)} \right)} \left(\frac{d}{d t} \operatorname{\theta_{2}}{\left(t \right)}\right)^{2} - p_{1 damping} \frac{d}{d t} \operatorname{\theta_{1}}{\left(t \right)}\\- g \sin{\left(\operatorname{\theta_{2}}{\left(t \right)} \right)} + l_{1} \sin{\left(\operatorname{\theta_{1}}{\left(t \right)} - \operatorname{\theta_{2}}{\left(t \right)} \right)} \left(\frac{d}{d t} \operatorname{\theta_{1}}{\left(t \right)}\right)^{2}\end{matrix}\right]
+qdotdot_latex
+\left[\begin{matrix}- \frac{g m_{1} \sin{\left(\operatorname{\theta_{1}}{\left(t \right)} \right)} + \frac{g m_{2} \sin{\left(\operatorname{\theta_{1}}{\left(t \right)} - 2 \operatorname{\theta_{2}}{\left(t \right)} \right)}}{2} + \frac{g m_{2} \sin{\left(\operatorname{\theta_{1}}{\left(t \right)} \right)}}{2} + \frac{l_{1} m_{2} \sin{\left(2 \operatorname{\theta_{1}}{\left(t \right)} - 2 \operatorname{\theta_{2}}{\left(t \right)} \right)} \left(\frac{d}{d t} \operatorname{\theta_{1}}{\left(t \right)}\right)^{2}}{2} + l_{2} m_{2} \sin{\left(\operatorname{\theta_{1}}{\left(t \right)} - \operatorname{\theta_{2}}{\left(t \right)} \right)} \left(\frac{d}{d t} \operatorname{\theta_{2}}{\left(t \right)}\right)^{2} + p_{1 damping} \frac{d}{d t} \operatorname{\theta_{1}}{\left(t \right)}}{l_{1} \left(m_{1} - m_{2} \cos^{2}{\left(\operatorname{\theta_{1}}{\left(t \right)} - \operatorname{\theta_{2}}{\left(t \right)} \right)} + m_{2}\right)}\\\frac{- \left(m_{1} + m_{2}\right) \left(g \sin{\left(\operatorname{\theta_{2}}{\left(t \right)} \right)} - l_{1} \sin{\left(\operatorname{\theta_{1}}{\left(t \right)} - \operatorname{\theta_{2}}{\left(t \right)} \right)} \left(\frac{d}{d t} \operatorname{\theta_{1}}{\left(t \right)}\right)^{2}\right) + \left(g m_{1} \sin{\left(\operatorname{\theta_{1}}{\left(t \right)} \right)} + g m_{2} \sin{\left(\operatorname{\theta_{1}}{\left(t \right)} \right)} + l_{2} m_{2} \sin{\left(\operatorname{\theta_{1}}{\left(t \right)} - \operatorname{\theta_{2}}{\left(t \right)} \right)} \left(\frac{d}{d t} \operatorname{\theta_{2}}{\left(t \right)}\right)^{2} + p_{1 damping} \frac{d}{d t} \operatorname{\theta_{1}}{\left(t \right)}\right) \cos{\left(\operatorname{\theta_{1}}{\left(t \right)} - \operatorname{\theta_{2}}{\left(t \right)} \right)}}{l_{2} \left(m_{1} - m_{2} \cos^{2}{\left(\operatorname{\theta_{1}}{\left(t \right)} - \operatorname{\theta_{2}}{\left(t \right)} \right)} + m_{2}\right)}\end{matrix}\right]
+qdotdot[0]
+-(G*M1*sin(t1) + G*M2*sin(t1 - 2*t2)/2 + G*M2*sin(t1)/2 + L1*M2*sin(2*t1 - 2*t2)*t1_dot**2/2 + L2*M2*sin(t1 - t2)*t2_dot**2 + Q1_DAMPING*t1_dot)/(L1*(M1 - M2*cos(t1 - t2)**2 + M2))
+qdotdot[1]
+(-(M1 + M2)*(G*sin(t2) - L1*sin(t1 - t2)*t1_dot**2) + (G*M1*sin(t1) + G*M2*sin(t1) + L2*M2*sin(t1 - t2)*t2_dot**2 + Q1_DAMPING*t1_dot)*cos(t1 - t2))/(L2*(M1 - M2*cos(t1 - t2)**2 + M2))
+\frac{- g m_{1} \sin{\left(\operatorname{\theta_{1}}{\left(t \right)} \right)} - g m_{2} \sin{\left(\operatorname{\theta_{1}}{\left(t \right)} \right)} - l_{2} m_{2} \sin{\left(\operatorname{\theta_{1}}{\left(t \right)} - \operatorname{\theta_{2}}{\left(t \right)} \right)} \left(\frac{d}{d t} \operatorname{\theta_{2}}{\left(t \right)}\right)^{2} - l_{2} m_{2} \cos{\left(\operatorname{\theta_{1}}{\left(t \right)} - \operatorname{\theta_{2}}{\left(t \right)} \right)} \frac{d^{2}}{d t^{2}} \operatorname{\theta_{2}}{\left(t \right)} - p_{1 damping} \frac{d}{d t} \operatorname{\theta_{1}}{\left(t \right)}}{l_{1} m_{1} + l_{1} m_{2}}
+(-G*M1*sin(t1) - G*M2*sin(t1) - L2*M2*sin(t1 - t2)*t2_dot**2 - L2*M2*cos(t1 - t2)*Derivative(t2, (t, 2)) - Q1_DAMPING*t1_dot)/(L1*M1 + L1*M2)

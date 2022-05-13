@@ -389,3 +389,26 @@ no damping
 
 
 ./double_pendulum.py --playback 20 --initial "20,0,1,0" --mode 3 --t_stop 500
+
+http://underactuated.mit.edu/acrobot.html#mjx-eqn-eq%3Asimple
+https://www.lirmm.fr/~chemori/Temp/Chaimaa/bergerman95experimental.pdf
+https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=1428728
+https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=1600789
+https://dspace.mit.edu/bitstream/handle/1721.1/54490/558587994-MIT.pdf?sequence=2&isAllowed=y
+https://www.semanticscholar.org/paper/The-swing-up-control-for-the-Acrobot-based-on-Xin-Kaneda/f6b67012d8484261fa10af2b0c295a35aa237335
+https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=1184374
+https://ieeexplore.ieee.org/document/8261130
+http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.648.5525&rep=rep1&type=pdf
+https://asmedigitalcollection.asme.org/dynamicsystems/article-abstract/136/4/041018/371910/Research-on-Swing-up-Control-Based-on-Energy-for?redirectedFrom=fulltext
+https://reader.elsevier.com/reader/sd/pii/000510989400148C?token=218972C84BEB2EBA877AFD3222DE65F49A94355EFBE66566F640F0E3CDB87FD770C41E10D6161F6BC8F42435927E13B6&originRegion=us-east-1&originCreation=20220503033554
+https://www.sciencedirect.com/science/article/abs/pii/000510989400148C?via%3Dihub
+https://www.researchgate.net/publication/3032106_Analysis_of_the_energy-based_control_for_swing_up_two_pendulums
+http://underactuated.mit.edu/pend.html
+https://ieeexplore.ieee.org/document/407375
+http://groups.csail.mit.edu/robotics-center/public_papers/Shkolnik08.pdf
+https://www.semanticscholar.org/paper/Intelligent-Control-for-an-Acrobot-Brown-Passino/d0d4b115ce5216d22f5f410bdba081fd7cc7ad9a
+https://www.mdpi.com/2076-3417/11/16/7615/htm
+https://robotics.stackexchange.com/questions/21569/pid-controller-that-targets-a-set-rotation-and-a-set-velocity-at-that-rotation/21571#21571
+https://en.wikipedia.org/wiki/Feedback_linearization
+https://www.semanticscholar.org/paper/Swing-up-and-stabilization-of-the-Acrobot-via-based-Horibe-Sakamoto/0dd4f82786d4a24c20eda760c2b9992f3cc8cddd
+https://diego.assencio.com/?index=1500c66ae7ab27bb0106467c68feebc6
