@@ -239,6 +239,8 @@ ALPHA = 5.1
 K1 = L1*(M1+M2)
 K2 = L1*(M1+M2)
 
+ALPHA2 = np.pi / 3
+
 def insert_into_dict_of_arrays(d, k, v, mode="append"):
     """ Aggregates or assigns a dictionary with k, v
 
@@ -274,6 +276,81 @@ def insert_into_dict_of_arrays(d, k, v, mode="append"):
     else:
         d[k] = [v]
 
+def system_deserialize1():
+    return L1*(M1+M2)
+global_deserializers = {
+    "system_deserialize1" : system_deserialize1,
+}
+def deserialize(args):
+    # order matters
+
+    parameter_str = ""
+
+    system_params = [float(x) for x in args.system.strip().split(",")]
+    assert(len(system_params) == 5)
+    global L1, M1, L2, M2, Q1_DAMPING
+    L1, M1, L2, M2, Q1_DAMPING = system_params
+
+    parameter_str += "reference = \\textbf{%d} \\\ " % (args.mode)
+
+    parameter_str += "l_{1}=%.1f,m_{1}=%.1f,l_{2}=%.1f,m_{2}=%.1f,\\beta_{damping}=%.1f" % (
+        L1, M1, L2, M2, Q1_DAMPING)
+    parameter_str += " \\\ "
+
+    controller_params = []
+    controller_param_str = ""
+    if args.mode == 1:
+        global ALPHA, K1, K2
+        controller_params = args.control1.strip().split(",")
+        for i in range(len(controller_params)):
+            if controller_params[i] in global_deserializers.keys():
+                controller_params[i] = global_deserializers[controller_params[i]]()
+        controller_params = [float(x) for x in controller_params]
+
+        ALPHA = controller_params[0]
+        K1 = controller_params[1]
+        K2 = controller_params[2]
+        controller_param_str = "\\alpha=%.1f,k_{p}=%.1f,k_{d}=%.1f" % (ALPHA, K1, K2)
+
+    elif args.mode == 2:
+        global ALPHA2, K3, K4
+        controller_params = args.control2.strip().split(",")
+        for i in range(len(controller_params)):
+            if controller_params[i] in global_deserializers.keys():
+                controller_params[i] = global_deserializers[controller_params[i]]()
+        controller_params = [float(x) for x in controller_params]
+
+        ALPHA2 = controller_params[0]
+        K3 = controller_params[1]
+        K4 = controller_params[2]
+        controller_param_str = "\\alpha=%0.1f,k_{p}=%.1f,k_{d}=%.1f" % (ALPHA2, K4, K3)
+
+    elif args.mode == 3:
+        global energy_goal, K7, K8
+        controller_params = args.control3.strip().split(",")
+        for i in range(len(controller_params)):
+            if controller_params[i] in global_deserializers.keys():
+                controller_params[i] = global_deserializers[controller_params[i]]()
+        controller_params = [float(x) for x in controller_params]
+
+        energy_goal = controller_params[0]
+        K7 = controller_params[1]
+        K8 = controller_params[2]
+        controller_param_str = "energy_goal=%.1f,k_{p}=%.1f,k_{d}=%.1f" % (energy_goal, K7, K8)
+
+    parameter_str += controller_param_str
+    parameter_str += " \\\ "
+
+    initial_state = np.radians([float(x) for x in args.initial.split(',')])
+
+    initial_state_str = "\\theta_{1}=%.1f,\\theta_{2}=%.1f" % (initial_state[0], initial_state[2])
+    parameter_str += initial_state_str
+
+    print("parameter_str")
+    print(parameter_str)
+
+    return system_params, controller_params, initial_state
+
 def butter_filter(signal, fs, cutoff):
     B, A = butter(1, cutoff / (fs / 2), btype='low')
     filtered_signal = filtfilt(B, A, signal, axis=0)
@@ -284,8 +361,8 @@ def hilbert_find_ascending_start(hilbert_abs):
     val = None
     counter = 0
     while i < len(hilbert_abs):
-        print(val)
-        print(hilbert_abs[i])
+        # print(val)
+        # print(hilbert_abs[i])
         if val is None:
             val = hilbert_abs[i]
         else:
@@ -302,7 +379,8 @@ def hilbert_find_ascending_start(hilbert_abs):
 
 def performance_metrics(
     state,
-    hilbert_denoised_envelope,
+    theta1_hilbert_denoised_envelope,
+    converge_threshold=0.05,
     rise_time_band = 0.05):
     '''
     look for semantics in signal:
@@ -312,12 +390,13 @@ def performance_metrics(
     energy spent
     '''
 
-def deserialize(args):
-    system_params = [float(x) for x in args.system.strip().split(",")]
-    controller_params = {}
-    initial_state = np.radians([float(x) for x in args.initial.split(',')])
+    theta1_every_second = theta1_hilbert_denoised_envelope[0::50]
 
-    return system_params, controller_params, initial_state
+    slopes = np.gradient(theta1_every_second)
+
+    print(np.max(slopes))
+
+    import ipdb; ipdb.set_trace();
 
 class Acrobot(object):
     def __init__(self,
@@ -553,7 +632,7 @@ class Acrobot(object):
         # a = np.pi / 2
 
         k = 1
-        a = np.pi / 3
+        a = ALPHA2
 
         yd = a * sin(t / k)
         yd_dot = a * cos(t / k) / k
@@ -598,13 +677,13 @@ class Acrobot(object):
             M2*G*L1*(1 - cos(state[0])) +\
             M2*G*L2*(1 - cos(state[2]))
         energy = u
-        energy_err = energy_goal - energy
+        energy_err = energy - energy_goal
 
         u = t1_dot * energy_err
         # use t1_dot to set the behavior to be 'still' around the sides of the swing
         # and 'aggressive' near the middle of the swing
 
-        v = K7 * u - K8 * (t2_dot) # - K9 * (t2)
+        v = K7 * u - K8 * (t2_dot) - K9 * (t2)
 
         dydx[3] = v
         dydx[1] = -G*sin(t1)/L1 - L2*M2*cos(t1_t2)*v/(L1*(M1+M2))\
@@ -819,17 +898,17 @@ if __name__ == '__main__':
     parser.add_argument(
         '--control1',
         type=str,
-        default="5.1,system_deserialize1,system_deserialize1")
+        default="5.1,system_deserialize1,system_deserialize1") # ALPHA, K1, K2
     # derivs_pfl_collocated_taskspace
     parser.add_argument(
         '--control2',
         type=str,
-        default="1.0,1.0")
+        default="1.04,1.0,1.0") # K3, K4
     # derivs_pfl_collocated_energy
     parser.add_argument(
         '--control3',
         type=str,
-        default="120.0,5.0,5.0")
+        default="120.0,5.0,5.0") # energy_goal, K7, K8
 
     args = parser.parse_args()
     system_params, controller_params, initial_state = deserialize(args)
@@ -838,62 +917,123 @@ if __name__ == '__main__':
     system = Acrobot(args, system_params, controller_params, initial_state, times)
     system.init_data()
 
-
-    fig = plt.figure(figsize=(12, 4))
-    ax = fig.add_subplot()
-    ax.grid()
-
-    theta1, = ax.plot(times, system.state[:, 0], 'r', linewidth=2) # theta1
-    theta2, = ax.plot(times, system.state[:, 2], 'b', linewidth=1) # theta2
+    ####################################
 
     # raw
     theta1_envelope = np.abs(hilbert(system.state[:, 0]))
     theta1_times = times
 
-    # remove noise
+    # process
     clipped_min_idx = hilbert_find_ascending_start(theta1_envelope)
     theta1_times = times[clipped_min_idx:]
     theta1_envelope = theta1_envelope[clipped_min_idx:]
     theta1_envelope = butter_filter(theta1_envelope, 2000, 1)
 
-    envelope, = ax.plot(theta1_times, theta1_envelope, 'g', linewidth=1) # theta2
+    # performance_metrics(system.state, theta1_envelope)
 
-    title = "r = theta1, b = theta2, green = amplitude (hilbert transform + denoise)"
-    plt.title(title)
-    plt.ylabel("state (rads)")
-    plt.xlabel("time (s)")
+    min_sample = int(60 / args.dt) # 3000 # 3000 * 0.02 = 60 seconds = 1 min
 
-    plt.show()
+    ####################################
 
-    '''
-    fig = plt.figure(figsize=(5, 4))
-    ax = fig.add_subplot(autoscale_on=False,
-        xlim=(-1.05*(L1+L2), 1.05*(L1+L2)),
-        ylim=(-1.05*(L1+L2), 1.05*(L1+L2)))
-    ax.set_aspect('equal')
-    ax.grid()
-    plt.title('playback speed %dx' % (args.playback))
+    pumped = False
 
-    texts = [
-        ax.text(0.05, 0.9, '', transform=ax.transAxes),
-        ax.text(0.05, 0.8, '', transform=ax.transAxes),
-        ax.text(0.05, 0.7, '', transform=ax.transAxes),
-        ax.text(0.05, 0.6, '', transform=ax.transAxes),
-    ]
-    ref_x1 = L1*sin(np.pi / 3)
-    ref_y1 = -L1*cos(np.pi / 3)
-    line1, = ax.plot([], [], 'c--', lw=1, alpha=0.5)
-    line1.set_data([0, ref_x1], [0, ref_y1])
+    theta1_envelope_minute = theta1_envelope[0::min_sample]
+    theta_1_ratio = theta1_envelope_minute[-1] / theta1_envelope_minute[0]
+    print("theta1_envelope ratio: %.3f" % (theta_1_ratio))
+    # pumped if theta_1_ratio > 2
+    if (theta_1_ratio > 2):
+        print("pumped")
+        pumped = True
 
-    system.init_plot(fig, ax, texts)
+    ####################################
 
-    ani = animation.FuncAnimation(
-        fig,
-        system.draw_func,
-        system.data_gen,
-        interval=args.dt*1000/args.playback,
-        blit=True)
-    plt.show()
-    '''
+    stable = False
+
+    slope_times = theta1_times[0::min_sample]
+    slopes = np.abs(np.gradient(theta1_envelope[0::min_sample]))
+    print(len(slopes))
+
+    # if the last minute velocity mag is less than threshold, stable
+    if slopes[-1] < 1e-1:
+        print("stable")
+        stable = True
+    else:
+        print("not stable", slopes[-1])
+
+    ####################################
+
+    rise_time = 0.0
+    if (pumped and stable):
+        max_theta1 = np.max(theta1_envelope)
+
+        first_idx_near_max = np.argmax(np.abs(theta1_envelope-max_theta1) < 1e-1)
+
+        print(first_idx_near_max)
+
+        rise_time = first_idx_near_max * args.dt
+        print("rise_time", rise_time)
+
+
+    ####################################
+
+    effort = 0.0
+
+    acc = np.abs(np.gradient(system.state[:,2], edge_order=2))
+    effort = acc.sum()
+    print("effort", effort)
+
+    ####################################
+
+    if args.plot == "analysis":
+        fig = plt.figure(figsize=(12, 4))
+        ax = fig.add_subplot()
+        ax.grid()
+
+        theta1, = ax.plot(times, system.state[:, 0], 'r', linewidth=2) # theta1
+        theta2, = ax.plot(times, system.state[:, 2], 'b', linewidth=1) # theta2
+        envelope, = ax.plot(theta1_times, theta1_envelope, 'g', linewidth=1) # theta2
+
+        _, = ax.plot(slope_times, slopes, 'k', linewidth=1) # theta2
+        _, = ax.plot(times, acc, 'm', linewidth=1) # theta2
+
+        title = "r = theta1, b = theta2, green = amplitude (hilbert transform + denoise)"
+        title += "\n"
+        title += "pumped = %d, stable = %d, rise time = %.1fs, effort = %.1f" % (
+            pumped, stable, rise_time, effort)
+        plt.title(title)
+        plt.ylabel("state (rads)")
+        plt.xlabel("time (s)")
+        plt.tight_layout(0.1)
+
+        plt.show()
+    elif args.plot == "animation":
+        fig = plt.figure(figsize=(5, 4))
+        ax = fig.add_subplot(autoscale_on=False,
+            xlim=(-1.05*(L1+L2), 1.05*(L1+L2)),
+            ylim=(-1.05*(L1+L2), 1.05*(L1+L2)))
+        ax.set_aspect('equal')
+        ax.grid()
+        plt.title('playback speed %dx' % (args.playback))
+
+        texts = [
+            ax.text(0.05, 0.9, '', transform=ax.transAxes),
+            ax.text(0.05, 0.8, '', transform=ax.transAxes),
+            ax.text(0.05, 0.7, '', transform=ax.transAxes),
+            ax.text(0.05, 0.6, '', transform=ax.transAxes),
+        ]
+        ref_x1 = L1*sin(np.pi / 3)
+        ref_y1 = -L1*cos(np.pi / 3)
+        line1, = ax.plot([], [], 'c--', lw=1, alpha=0.5)
+        line1.set_data([0, ref_x1], [0, ref_y1])
+
+        system.init_plot(fig, ax, texts)
+
+        ani = animation.FuncAnimation(
+            fig,
+            system.draw_func,
+            system.data_gen,
+            interval=args.dt*1000/args.playback,
+            blit=True)
+        plt.show()
 
 #####################################################################
