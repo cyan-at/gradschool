@@ -58,7 +58,7 @@ Q**
 
 one way to think decompose the problem:
 
-control signals(q**, u / torque) = f1(reference, c.state(actuated q, q*, unactuated q, q*))
+control signals(q**, u / torque) = f1(reference, system.state(actuated q, q*, unactuated q, q*))
 actuated q**   = f2(unactuated q**, actuated q**, control signals(q**, u / torque))
 unactuated q** = f3(unactuated q**, actuated q**, control signals(q**, u / torque))
 
@@ -106,11 +106,15 @@ import matplotlib.animation as animation
 from collections import deque
 import argparse
 
+# performance eval deps
+from scipy.signal import hilbert, butter, filtfilt
+
 # constants
 G = 9.8  # acceleration due to gravity, in m/s^2
+
+# system parameters
 L1 = 10.0  # length of pendulum 1 in m
 L2 = 1.0  # length of pendulum 2 in m
-L = 1.05*(L1 + L2)  # maximal length of the combined pendulum
 M1 = 1.0  # mass of pendulum 1 in kg
 M2 = 1.0  # mass of pendulum 2 in kg
 Q1_DAMPING = 0.0
@@ -209,10 +213,8 @@ energy_goal = 120.0
 # regardless of what L1 is, ALPHA > 1 guarantees convergence of q1 up to q1 = np.pi (upright)
 # a larger L1 does mean a larger K1, K2 to converge faster
 
-G = 9.8  # acceleration due to gravity, in m/s^2
 L1 = 10.0  # length of pendulum 1 in m
 L2 = 1.0  # length of pendulum 2 in m
-L = 1.05*(L1 + L2)  # maximal length of the combined pendulum
 M1 = 1.0  # mass of pendulum 1 in kg
 M2 = 1.0  # mass of pendulum 2 in kg
 Q1_DAMPING = 1.0
@@ -272,12 +274,63 @@ def insert_into_dict_of_arrays(d, k, v, mode="append"):
     else:
         d[k] = [v]
 
+def butter_filter(signal, fs, cutoff):
+    B, A = butter(1, cutoff / (fs / 2), btype='low')
+    filtered_signal = filtfilt(B, A, signal, axis=0)
+    return filtered_signal
+
+def hilbert_find_ascending_start(hilbert_abs):
+    i = 0
+    val = None
+    counter = 0
+    while i < len(hilbert_abs):
+        print(val)
+        print(hilbert_abs[i])
+        if val is None:
+            val = hilbert_abs[i]
+        else:
+            if hilbert_abs[i] > val:
+                counter += 1
+                if counter > 5:
+                    break
+            else:
+                counter = 0
+                val = hilbert_abs[i]
+        i += 1
+
+    return i-1
+
+def performance_metrics(
+    state,
+    hilbert_denoised_envelope,
+    rise_time_band = 0.05):
+    '''
+    look for semantics in signal:
+    pumped
+    stable
+    rise time
+    energy spent
+    '''
+
+def deserialize(args):
+    system_params = [float(x) for x in args.system.strip().split(",")]
+    controller_params = {}
+    initial_state = np.radians([float(x) for x in args.initial.split(',')])
+
+    return system_params, controller_params, initial_state
+
 class Acrobot(object):
-    def __init__(self, args, initial_state, sampletimes):
+    def __init__(self,
+        args,
+        system_params,
+        controller_params,
+        initial_state,
+        sampletimes):
         self._args = args
 
+        self.system_params = system_params
+        self.controller_params = controller_params
         self.initial_state = initial_state
-        self.state = None
         self.sampletimes = sampletimes
 
         self._modes = [
@@ -289,6 +342,8 @@ class Acrobot(object):
 
             self.derivs_pfl_noncollocated,
         ]
+
+        self.state = None
 
         self._data_gen_cb = None
 
@@ -341,7 +396,7 @@ class Acrobot(object):
         '''
 
         # derivation_design1
-        print("derivation_design1")
+        # print("derivation_design1")
         den1 = (L1*(M1 - M2*cos(t1 - t2)**2 + M2))
         dydx[1] = -(G*M1*sin(t1) + G*M2*sin(t1 - 2*t2)/2 + G*M2*sin(t1)/2 + L1*M2*sin(2*t1 - 2*t2)*t1_dot**2/2 + L2*M2*sin(t1 - t2)*t2_dot**2 + Q1_DAMPING*t1_dot)/den1
         den2 = (L2*(M1 - M2*cos(t1 - t2)**2 + M2))
@@ -354,7 +409,7 @@ class Acrobot(object):
         https://diego.assencio.com/?index=1500c66ae7ab27bb0106467c68feebc6
         https://underactuated.mit.edu/acrobot.html (collocated linearization derivation)
 
-        http://www2.ece.ohio-c.state.edu/~passino/PapersToPost/acrobot-JIRSTA.pdf
+        http://www2.ece.ohio-system.state.edu/~passino/PapersToPost/acrobot-JIRSTA.pdf
         LINEARIZATION
             matrix-forming, expressing as LHS and RHS
             PFL refers to the fact that:
@@ -433,7 +488,7 @@ class Acrobot(object):
         # and 'aggressive' near the middle of the swing
 
         '''
-        http://www2.ece.ohio-c.state.edu/~passino/PapersToPost/acrobot-JIRSTA.pdf
+        http://www2.ece.ohio-system.state.edu/~passino/PapersToPost/acrobot-JIRSTA.pdf
         The arctangent function has the desirable characteristic of straightening out the
         second joint when q˙1 equals zero at the peak of each swing, allowing a balancing
         controller to catch the system in the approximately inverted position.
@@ -449,7 +504,7 @@ class Acrobot(object):
 
         # dydx[1] = -G*sin(t1)/L1 - L2*M2*cos(t1_t2)*v/(L1*(M1+M2)) - L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2)) - Q1_DAMPING*t1_dot/(L1*(M1 + M2))
         # this is printed from derivation_design1
-        print("derivation_design1")
+        # print("derivation_design1")
         dydx[1] = (-G*M1*sin(t1) - G*M2*sin(t1) - L2*M2*sin(t1 - t2)*t2_dot**2 - L2*M2*cos(t1 - t2)*v - Q1_DAMPING*t1_dot)/(L1*M1 + L1*M2)
         return dydx
 
@@ -549,7 +604,7 @@ class Acrobot(object):
         # use t1_dot to set the behavior to be 'still' around the sides of the swing
         # and 'aggressive' near the middle of the swing
 
-        v = K7 * u - K8 * (t2_dot) - K9 * (t2)
+        v = K7 * u - K8 * (t2_dot) # - K9 * (t2)
 
         dydx[3] = v
         dydx[1] = -G*sin(t1)/L1 - L2*M2*cos(t1_t2)*v/(L1*(M1+M2))\
@@ -665,9 +720,9 @@ class Acrobot(object):
         # tau_blob = G*sin(t1)/L1 + Q1_DAMPING*t1_dot + L2*M2*sin(t1_t2)*t2_dot**2/(L1*(M1 + M2))
 
         # '''
-        # It is c.state dependent; in the cart-pole example above  and drops rank exactly when .
+        # It is system.state dependent; in the cart-pole example above  and drops rank exactly when .
         # A system has Global Strong Inertial Coupling
-        # if it exhibits Strong Inertial Coupling in every c.state.
+        # if it exhibits Strong Inertial Coupling in every system.state.
         # '''
         # if np.abs(cos(t1_t2)) > 1e-2:
         #     coupling_term = cos(t1_t2)
@@ -726,8 +781,8 @@ class Acrobot(object):
 
         self.texts[0].set_text("q1=%.3f" % (self.state[i, 0]))
         self.texts[1].set_text("energy=%.3f" % (self.state[i, 8]))
-        # aux1_text.set_text(aux1_template % (c.state[i, 0]))
-        # aux2_text.set_text(aux2_template % (c.state[i, 2]))
+        # aux1_text.set_text(aux1_template % (system.state[i, 0]))
+        # aux2_text.set_text(aux2_template % (system.state[i, 2]))
 
         # aux2_text.set_text(aux2_template % (energy[i]))
 
@@ -742,8 +797,12 @@ if __name__ == '__main__':
         description="")
     parser.add_argument('--playback', type=int, default=1, help='')
     parser.add_argument('--history', type=int, default=500, help='')
+    parser.add_argument('--plot', type=str, default="animation", help='')
+    parser.add_argument('--dt', type=float, default=0.02, help='')
+    parser.add_argument('--t_stop', type=int, default=300, help='')
 
-    parser.add_argument('--mode', type=int, default=0, help='')
+    parser.add_argument('--system', type=str, default="10,1,1,1,1", help='')
+
     parser.add_argument('--initial', type=str, default="0,0,1,0", help='')
     '''
     q2_dot [3] cannot be 0
@@ -754,16 +813,63 @@ if __name__ == '__main__':
     pumping energy and will swing all of the way up).
     '''
 
-    parser.add_argument('--dt', type=float, default=0.02, help='')
-    parser.add_argument('--t_stop', type=int, default=300, help='')
+    parser.add_argument('--mode', type=int, default=0, help='')
+
+    # derivs_pfl_collocated_strategy1
+    parser.add_argument(
+        '--control1',
+        type=str,
+        default="5.1,system_deserialize1,system_deserialize1")
+    # derivs_pfl_collocated_taskspace
+    parser.add_argument(
+        '--control2',
+        type=str,
+        default="1.0,1.0")
+    # derivs_pfl_collocated_energy
+    parser.add_argument(
+        '--control3',
+        type=str,
+        default="120.0,5.0,5.0")
+
     args = parser.parse_args()
+    system_params, controller_params, initial_state = deserialize(args)
 
-    initial_state = np.radians([float(x) for x in args.initial.split(',')])
-    c = Acrobot(args, initial_state, np.arange(0, args.t_stop, args.dt))
-    c.init_data()
+    times = np.arange(0, args.t_stop, args.dt)
+    system = Acrobot(args, system_params, controller_params, initial_state, times)
+    system.init_data()
 
+
+    fig = plt.figure(figsize=(12, 4))
+    ax = fig.add_subplot()
+    ax.grid()
+
+    theta1, = ax.plot(times, system.state[:, 0], 'r', linewidth=2) # theta1
+    theta2, = ax.plot(times, system.state[:, 2], 'b', linewidth=1) # theta2
+
+    # raw
+    theta1_envelope = np.abs(hilbert(system.state[:, 0]))
+    theta1_times = times
+
+    # remove noise
+    clipped_min_idx = hilbert_find_ascending_start(theta1_envelope)
+    theta1_times = times[clipped_min_idx:]
+    theta1_envelope = theta1_envelope[clipped_min_idx:]
+    theta1_envelope = butter_filter(theta1_envelope, 2000, 1)
+
+    envelope, = ax.plot(theta1_times, theta1_envelope, 'g', linewidth=1) # theta2
+
+    title = "r = theta1, b = theta2, green = amplitude (hilbert transform + denoise)"
+    plt.title(title)
+    plt.ylabel("state (rads)")
+    plt.xlabel("time (s)")
+
+    plt.show()
+
+    '''
     fig = plt.figure(figsize=(5, 4))
-    ax = fig.add_subplot(autoscale_on=False, xlim=(-L, L), ylim=(-L, L))
+    ax = fig.add_subplot(autoscale_on=False,
+        xlim=(-1.05*(L1+L2), 1.05*(L1+L2)),
+        ylim=(-1.05*(L1+L2), 1.05*(L1+L2)))
     ax.set_aspect('equal')
     ax.grid()
     plt.title('playback speed %dx' % (args.playback))
@@ -779,14 +885,15 @@ if __name__ == '__main__':
     line1, = ax.plot([], [], 'c--', lw=1, alpha=0.5)
     line1.set_data([0, ref_x1], [0, ref_y1])
 
-    c.init_plot(fig, ax, texts)
+    system.init_plot(fig, ax, texts)
 
     ani = animation.FuncAnimation(
         fig,
-        c.draw_func,
-        c.data_gen,
+        system.draw_func,
+        system.data_gen,
         interval=args.dt*1000/args.playback,
         blit=True)
     plt.show()
+    '''
 
 #####################################################################
