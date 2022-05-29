@@ -15,14 +15,21 @@ m, l0, a, k, g =\
   symbols('m l0 a k g', nonzero=True, positive=True)
 
 r, theta, x, y, phi = dynamicsymbols('r theta x y phi') # state vars
+# theta = angle w.r.t. 'leg straight down'
 
 rdot = r.diff(t)
 thetadot = theta.diff(t)
-xdot = x.diff(t)
-ydot = y.diff(t)
 
+# let theta = angle w.r.t. vertical on the left side
+# then x = -r*sin(theta), y = r*cos(theta)
+y = r * cos(theta)
+x = -r * sin(theta)
+
+# https://proofwiki.org/wiki/Velocity_Vector_in_Polar_Coordinates
 T = m / 2 * (rdot**2 + r**2 * thetadot**2)
-U = m*g*r*cos(theta) + k / 2 * (l0 - r)**2
+
+# let theta = 
+U = m*g* y + k / 2 * (l0 - r)**2
 
 L = simplify(T - U)
 
@@ -81,6 +88,9 @@ for i in range(len(qdotdot)):
 
     print("qdotdot[%d]" % (i))
     print(expr)
+
+# we can also derive cartesian coordinates
+# from polar coordinates
 
 '''
 2.2.2 Apex return map
