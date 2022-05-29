@@ -67,6 +67,25 @@ def two_d_make_x_y_theta_hom(x, y, theta):
   hom[1, 2] = y
   return hom
 
+class MatplotlibCamera(object):
+  def __init__(self, center, dims, ax):
+    self.center = center
+    self.dims = dims
+    self.ax = ax
+
+    self.x_bounds = [self.center[0] - dims[0], self.center[0] + dims[0]]
+
+  def update_cb(self, data):
+    if (data[0] < self.x_bounds[0] or data[0] > self.x_bounds[1]):
+      self.center[0] = data[0] + self.dims[0]
+      print('self.center[0]', self.center[0])
+      self.x_bounds = [self.center[0] - dims[0], self.center[0] + dims[0]]
+      self.ax.set_xlim(self.x_bounds)
+
+      xticks = np.linspace(self.x_bounds[0], self.x_bounds[1], 7)
+      self.ax.set_xticks(xticks)
+      pass
+
 class SimpleSLIP(object):
   def foot_height(self, state):
     '''
@@ -181,6 +200,8 @@ class SimpleSLIP(object):
     self.states = []
     self.dynamx_handler = None
 
+    self.render_cb = None
+
   def init_data(self):
     self.states = np.zeros((len(self.sampletimes), self.initial_state.shape[0]))
 
@@ -229,9 +250,9 @@ class SimpleSLIP(object):
       i += 1
     print("done integrating")
 
-  def init_plot(self, fig, ax, texts):
+  def init_plot(self, fig, ax, texts, camera):
     # ground
-    self.ground = ax.plot([-50, 50], [0, 0], "k")
+    self.ground, = ax.plot([-50, 50], [0, 0], "k")
 
     # leg
     # since theta = angle relative to +x axis
@@ -264,6 +285,8 @@ class SimpleSLIP(object):
     self.trace, = ax.plot([], [], '.-', lw=1, ms=2)
     self.history_x = deque(maxlen=self._args.history)
     self.history_y = deque(maxlen=self._args.history)
+
+    self.render_cb = camera.update_cb
 
   def data_gen(self):
     i = 0
@@ -329,7 +352,10 @@ class SimpleSLIP(object):
     self.history_y.appendleft(g_world_head[1, 2])
     self.trace.set_data(self.history_x, self.history_y)
 
-    return *self.leg_line, self.hip_fill[0], self.trace
+    if (self.render_cb is not None):
+      self.render_cb(state)
+
+    return *self.leg_line, self.hip_fill[0], self.trace, self.ground
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(
@@ -376,21 +402,24 @@ if __name__ == '__main__':
     fig.tight_layout()
 
     # a 'viewport'
-    center = [0,0]
-    dims = [100, 2]
+    center = [initial_state[0],0]
+    dims = [6, 2]
     ax = fig.add_subplot(
       xlim=(center[0] - dims[0], center[0] + dims[0]),
       ylim=(center[1] - dims[1], center[1] + dims[1]))
     ax.set_aspect('equal')
     ax.grid()
+    # ax.set_adjustable('box')
 
-    system.init_plot(fig, ax, [])
+    camera = MatplotlibCamera(center, dims, ax)
+
+    system.init_plot(fig, ax, [], camera)
 
     ani = animation.FuncAnimation(
-        fig,
-        system.render,
-        system.data_gen,
-        interval=args.dt*1000/args.playback,
-        blit=True)
+      fig,
+      system.render,
+      system.data_gen,
+      interval=args.dt*1000/args.playback,
+      blit=True)
 
     plt.show()

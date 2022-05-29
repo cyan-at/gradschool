@@ -14,8 +14,8 @@ t = Symbol('t')
 m, l0, a, k, g =\
   symbols('m l0 a k g', nonzero=True, positive=True)
 
-r, theta, x, y, phi = dynamicsymbols('r theta x y phi') # state vars
-# theta = angle w.r.t. 'leg straight down'
+r, theta, x, y = dynamicsymbols('r theta x y') # state vars
+# theta = angle between leg and 'vertical line'
 
 rdot = r.diff(t)
 thetadot = theta.diff(t)
