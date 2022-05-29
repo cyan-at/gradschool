@@ -74,7 +74,6 @@ class SimpleSLIP(object):
     x.diff(t)
     y.diff(t)
     '''
-    print("TAKEOFF!")
     state[Y] = 0 # L0 * np.cos(state[THETA])
     state[XDOT] = -state[RDOT] * np.sin(state[THETA]) - L0 * state[THETADOT] * np.cos(state[THETA])
     state[YDOT] = state[RDOT] * np.cos(state[THETA]) - L0 * state[THETADOT] * np.sin(state[THETA])
@@ -82,19 +81,30 @@ class SimpleSLIP(object):
     # Update theta to commanded leg angle.
     # this is the 'controller'
     xdelta1 = L0 * np.sin(-state[THETA])
-    print("state[XDOT]", state[XDOT])
+
     if state[THETA] < 0:
       # taking off 'right', so angle leg 'right' / +
       # we don't want too high otherwise we bounce 'left' too far
       # too low and it will not 'damp' the rightward acceleration enough
       state[THETA] = min(-state[THETA], 20 / 180 * np.pi)
+
+      # the smaller xdot, the less we want
+      # v = 20 + state[XDOT] * 5
+      # state[THETA] = min(-state[THETA], v / 180 * np.pi)
+      state[THETA] = (7*state[XDOT]) / 180 * np.pi
     else:
       # taking off 'left', from a bounce back
       # so angle leg 'left' / -
-      state[THETA] = max(-state[THETA], -15 / 180 * np.pi) 
+      state[THETA] = max(-state[THETA], -20 / 180 * np.pi) 
+
+      # the faster xdot, the more + v, the the less left it will be
+      v = -25 + state[XDOT] / 5
+      state[THETA] = max(-state[THETA], v / 180 * np.pi) 
       # state[THETA] = min(state[THETA], -10 / 180 * np.pi) 
+
+      state[THETA] = (-7*state[XDOT]) / 180 * np.pi
+
     state[X] += (xdelta1 + L0 * np.sin(state[THETA])) # because we render [X] = feet
-    print("hello")
 
     state[THETADOT] = 0
     state[R] = L0
@@ -342,7 +352,7 @@ if __name__ == '__main__':
   parser.add_argument(
     '--system',
     type=str,
-    default="190, 1, 1.25, 9.8",
+    default="190, 1, 1.5, 9.8",
     help='k, L0, M, G')
   parser.add_argument('--initial',
     type=str,
