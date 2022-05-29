@@ -1,0 +1,298 @@
+https://github.com/Danfoa/slip_control
+https://pdf.sciencedirectassets.com/280366/1-s2.0-S2210983811X00020/1-s2.0-S2210983811000162/main.pdf?X-Amz-Security-Token=IQoJb3JpZ2luX2VjEJb%2F%2F%2F%2F%2F%2F%2F%2F%2F%2FwEaCXVzLWVhc3QtMSJHMEUCIQCKiJIGlAEiygTu8CS41XjY5dVUVmf24W2zBcuwVQSHyQIgUp9vnMrVE62zMEiDPkC14mteyf8Z%2Bc84Dnv6Yi9oNVoq0gQIfxAEGgwwNTkwMDM1NDY4NjUiDAqFyrO%2BXJB7a9AY7yqvBEgTJT7pt71N4M1nC12nr2BZMsGRv0QF%2FCTwAQvOid7dHnLKPOGDmfIiJQr29AFvBI5kCIb1Mzm8%2FKuvsUbR8bp1120i8XUDUK6YltOgJKEMSTXuWiMJCKGPROCQyaUZEYXFfwPC9BAyxEOThlGonBsgWxVRsA%2BEhuI%2FTT%2FRMrRcCA0EO8sTBPykSyy0wgirFWw7M78IJSjSl6DcWsNAiFIr6uKLEJiBtszJneWwayF4%2BI0GGtgYgVzRS5n5XUg139X7X3nmk6s9TG%2FGx73t4vRr3uQyMuAYxdi5%2F65zr5mkAvW24ThyNU1uVAC28OwinG4ALwdFgG%2Fs8660jtdJRbHF9Lzngxt1qhHLwVcfsUTOHpVIRUWKiWHyet439Dl62xempxAnyWR%2B06w2HpsB2lhRblobJE8CEA66D0wSpWbt54Glqw0A1pLRV2e%2F8zfvAXVHOuMGfQSAXqZayqyRsrLpMIWayIx%2B4XlxHcHwtjk94zcYa5RptBC0nvchc1Bik7YPa4LRdynGTJx6OFspyF5LNBMhzMOxVmArABmaBcjwCbCXYzRi6SVmrq99n3hKZKf8qowXWI5MbkzVsylE0XbE4mAlyPPaaRw5b0NJ0QGbQuL2nWTyAdPaRUme40bGD1az3m%2FRUORPC0wcQv1C7gJS%2FzxijGAIKlUeNNHgojSkmeUrL8rhZY31xW%2BZnJQmvIk3XUUJYBSvOf5gRt%2BdnDUFoP4lyL4Vy4MC56dYnTgw2ai1lAY6qQFe21%2Fb3E%2FDw8hrgXOwoTDVe05HNUQmRDs7wCOsRpN%2FakiHCmS86GaSSIWUcMgNZG6IbpTUu0peCWV5zBBxwp80PCxIvDqqSiyeXt6%2BNRXhFUGTXOfM6BzUxygp2KiHf9H1B8hhI71rB5HF43OG%2BuhR7IZQnAsNf%2BQerh2OgRKgzFHwv4UPGzyBDKuTYtR0LTIDZbKUSaSN8bQRA3Tz%2BOEswryll4E8jZuJ&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Date=20220524T225931Z&X-Amz-SignedHeaders=host&X-Amz-Expires=299&X-Amz-Credential=ASIAQ3PHCVTY6LX5AFVB%2F20220524%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Signature=78b31c8fe58960e5d2176cee71e2c527bc6649f9ab4f6032c5bcc3a91d1b0a24&hash=6b76987a10f707a2a57ffafa7a857a3b3f0027bf8fbc8f6a0a51274c381583d4&host=68042c943591013ac2b2430a89b270f6af2c76d8dfd086a07176afe7c76c2c61&pii=S2210983811000162&tid=spdf-0229a5f5-d8f0-4577-842d-5774ceaa4710&sid=116039163e24c24994786d4538871edda9fegxrqa&type=client&ua=545754560355550c02&rr=7109a46beff62be1
+https://www.researchgate.net/figure/a-The-bipedal-SLIP-model-in-walking-b-An-alternative-model-for-the-bipedal-SLIP-in_fig1_282924553
+https://ieeexplore.ieee.org/document/6225272
+https://www.semanticscholar.org/paper/A-Dual-SLIP-Model-For-Dynamic-Walking-In-A-Humanoid-Liu/6a457b1edaf07cbb5240b3146c4d2c82b1e7c9bf
+https://www.semanticscholar.org/paper/Walking-control-of-fully-actuated-robots-based-on-Garofalo-Ott/2a7270949efcfe9079b4e2ab6028718c75ac5279
+https://elib.dlr.de/112845/1/minnesita_v3.pdf
+https://elib.dlr.de/112845/1/minnesita_v3.pdf
+http://ames.caltech.edu/CDC_2014_dynamics_shaping.pdf
+https://rdw.rowan.edu/cgi/viewcontent.cgi?article=1079&context=engineering_facpub
+https://www.researchgate.net/figure/The-SLIP-Model-a-Coordinates-and-model-parameters-b-Locomotion-phases-shaded_fig1_228359957
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC1664632/
+https://elib.dlr.de/112845/1/minnesita_v3.pdf
+https://www.researchgate.net/publication/6780389_Compliant_leg_behavior_explains_basic_dynamics_of_walking_and_running
+https://www.researchgate.net/figure/The-bipedal-spring-mass-model-The-model-has-two-independent-massless-spring-legs_fig2_6780389
+https://www.ri.cmu.edu/publications/compliant-leg-behaviour-explains-basic-dynamics-of-walking-and-running/
+
+
+SLIPState = namedview(
+    "SLIPState", ["x", "z", "r", "theta", "xdot", "zdot", "rdot", "thetadot"])
+
+class SpringLoadedInvertedPendulum(LeafSystem):
+
+    def __init__(self):
+        LeafSystem.__init__(self)
+
+        self.DeclareVectorInputPort("touchdown_angle", BasicVector(1))
+        self.DeclareContinuousState(BasicVector(np.zeros(8)), 4, 4, 0)
+
+        self.DeclareVectorOutputPort("state", BasicVector(8), self.CopyStateOut)
+
+        # Parameters from Geyer05, p.23
+        self.mass = 80.  # kg
+        self.r0 = 1.  # m
+        self.gravity = 9.81  # m/s^2
+        # Define spring constant in terms of the dimensionless number.
+        # Definition in section 2.4.3, values in figure 2.4.
+        # Note: Geyer05 says 10.8 (which doesn't work? -- I get no fixed pts).
+        dimensionless_spring_constant = 10.7
+        self.stiffness = (dimensionless_spring_constant * self.mass *
+                          self.gravity / self.r0)
+
+        self.last_apex = None  # placeholder for writing return map result.
+
+        self.touchdown_witness = self.MakeWitnessFunction(
+            "touchdown", WitnessFunctionDirection.kPositiveThenNonPositive,
+            self.foot_height, UnrestrictedUpdateEvent(self.touchdown))
+        self.takeoff_witness = self.MakeWitnessFunction(
+            "takeoff", WitnessFunctionDirection.kPositiveThenNonPositive,
+            self.leg_compression, UnrestrictedUpdateEvent(self.takeoff))
+        self.apex_witness = self.MakeWitnessFunction(
+            "apex", WitnessFunctionDirection.kPositiveThenNonPositive,
+            self.apex, PublishEvent(self.publish_apex))
+
+    def foot_height(self, context):
+        s = SLIPState(context.get_continuous_state_vector().CopyToVector())
+        return s.z - self.r0 * np.cos(s.theta)
+
+    def leg_compression(self, context):
+        s = SLIPState(context.get_continuous_state_vector().CopyToVector())
+        return self.r0 - s.r
+
+    def apex(self, context):
+        return context.get_continuous_state_vector().GetAtIndex(5)  # zdot
+
+    def publish_apex(self, context, event):
+        # TODO(russt): provide an option to terminate here instead, pending
+        # resolution of #4447.
+        # print("apex")
+        if self.last_apex is None:
+            s = SLIPState(
+                context.get_mutable_continuous_state_vector().CopyToVector())
+            self.last_apex = s.z
+
+    def apex_velocity_from_dimensionless_system_energy(self, Etilde, z):
+        E = Etilde * self.mass * self.gravity * self.r0
+        # E = 0.5*m*v^2 + m*g*z
+        xdot = np.sqrt(2. / self.mass * (E - self.mass * self.gravity * z))
+        return xdot
+
+    def energy_flight(self, context):
+        s = SLIPState(
+            context.get_mutable_continuous_state_vector().CopyToVector())
+        return (0.5 * self.mass * (s.xdot**2 + s.zdot**2) +
+                self.mass * self.gravity * s.z)
+
+    def energy_stance(self, context):
+        s = SLIPState(
+            context.get_mutable_continuous_state_vector().CopyToVector())
+        return (0.5 * self.mass * (s.rdot**2 + s.r**2 * s.thetadot**2) +
+                self.mass * self.gravity * s.r * np.cos(s.theta) +
+                0.5 * self.stiffness * (self.r0 - s.r)**2)
+
+    def CopyStateOut(self, context, output):
+        x = context.get_continuous_state_vector().CopyToVector()
+        y = output.SetFromVector(x)
+
+    def DoGetWitnessFunctions(self, context):
+        return [self.touchdown_witness, self.takeoff_witness, self.apex_witness]
+
+    def touchdown(self, context, event, state):
+        s = SLIPState(
+            context.get_mutable_continuous_state_vector().CopyToVector())
+
+        # print("touchdown")
+
+        # Update rdot and thetadot to match xdot and ydot, using
+        # x = -r*sin(theta), z = r*cos(theta)
+        #  => xdot = -rdot*s - r*c*thetadot, zdot = rdot*c - r*s*thetadot
+        #  => xdot*c + zdot*s = -r*thetadot
+        # r^2 = x^2 + z^2
+        #  => 2r*rdot = 2x*xdot + 2z*zdot
+        #  => rdot = -xdot*sin(theta) + zdot*cos(theta)
+        # (matches Geyer05 Eq. 2.24 up to the symbol changes)
+        s.r = self.r0
+        s.rdot = -s.xdot * np.sin(s.theta) + s.zdot * np.cos(s.theta)
+        s.thetadot = -(s.xdot * np.cos(s.theta) +
+                       s.zdot * np.sin(s.theta)) / self.r0
+        state.get_mutable_continuous_state().get_mutable_vector().SetFromVector(
+            s[:])
+
+    def takeoff(self, context, event, state):
+        s = SLIPState(
+            context.get_mutable_continuous_state_vector().CopyToVector())
+
+        # print("takeoff")
+
+        # Setup flight state (these lines aren't strictly required, since we
+        # choose to also integrate x and z in stance below).
+        s.z = self.r0 * np.cos(s.theta)
+        s.xdot = -s.rdot * np.sin(s.theta) - self.r0 * s.thetadot * np.cos(
+            s.theta)
+        s.zdot = s.rdot * np.cos(s.theta) - self.r0 * s.thetadot * np.sin(
+            s.theta)
+
+        # Update theta to commanded leg angle.
+        s.theta = self.EvalVectorInput(context, 0).GetAtIndex(0)
+        s.thetadot = 0
+        s.r = self.r0
+        s.rdot = 0
+
+        state.get_mutable_continuous_state().get_mutable_vector().SetFromVector(
+            s[:])
+
+    def DoCalcTimeDerivatives(self, context, derivatives):
+        s = SLIPState(context.get_continuous_state_vector().CopyToVector())
+        sdot = SLIPState(np.zeros(8))
+        sdot[0:4] = s[4:8]
+
+        if (self.foot_height(context) < 0):
+            # then we're in "stance"
+            sdot.rdot = (self.stiffness / self.mass * (self.r0 - s.r) +
+                         s.r * s.thetadot**2 - self.gravity * np.cos(s.theta))
+            sdot.thetadot = (self.gravity / s.r * np.sin(s.theta) -
+                             2 * s.rdot * s.thetadot / s.r)
+
+            # Integrate x and z also, just for the sake of visualization (all
+            # the integrated values except x will be overwritten in the
+            # take-off reset).
+            # x = -r*sin(theta), y = r*cos(theta) =>
+            sdot.xdot = (-sdot.rdot * np.sin(s.theta) -
+                         2 * s.rdot * s.thetadot * np.cos(s.theta) +
+                         s.r * s.thetadot**2 * np.sin(s.theta) -
+                         s.r * sdot.thetadot * np.cos(s.theta))
+            sdot.zdot = (sdot.rdot * np.cos(s.theta) -
+                         2 * s.rdot * s.thetadot * np.sin(s.theta) -
+                         s.r * sdot.thetadot * np.sin(s.theta) -
+                         s.r * s.thetadot**2 * np.cos(s.theta))
+
+        else:
+            sdot.xdot = 0
+            sdot.zdot = -self.gravity
+            sdot.rdot = 0
+            sdot.thetadot = 0
+
+        derivatives.get_mutable_vector().SetFromVector(sdot[:])
+
+
+class SLIPVisualizer(PyPlotVisualizer):
+
+    def __init__(self, ax=None, show=True):
+        PyPlotVisualizer.__init__(self, ax=ax, show=show, figsize=(12,4))
+        self.DeclareInputPort("slip_state", PortDataType.kVectorValued, 8)
+        self.ax.set_aspect("equal")
+        self.ax.set_xlim(0, 2)
+        self.ax.set_ylim(-.1, 1.5)
+
+        # Draw the ground.
+        self.ax.plot([-50, 50], [0, 0], "k")
+
+        a = np.linspace(0, 2 * np.pi, 50)
+        radius = 0.1
+        self.hip_fill = self.ax.fill(radius * np.sin(a),
+                                     radius * np.cos(a),
+                                     zorder=1,
+                                     edgecolor="k",
+                                     facecolor=[.6, .6, .6])
+        self.hip = copy.copy(self.hip_fill[0].get_path().vertices)
+
+        self.leg_line = [self.ax.plot([0, 0], [0, -1], "k")[0]]
+        self.leg_data = [self.leg_line[0].get_xydata().T]
+        for i in range(1, 13):
+            self.leg_line.append(
+                self.ax.plot(
+                    0.1 * np.array(
+                        [np.sin((i - 1) * np.pi / 2.),
+                         np.sin(i * np.pi / 2.)]),
+                    -.2 - .7 / 13 * np.array([i - 1, i]), "k")[0])
+            self.leg_data.append(self.leg_line[i].get_xydata().T)
+
+    def draw(self, context):
+        state = SLIPState(self.EvalVectorInput(context, 0).CopyToVector())
+
+        self.hip_fill[0].get_path().vertices[:, 0] = state.x + self.hip[:, 0]
+        self.hip_fill[0].get_path().vertices[:, 1] = state.z + self.hip[:, 1]
+
+        R = np.array([[np.cos(state.theta), -np.sin(state.theta)],
+                      [np.sin(state.theta), np.cos(state.theta)]])
+        for i in range(len(self.leg_line)):
+            self.leg_line[i].set_xdata(
+                state.x +
+                state.r * R[0, :].dot(self.leg_data[i]))
+            self.leg_line[i].set_ydata(
+                state.z +
+                state.r * R[1, :].dot(self.leg_data[i]))
+
+        self.ax.set_title("t = {:.1f}".format(context.get_time()))
+
+
+
+def slip_demo():
+    builder = DiagramBuilder()
+    plant = builder.AddSystem(SpringLoadedInvertedPendulum())
+
+    # Parameters from Geyer05, Figure 2.4
+    # Note: Geyer uses angle of attack = 90 - touchdown_angle
+    touchdown_angle = np.deg2rad(30)
+    Etilde = 1.61
+
+    s = SLIPState(np.zeros(8))
+    s.z = 0.9
+    s.theta = touchdown_angle
+    s.r = 1
+    s.xdot = plant.apex_velocity_from_dimensionless_system_energy(Etilde, s.z)
+
+    visualizer = builder.AddSystem(SLIPVisualizer(show=False))
+    builder.Connect(plant.get_output_port(0), visualizer.get_input_port(0))
+
+    log = LogVectorOutput(plant.get_output_port(0), builder)
+
+    command = builder.AddSystem(ConstantVectorSource([touchdown_angle]))
+    builder.Connect(command.get_output_port(0), plant.get_input_port(0))
+
+    diagram = builder.Build()
+    simulator = Simulator(diagram)
+    context = simulator.get_mutable_context()
+    context.SetAccuracy(1e-10)
+
+    context.get_mutable_continuous_state_vector().SetFromVector(s[:])
+
+    AdvanceToAndVisualize(simulator, visualizer, 2.0)
+
+slip_demo()
+
+
+  def dynamx_stance(self, state, t):
+    xdot = np.zeros_like(state)
+    '''
+    semantically:
+    x = [r, theta, r*, theta*]
+    x* = [r*, theta*, r**, theta**]
+    '''
+
+    xdot[0] = state[2]
+    xdot[1] = state[3]
+
+    dydx[2] = (-G*M*cos(state[1]) + k*(L0 - state[0]) + M*state[0]*state[3]**2)/M
+    dydx[3] = (G*sin(state[1]) - 2*state[2]*state[3])/state[0]
+
+    return xdot
+
+#######################################################################
+
+superimpose design 1 gymnast, design 2 swinger
+
+derive design 2
+
+state assumptions
+
+fig s3 units and axes labels
+
+cut figures 
+
+put table in appendix
+
+add acknowledgements
+
+figures have caption for all colors

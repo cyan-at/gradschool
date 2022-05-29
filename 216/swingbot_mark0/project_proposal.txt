@@ -1,0 +1,180 @@
+make a trapezebot (part of robot circus)
+  explore:
+    geometry and dynamics involving changing 'center of mass' based on joint position
+    
+    dis-engaging control as a part of the control scheme, and the technical details of a 'clutch' or a brushless motor
+    that is allowed to 'swing freely' and handle back-current
+
+    uncertainty in general, and how to handle uncertainty in control
+
+first goal:
+ring, a robot, and a static target hook
+get robot to reach target hook with 'tail'
+do in simulation using pybullet
+
+second goal:
+do it with a jump and some gap
+
+third goal:
+do it with a flip in the air
+
+fourth goal:
+do it with a landing position on the ground
+
+fifth goal:
+do it with a another trapezebot and have it catchin in the air
+
+sixth goal:
+integrate sindy somehow
+
+now do it irl:
+
+https://www.michaeldermksian.com/monkey-report.pdf
+https://arxiv.org/abs/1911.05168
+https://arxiv.org/pdf/2007.12047.pdf
+http://hades.mech.northwestern.edu/index.php/Monkeybot
+https://www.youtube.com/watch?v=nyD5iItg6p4
+https://www.youtube.com/watch?v=pT8WLgFN8Ys
+https://github.com/hyumo/pysindy-gui
+https://github.com/luckystarufo/pySINDy
+
+############################################################
+
+Abstract— Control of wire-borne underactuated brachiating
+robots requires a robust feedback control design that can deal
+with dynamic uncertainties, actuator constraints and unmeasurable states. In this paper, we develop a robust feedback control
+for brachiating on flexible cables, building on previous work on
+optimal trajectory generation and time-varying LQR controller
+design. We propose a novel simplified model for approximation
+of the flexible cable dynamics, which enables inclusion of parametric model uncertainties in the system. We then use semidefinite programming (SDP) and sum-of-squares (SOS) optimization to synthesize a time-varying feedback control with formal
+robustness guarantees to account for model uncertainties and
+unmeasurable states in the system. Through simulation, hardware experiments and comparison with a time-varying LQR
+controller, it is shown that the proposed robust controller results
+in relatively large robust backward reachable sets and is able to
+reliably track a pre-generated optimal trajectory and achieve
+the desired brachiating motion in the presence of parametric
+model uncertainties, actuator limits, and unobservable states.
+
+
+Trapezebot:
+Designing an underactuated brachiating robot to optimize for released trajectories
+
+Abstract:
+Gymnasts, circus performers, and animals such as primates swing on static or flexible objects such as bars or vines to move through their environment. They perform motion through controlling their time-varying center-of-mass and other body dynamics, and optionally in concert with the dynamics of their swinging device(s). Building on prior work in brachiating robot design, this work aims to 
+
+SRI: magnet coils and tiny robots
+
+https://github.com/br3ttb/Arduino-PID-Library
+file:///home/cyan3/Desktop/827831503-MIT.pdf
+https://dspace.mit.edu/handle/1721.1/77780
+https://pubs.rsc.org/en/content/articlelanding/2014/ta/c3ta14113f
+https://pubs.rsc.org/en/content/articlelanding/2016/ta/c6ta00005c
+https://www.mdpi.com/2076-3417/7/9/947/htm
+https://groups.csail.mit.edu/robotics-center/public_papers/Kuindersma14.pdf
+https://arxiv.org/abs/1711.05501
+https://arxiv.org/abs/2108.13404
+https://www.researchgate.net/figure/Schematic-for-model-predictive-control-In-SINDY-MPC-the-output-is-the-full-state-y-x_fig2_321095767
+https://www.researchgate.net/publication/319854808_Model-Based_Design_and_Evaluation_of_a_Brachiating_Monkey_Robot_with_an_Active_Waist
+https://arxiv.org/pdf/2007.12047.pdf
+https://www.google.com/search?q=brachiating+monkey+robot&oq=brachiating+monkey+robot&aqs=chrome..69i57j69i60j69i61l2.4265j0j7&sourceid=chrome&ie=UTF-8
+https://www.michaeldermksian.com/monkey-report.pdf
+https://arxiv.org/abs/1911.05168
+https://arxiv.org/pdf/2007.12047.pdf
+
+
+https://github.com/br3ttb/Arduino-PID-Library
+file:///home/cyan3/Desktop/827831503-MIT.pdf
+https://dspace.mit.edu/handle/1721.1/77780
+https://pubs.rsc.org/en/content/articlelanding/2014/ta/c3ta14113f
+https://pubs.rsc.org/en/content/articlelanding/2016/ta/c6ta00005c
+https://www.mdpi.com/2076-3417/7/9/947/htm
+https://groups.csail.mit.edu/robotics-center/public_papers/Kuindersma14.pdf
+https://arxiv.org/abs/1711.05501
+https://arxiv.org/abs/2108.13404
+https://www.researchgate.net/figure/Schematic-for-model-predictive-control-In-SINDY-MPC-the-output-is-the-full-state-y-x_fig2_321095767
+https://www.researchgate.net/publication/319854808_Model-Based_Design_and_Evaluation_of_a_Brachiating_Monkey_Robot_with_an_Active_Waist
+https://arxiv.org/pdf/2007.12047.pdf
+https://www.google.com/search?q=brachiating+monkey+robot&oq=brachiating+monkey+robot&aqs=chrome..69i57j69i60j69i61l2.4265j0j7&sourceid=chrome&ie=UTF-8
+https://www.michaeldermksian.com/monkey-report.pdf
+https://arxiv.org/abs/1911.05168
+
+https://underactuated.mit.edu/trajopt.html#perching
+https://deepnote.com/project/LittleDog-oLdBwTHtSAuZL7QwfSJ-WA/%2Flittledog.ipynb
+https://deepnote.com/project/Cart-Pole-Double-Pendulum-and-URDF-7zcuAkZcRc-mCGvP29e8nA/%2Fdouble_cartpole_urdf.ipynb
+https://colab.research.google.com/github/RussTedrake/underactuated/blob/master/exercises/simple_legs/one_d_hopper/one_d_hopper.ipynb
+http://groups.csail.mit.edu/locomotion/
+https://github.com/RobotLocomotion/drake/tree/master/examples
+https://colab.research.google.com/github/RussTedrake/underactuated/blob/master/exercises/humanoids/footstep_planning/footstep_planning.ipynb
+https://deepnote.com/project/Cart-Pole-Linearization-and-Balancing-j1H4T4K9QEekzWvR94iF3w/%2Fcartpole_balancing.ipynb
+https://github.com/cyan-at/bullet3/tree/master
+
+
+http://underactuated.mit.edu/pend.html
+http://audiophile.tam.cornell.edu/randpdf/swing.pdf
+https://en.wikipedia.org/wiki/State_observer
+http://www.akhatib.com/simple-state-space-model-of-a-pendulum/
+https://en.wikibooks.org/wiki/Control_Systems/State-Space_Equations#Matrices:_A_B_C_D
+https://la.disneyresearch.com/publication/a-versatile-inverse-kinematics-formulation-for-retargeting-motions-onto-robots-with-kinematic-loops/
+http://www.aoengr.com/Dynamics/StickPendulumViaLagrange.pdf
+https://en.wikipedia.org/wiki/Angular_momentum
+http://physics.bu.edu/~redner/211-sp06/class-rigid-body/angularmo.html#:~:text=Angular%20momentum%20is%20a%20vector,which%20the%20torque%20is%20applied.
+http://ruina.tam.cornell.edu/research/topics/locomotion_and_robotics/ranger/ranger_paper/Reports/Ranger_Robot/control/simulator/doublependulum.html
+http://www.phys.lsu.edu/faculty/gonzalez/Teaching/Phys7221/DoublePendulum.pdf
+https://rotations.berkeley.edu/the-double-pendulum/
+https://www.tandfonline.com/doi/abs/10.1080/07468342.1998.11973953
+https://github.com/bmild/nerf
+https://bmild.github.io/
+https://www.youtube.com/watch?v=KF_a1c7zytw
+https://www.youtube.com/watch?v=1iuLxJmQII0
+https://www.youtube.com/watch?v=O7ztVZDtDb0
+http://grail.cs.washington.edu/projects/inverse_locomotion/
+http://www.kevinwampler.com/blog/index.html
+https://arxiv.org/pdf/2112.01517.pdf
+https://zju3dv.github.io/enerf/
+https://www.overleaf.com/project/624ae4da6c2c0b395e28a8c2
+https://arxiv.org/pdf/2111.03823.pdf
+http://physics.bu.edu/~redner/211-sp06/class-rigid-body/angularmo.html#:~:text=Angular%20momentum%20is%20a%20vector,which%20the%20torque%20is%20applied.
+https://www.google.com/search?q=non-linear+constrained+optimization+github&sxsrf=APq-WBuLS58JVTY6JyGjQFzSYGyTZDLKUw%3A1651094814983&ei=HrVpYsjcO4_nkvQPxOmJgAU&ved=0ahUKEwjI47-_l7X3AhWPs4QIHcR0AlAQ4dUDCA4&uact=5&oq=non-linear+constrained+optimization+github&gs_lcp=Cgdnd3Mtd2l6EAMyBwghEAoQoAE6BwgAEEcQsAM6BAgAEA06BggAEA0QHjoICAAQCBANEB46BQgAEIYDSgQIQRgASgQIRhgAULAEWLQKYIsLaAFwAXgAgAHLA4gByguSAQcyLTQuMC4xmAEAoAEByAEIwAEB&sclient=gws-wiz
+https://web.stanford.edu/class/msande312/restricted/Nonlin1.pdf
+https://github.com/rgolubtsov/nonlinear-optimization-algorithms-multilang
+https://github.com/RussTedrake/underactuated/blob/master/optimization.html
+https://github.com/ethz-adrl/ifopt
+https://travelingrings.org/guides/ring-hand-grips/
+https://github.com/topics/control-systems?l=matlab&o=desc&s=stars
+https://github.com/BreulinG98/MPC-GUI
+https://github.com/hdtin-hcmut/Double-Pendulum-on-Cart
+https://github.com/dagdopurbo/tractor-longitudinal-dynamics-control
+https://github.com/markuskreitzer/Nonlinear-Systems-and-Control
+https://github.com/BJCaasenbrood/SorotokiCode
+https://www.hindawi.com/journals/jr/2010/278597/
+https://github.com/leggedrobotics/xpp
+https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.850.7191&rep=rep1&type=pdf
+https://www.researchgate.net/publication/334235278_An_adaptive_PID_control_algorithm_for_the_two-legged_robot_walking_on_a_slope
+https://www.researchgate.net/figure/Robot-arm-link-coordinate-system-28_fig4_3336065
+http://www.ece.ufrgs.br/~fetter/robocontrol2014.pdf
+https://web.ma.utexas.edu/users/og/TEACHING/M472/swing.pdf
+https://www.semanticscholar.org/paper/How-to-Pump-a-Swing-Wirkus-Rand/b44488a7e77e3b41b75c5d2a2c4f0dd523f2ad13
+https://www.semanticscholar.org/paper/A-novel-energy-pumping-strategy-for-robotic-Papadopoulos-Papadopoulos/b6fb84463b835dd198b81802d167b05043bc8e90
+https://www.semanticscholar.org/paper/Lyapunov-based-set-point-control-of-the-Acrobot-Zergeroglu-Dixon/f134a8427deceeddc02ebc5689cec607cbb7cd8a
+https://www.semanticscholar.org/paper/Non-linear-Control-for-Underactuated-Mechanical-Fantoni-Lozano/4c26b02be3ed89d16ea8ff87a26753cd255b97aa#paper-header
+https://www.google.com/search?q=Non-linear+Control+for+Underactuated+Mechanical+Systems&sourceid=chrome&ie=UTF-8
+https://www.semanticscholar.org/paper/Non-linear-Control-for-Underactuated-Mechanical-Fantoni-Lozano/4c26b02be3ed89d16ea8ff87a26753cd255b97aa#citing-papers
+file:///home/cyan3/Desktop/47210047-MIT.pdf
+https://www.semanticscholar.org/paper/Toy-models%3A-The-jumping-pendulum-Goriely-Boulanger/8d0e49af4c73e6c3df2ff6da9f35c6c3560559b1
+https://www.semanticscholar.org/paper/Bouncing-behaviour-in-the-Kapitsa-pendulum-Guti%C3%A9rrez-Collado/5447ca5516dbf32409cb5a8eba8abe8806f0f91b
+https://www.semanticscholar.org/paper/Time-optimal-control-of-a-swing-Kulkarni/5004636cf30e26d9106ddb4d8769640084c9c6af#paper-header
+http://people.ece.cornell.edu/land/courses/ece4760/ideas/swing.pdf
+https://math.cornell.edu/~rand/randpdf/swing.pdf
+http://hplgit.github.io/pysketcher/doc/pub/tutorial/._pysketcher002.html
+http://underactuated.mit.edu/pend.html
+http://audiophile.tam.cornell.edu/randpdf/swing.pdf
+https://en.wikipedia.org/wiki/State_observer
+http://www.akhatib.com/simple-state-space-model-of-a-pendulum/
+https://en.wikibooks.org/wiki/Control_Systems/State-Space_Equations#Matrices:_A_B_C_D
+https://la.disneyresearch.com/publication/a-versatile-inverse-kinematics-formulation-for-retargeting-motions-onto-robots-with-kinematic-loops/
+http://www.aoengr.com/Dynamics/StickPendulumViaLagrange.pdf
+https://en.wikipedia.org/wiki/Angular_momentum
+http://physics.bu.edu/~redner/211-sp06/class-rigid-body/angularmo.html#:~:text=Angular%20momentum%20is%20a%20vector,which%20the%20torque%20is%20applied.
+http://ruina.tam.cornell.edu/research/topics/locomotion_and_robotics/ranger/ranger_paper/Reports/Ranger_Robot/control/simulator/doublependulum.html
+http://www.phys.lsu.edu/faculty/gonzalez/Teaching/Phys7221/DoublePendulum.pdf
+https://rotations.berkeley.edu/the-double-pendulum/
