@@ -43,6 +43,39 @@ def pull_out_term(expr, term, product_candidates = [], default=0):
 
     return ret, expr_cp
 
+def pull_out_manipulator_matrices(euler_lagrange_eqs, statevar_dots, t):
+  zeros = [[0] * len(euler_lagrange_eqs)] * len(euler_lagrange_eqs)
+
+  num_eqs = len(euler_lagrange_eqs)
+  num_states = len(statevar_dots)
+
+  # mass matrix M
+  M = Matrix(zeros)
+
+  for row in range(num_eqs):
+    for col in range(num_states):
+      statevar_dot = statevar_dots[col]
+      M[row, col], euler_lagrange_eqs[row] = pull_out_term(
+        euler_lagrange_eqs[row],
+        statevar_dot.diff(t))
+
+  # velocity cross-products C
+  C = Matrix(zeros)
+  for row in range(num_eqs):
+    for col in range(num_states):
+      statevar_dot = statevar_dots[col]
+      C[row, col], euler_lagrange_eqs[row] = pull_out_term(
+        euler_lagrange_eqs[row],
+        statevar_dot,
+        statevar_dots)
+
+  # leftover gravity matrix
+  tau_g = Matrix([[0]] * num_eqs)
+  for row in range(num_eqs):
+    tau_g[row] = euler_lagrange_eqs[row]
+
+  return M, C, tau_g
+
 def sympy_to_expression(sympy_expr):
     expr = python(sympy_expr).split("\n")[-1].split(" = ")[-1]
 
