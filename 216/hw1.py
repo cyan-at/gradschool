@@ -73,7 +73,6 @@ class SimpleSLIP(object):
     state[Y] = 0 # L0 * np.cos(state[THETA])
     state[XDOT] = -state[RDOT] * np.sin(state[THETA]) - L0 * state[THETADOT] * np.cos(state[THETA])
     state[YDOT] = state[RDOT] * np.cos(state[THETA]) - L0 * state[THETADOT] * np.sin(state[THETA])
-    print("state[YDOT]", state[YDOT])
 
     # Update theta to commanded leg angle.
     # this is the 'controller'
@@ -86,13 +85,16 @@ class SimpleSLIP(object):
       state[THETA] = min(-state[THETA], 20 / 180 * np.pi)
 
       state[THETA] = (8.05*state[XDOT] + (1-state[YDOT])) / 180 * np.pi
+      # adding the ydot is key, the higher it is, the higher you'll bounce
+      # so the less you need to raise the leg. and the lower you'll bounce
+      # the more 'stumbling you are', so raise your leg to damp yourself
     else:
       # taking off 'left', from a bounce back
       # so angle leg 'left' / -
       state[THETA] = max(-state[THETA], -20 / 180 * np.pi) 
 
       state[THETA] = (-11*state[XDOT]) / 180 * np.pi
-      print("hi?")
+      print("hi?") # this doesn't seem to ever run
 
     # because we render [X] = feet
     # to keep the mass in the same place
@@ -315,6 +317,9 @@ if __name__ == '__main__':
     type=str,
     default="-50,0.5,0,0,1,-10,0,0",
     help="x,y,x*,y*,r,theta,r*,theta*")
+  # you can also start in stancing mode
+  # there is less energy in the system
+  # so it doesn't 'bounce' as much
 
   parser.add_argument(
       '--control1',
