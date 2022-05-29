@@ -1,5 +1,27 @@
 #!/usr/bin/env python3
 
+'''
+https://www.cs.cmu.edu/~hgeyer/Publications/Geyer05PhDThesis.pdf
+http://underactuated.mit.edu/simple_legs.html#example5
+file:///home/cyan3/Dev/jim/gradschool/216/4_Supplementary%20materials.pdf
+file:///home/cyan3/Dev/jim/gradschool/216/4_1_Legs.pdf
+https://github.com/RobotLocomotion/drake/blob/88fea982f7e7c10d1a809cf73c1c90a14719b8ba/systems/analysis/simulator.cc
+file:///home/cyan3/Dev/jim/gradschool/216/dual_slip.pdf
+
+intuition
+
+k=200
+too stiff, so energy is lost quickly and robot stops hopping 'rightward'
+
+k=175
+loose enough, marches right but no way to control for speed
+
+if k is loose and energy stays in the system, but control angles are not set correctly
+x will converge and system starts to 'bounce-in-place'
+
+the control part in 'takeoff' is how we 'introduce' energy into the system, and the dynamics 'stiffness' remove energy from the system. so it is about regulating and maintaining the amount of energy into the system, at the right timing
+'''
+
 from numpy import sin, cos
 import numpy as np, math
 
@@ -239,9 +261,9 @@ class SimpleSLIP(object):
 
     self.render_state(self.initial_state)
 
-    # self.trace, = ax.plot([], [], '.-', lw=1, ms=2)
-    # self.history_x = deque(maxlen=self._args.history)
-    # self.history_y = deque(maxlen=self._args.history)
+    self.trace, = ax.plot([], [], '.-', lw=1, ms=2)
+    self.history_x = deque(maxlen=self._args.history)
+    self.history_y = deque(maxlen=self._args.history)
 
   def data_gen(self):
     i = 0
@@ -291,13 +313,23 @@ class SimpleSLIP(object):
     self.hip_fill[0].get_path().vertices[:, 0] = g_world_head[0, 2] + self.hip[:, 0]
     self.hip_fill[0].get_path().vertices[:, 1] = g_world_head[1, 2] + self.hip[:, 1]
 
+    return g_world_head
+
   def render(self, i):
     state = self.states[i]
     # x,y,x*,y*,r,theta,r*,theta*
 
-    self.render_state(state)
+    g_world_head = self.render_state(state)
 
-    return *self.leg_line, self.hip_fill[0]
+    if i == 0:
+      self.history_x.clear()
+      self.history_y.clear()
+
+    self.history_x.appendleft(g_world_head[0, 2])
+    self.history_y.appendleft(g_world_head[1, 2])
+    self.trace.set_data(self.history_x, self.history_y)
+
+    return *self.leg_line, self.hip_fill[0], self.trace
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser(
