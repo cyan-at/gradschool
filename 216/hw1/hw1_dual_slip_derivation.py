@@ -33,6 +33,8 @@ xh = -rh * sin(thetah)
 #################################################################
 '''
 flight dynamics for 'front' while 'hind' stance
+front dynamics are driven by the pendulum of the front leg swinging
+like a pendulum w.r.t. the hind hip phih
 '''
 
 T_hindmotion = m / 2 * (xh**2 + yh**2)
@@ -47,6 +49,9 @@ L = simplify(T - U)
 # the only dynamics we see are phih
 el1 = L.diff(phih) - (L.diff(phih.diff(t))).diff(t)
 
+'''
+'''
+
 #################################################################
 
 try:
@@ -54,3 +59,6 @@ try:
 except:
   print("failed to pull_out_manipulator_matrices")
 
+# dynamics of phih
+
+phih_dotdot = (tau_g[0] - C[0] * phih.diff(t)) / M[0]
