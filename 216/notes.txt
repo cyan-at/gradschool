@@ -281,18 +281,10 @@ slip_demo()
 
 #######################################################################
 
-superimpose design 1 gymnast, design 2 swinger
-
-derive design 2
-
 state assumptions
-
-fig s3 units and axes labels
-
-cut figures 
-
+superimpose design 1 gymnast, design 2 swinger
 put table in appendix
-
+cut figures 
+fig s3 units and axes labels
 add acknowledgements
 
-figures have caption for all colors

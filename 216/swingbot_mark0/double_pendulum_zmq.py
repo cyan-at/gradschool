@@ -87,7 +87,12 @@ class Sender(IterableObject):
 
     # integrate your ODE using scipy.integrate.
     initial_state = np.radians([float(x) for x in self._args.initial.split(',')])
-    self.c = Acrobot(args,
+
+    system_params, controller_params, initial_state = deserialize(self._args)
+
+    self.c = Acrobot(self._args,
+      system_params,
+      controller_params,
       initial_state,
       np.arange(0, self._args.t_stop, self._args.dt))
     self.c.init_data()
@@ -185,8 +190,11 @@ if __name__ == '__main__':
 
   parser.add_argument('--playback', type=int, default=1, help='')
   parser.add_argument('--history', type=int, default=500, help='')
+  parser.add_argument('--dt', type=float, default=0.02, help='')
+  parser.add_argument('--t_stop', type=int, default=300, help='')
 
-  parser.add_argument('--mode', type=int, default=0, help='')
+  parser.add_argument('--system', type=str, default="10,1,1,1,1", help='')
+
   parser.add_argument('--initial', type=str, default="0,0,1,0", help='')
   '''
   q2_dot [3] cannot be 0
@@ -197,8 +205,24 @@ if __name__ == '__main__':
   pumping energy and will swing all of the way up).
   '''
 
-  parser.add_argument('--dt', type=float, default=0.02, help='')
-  parser.add_argument('--t_stop', type=int, default=300, help='')
+  parser.add_argument('--mode', type=int, default=0, help='')
+
+  # derivs_pfl_collocated_strategy1
+  parser.add_argument(
+      '--control1',
+      type=str,
+      default="5.1,system_deserialize1,system_deserialize1") # ALPHA, K1, K2
+  # derivs_pfl_collocated_taskspace
+  parser.add_argument(
+      '--control2',
+      type=str,
+      default="1.04,1.0,1.0") # K3, K4
+  # derivs_pfl_collocated_energy
+  parser.add_argument(
+      '--control3',
+      type=str,
+      default="120.0,5.0,5.0") # energy_goal, K7, K8
+
   args = parser.parse_args()
 
   ############### overhead

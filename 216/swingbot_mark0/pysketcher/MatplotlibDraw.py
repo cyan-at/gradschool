@@ -12,7 +12,7 @@ from builtins import object
 import os
 import matplotlib
 
-matplotlib.use('TkAgg')
+# matplotlib.use('TkAgg')
 matplotlib.rcParams['text.latex.preamble'] = '\\usepackage{amsmath}'
 
 import matplotlib.pyplot as mpl
@@ -142,7 +142,7 @@ class MatplotlibDraw(object):
         self._make_axes(new_figure=new_figure)
 
         manager = self.mpl.get_current_fig_manager()
-        manager.window.wm_geometry(geometry)
+        # manager.window.wm_geometry(geometry)
 
     def _make_axes(self, new_figure=False):
         if new_figure:
@@ -360,8 +360,8 @@ self.ax.plot(x, y, linewidth=%d, color='gray',
         if show:
             print("showing")
             self.mpl.draw()
-            self.mpl.tight_layout(0.1)
-            # self.mpl.pause(0.01)
+            self.mpl.tight_layout()
+            self.mpl.pause(0.01)
             self.mpl.show()
 
         if self.instruction_file:

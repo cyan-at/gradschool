@@ -66,7 +66,7 @@ if __name__ == '__main__':
     joint_ref_line.set_linestyle('dashed')
     joint_ref_line.set_linewidth(1)
 
-    theta2 = 50.0
+    theta2 = 110.0
     angle2 = Arc_wText(
         r'$\theta_{2}$',
         mass_pt,
@@ -97,13 +97,13 @@ if __name__ == '__main__':
     mass1.set_filled_curves(color='gray')
     mass1_symbol = Text('$m_{2}$', mass1_pt + point(1/2, 0))
 
-    theta3 = 45.0
+    theta3 = 110.0
     angle3 = Arc_wText(
         r'$\theta_{3}$',
         mass_pt,
-        L/12, # where to show the text along radius
-        -90 + a,
-        -theta3,
+        L/10, # where to show the text along radius
+        -90 + a, # starting angle w.r.t x-axis
+        -theta3, # delta w.r.t starting angle
         text_spacing=1/20.)
     angle3.set_linecolor('black')
     angle3.set_linewidth(1)
@@ -161,11 +161,11 @@ if __name__ == '__main__':
             'mass1' : mass1,
             'mass1_symbol' : mass1_symbol,
 
-            # 'angle3' : angle3,
-            # 'length3' : length3,
-            # 'link2' : link2,
-            # 'mass2' : mass2,
-            # 'mass2_symbol' : mass2_symbol,
+            'angle3' : angle3,
+            'length3' : length3,
+            'link2' : link2,
+            'mass2' : mass2,
+            'mass2_symbol' : mass2_symbol,
         })
 
     fig.draw()

@@ -1,14 +1,11 @@
 #!/usr/bin/env python3
 
 """
-===========================
-The double pendulum problem
-===========================
+USAGE:
 
-This animation illustrates the double pendulum problem.
+./double_pendulum.py --playback 100 --initial "10,0,1,0" --mode 1 --t_stop 250 --plot analysis
 
-Double pendulum formula translated from the C code at
-http://www.physics.usyd.edu.au/~wheat/dpend_html/solve_dpend.c
+./double_pendulum.py --playback 100 --initial "5,0,1,0" --mode 2 --t_stop 150 --plot analysis --system 10,1,1,1,0.1
 
 ##########################################################
 
@@ -835,6 +832,9 @@ class Acrobot(object):
         self.history_y = deque(maxlen=self._args.history)
         self.texts = texts
 
+        ax.set_xlabel('x (m)')
+        ax.set_ylabel('y (m)')
+
     def data_gen(self):
         i = 0
         while True:
@@ -1005,7 +1005,7 @@ if __name__ == '__main__':
         plt.title(title)
         plt.ylabel("state (rads)")
         plt.xlabel("time (s)")
-        plt.tight_layout(0.1)
+        plt.tight_layout()
 
         plt.show()
     elif args.plot == "animation":
