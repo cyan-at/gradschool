@@ -100,9 +100,11 @@ how to 'control' what you 'cannot control'
 
 from numpy import sin, cos
 import numpy as np
+
 import matplotlib.pyplot as plt
-import scipy.integrate as integrate
 import matplotlib.animation as animation
+
+import scipy.integrate as integrate
 from collections import deque
 import argparse
 
@@ -1035,5 +1037,8 @@ if __name__ == '__main__':
             interval=args.dt*1000/args.playback,
             blit=True)
         plt.show()
+    elif args.plot == "phase":
+        # TODO
+        pass
 
 #####################################################################

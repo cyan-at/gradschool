@@ -629,3 +629,33 @@ def pull_out_leftover(expr, terms, default=0):
         leftover_dict = collect(expr, t, evaluate=False)
         x = leftover_dict[1] if 1 in leftover_dict else 0
     return x
+
+
+    # # remove noise
+    # theta1_envelope = FilteredSignal(theta1_envelope, 1000., 10)
+
+    # # hilbert fits better on more 'internally consistent data'
+    # theta1_envelope = np.array([])
+    # interval = 10000.0
+    # samples = np.linspace(
+    #     0,
+    #     system.state.shape[0],
+    #     int(system.state.shape[0] / interval + 1))
+
+    # samples = []
+    # i = 0
+    # delta = 500
+    # while i < system.state.shape[0]:
+    #     samples.append(i)
+    #     delta = delta * 2
+    #     i += delta
+    # samples.append(system.state.shape[0])
+
+    # samples = [int(x) for x in samples]
+
+    # i = 0
+    # while i < len(samples) - 1:
+    #     print(samples[i], samples[i+1])
+    #     envelope_piece = np.abs(hilbert(system.state[samples[i]:samples[i+1], 0]))
+    #     theta1_envelope = np.concatenate((theta1_envelope,envelope_piece))
+    #     i += 1
