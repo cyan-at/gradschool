@@ -47,8 +47,9 @@ def two_d_make_x_y_theta_hom(x, y, theta):
 
 class SimpleSLIP(object):
   def foot_height(self, state):
-    # theta = w.r.t vertical line
-    # return state[Y] - L0 * np.cos(state[THETA])
+    '''
+    render_state plots from the feet up to mass
+    '''
     return state[Y]
 
   def dynamx_flying(self, state, t):
@@ -58,11 +59,6 @@ class SimpleSLIP(object):
     statedot[Y] = state[YDOT]
     statedot[XDOT] = 0
     statedot[YDOT] = -G
-
-    # statedot[R] = state[RDOT]
-    # statedot[THETA] = state[THETADOT]
-    # statedot[RDOT] = 0
-    # statedot[THETADOT] = 0
 
     return statedot
 
@@ -77,6 +73,7 @@ class SimpleSLIP(object):
     state[Y] = 0 # L0 * np.cos(state[THETA])
     state[XDOT] = -state[RDOT] * np.sin(state[THETA]) - L0 * state[THETADOT] * np.cos(state[THETA])
     state[YDOT] = state[RDOT] * np.cos(state[THETA]) - L0 * state[THETADOT] * np.sin(state[THETA])
+    print("state[YDOT]", state[YDOT])
 
     # Update theta to commanded leg angle.
     # this is the 'controller'
@@ -88,23 +85,20 @@ class SimpleSLIP(object):
       # too low and it will not 'damp' the rightward acceleration enough
       state[THETA] = min(-state[THETA], 20 / 180 * np.pi)
 
-      # the smaller xdot, the less we want
-      # v = 20 + state[XDOT] * 5
-      # state[THETA] = min(-state[THETA], v / 180 * np.pi)
-      state[THETA] = (7*state[XDOT]) / 180 * np.pi
+      state[THETA] = (8.05*state[XDOT] + (1-state[YDOT])) / 180 * np.pi
     else:
       # taking off 'left', from a bounce back
       # so angle leg 'left' / -
       state[THETA] = max(-state[THETA], -20 / 180 * np.pi) 
 
-      # the faster xdot, the more + v, the the less left it will be
-      v = -25 + state[XDOT] / 5
-      state[THETA] = max(-state[THETA], v / 180 * np.pi) 
-      # state[THETA] = min(state[THETA], -10 / 180 * np.pi) 
+      state[THETA] = (-11*state[XDOT]) / 180 * np.pi
+      print("hi?")
 
-      state[THETA] = (-7*state[XDOT]) / 180 * np.pi
-
-    state[X] += (xdelta1 + L0 * np.sin(state[THETA])) # because we render [X] = feet
+    # because we render [X] = feet
+    # to keep the mass in the same place
+    # we need to shift the feet by the theta we shed
+    # and the new theta we acquire
+    state[X] += (xdelta1 + L0 * np.sin(state[THETA])) 
 
     state[THETADOT] = 0
     state[R] = L0
@@ -128,42 +122,21 @@ class SimpleSLIP(object):
     state[XDOT] = 0
     state[YDOT] = 0
 
-    print("touchdown!", state[THETADOT], state[RDOT])
-
     return state
 
   def dynamx_stance(self, state, t):
+    '''
+    from hw1_derivation.py
+    '''
     statedot = xdot = np.zeros_like(state)
 
     statedot[R] = state[RDOT]
     statedot[THETA] = state[THETADOT]
     statedot[RDOT] = (-G*M*cos(state[THETA]) + k*(L0 - state[R]) + M*state[R]*state[THETADOT]**2)/M
     statedot[THETADOT] = (G*sin(state[THETA]) - 2*state[RDOT]*state[THETADOT])/state[R]
-    # print("statedot[RDOT]", statedot[RDOT], statedot[THETADOT], k*(L0 - state[R]))
 
     statedot[X] = state[XDOT]
     statedot[Y] = state[YDOT]
-    # statedot[XDOT] = -state[R] * sin(state[THETA]) * state[THETADOT] + cos(state[THETA]) * state[RDOT]
-    # statedot[YDOT] = state[R] * cos(state[THETA]) * state[THETADOT] + sin(state[THETA]) * state[RDOT]
-
-    # statedot[RDOT] = (k / M * (L0 - state[R]) +
-    #              state[R] * state[THETADOT]**2 - G * np.cos(state[THETA]))
-    # statedot[THETADOT] = (G / state[R] * np.sin(state[THETA]) -
-    #                  2 * state[RDOT] * state[THETADOT] / state[R])
-
-    # # statedot[RDOT] = (-G*M*cos(state[THETA]) + k*(L0 - state[R]) + M*state[R]*state[THETADOT]**2)/M
-    # # statedot[THETADOT] = (G*sin(state[THETA]) - 2*state[RDOT]*state[THETADOT])/state[R]
-
-    # statedot[X] = state[XDOT]
-    # statedot[Y] = state[YDOT]
-    # statedot[XDOT] = (-statedot[RDOT] * np.sin(state[THETA]) -
-    #              2 * state[RDOT] * state[THETADOT] * np.cos(state[THETA]) +
-    #              state[R] * state[THETADOT]**2 * np.sin(state[THETA]) -
-    #              state[R] * statedot[THETADOT] * np.cos(state[THETA]))
-    # statedot[YDOT] = (statedot[RDOT] * np.cos(state[THETA]) -
-    #              2 * state[RDOT] * state[THETADOT] * np.sin(state[THETA]) -
-    #              state[R] * statedot[THETADOT] * np.sin(state[THETA]) -
-    #              state[R] * state[THETADOT]**2 * np.cos(state[THETA]))
 
     return statedot
 
@@ -209,8 +182,6 @@ class SimpleSLIP(object):
     'state'
     '''
     while i < len(self.sampletimes) - 1:
-      # time.sleep(self.sampletimes[i+1] - self.sampletimes[i])
-
       # solve differential equation, take final result only
       state = integrate.odeint(
         self.dynamx_handler,
@@ -233,20 +204,6 @@ class SimpleSLIP(object):
 
       i += 1
     print("done integrating")
-
-
-    # import ipdb; ipdb.set_trace();
-
-    # # extra data
-    # aux = np.zeros((self.state.shape[0], 5))
-    # self.state = np.hstack([self.state, aux])
-
-    # self.state[:, 4] = L1*sin(self.state[:, 0]) # x1
-    # self.state[:, 5] = -L1*cos(self.state[:, 0]) # y1
-    # self.state[:, 6] = L2*sin(self.state[:, 2]) + self.state[:, 4] # x2
-    # self.state[:, 7] = -L2*cos(self.state[:, 2]) + self.state[:, 5] # y2
-
-    print("done")
 
   def init_plot(self, fig, ax, texts):
     # ground
@@ -352,11 +309,11 @@ if __name__ == '__main__':
   parser.add_argument(
     '--system',
     type=str,
-    default="190, 1, 1.5, 9.8",
+    default="175, 1, 1.41, 9.8",
     help='k, L0, M, G')
   parser.add_argument('--initial',
     type=str,
-    default="0,0.5,0,0,1,-10,0,0",
+    default="-50,0.5,0,0,1,-10,0,0",
     help="x,y,x*,y*,r,theta,r*,theta*")
 
   parser.add_argument(
@@ -379,10 +336,11 @@ if __name__ == '__main__':
 
   if args.plot == "sim":
     fig = plt.figure()
+    fig.tight_layout()
 
     # a 'viewport'
-    center = [19,0]
-    dims = [40, 2]
+    center = [0,0]
+    dims = [100, 2]
     ax = fig.add_subplot(
       xlim=(center[0] - dims[0], center[0] + dims[0]),
       ylim=(center[1] - dims[1], center[1] + dims[1]))
