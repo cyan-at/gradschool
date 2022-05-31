@@ -424,3 +424,17 @@ f[2]
 print(python(f[2]))
 print(python(f[3]))
 history
+
+
+https://maths-people.anu.edu.au/~andrews/DG/DG_chap7.pdf
+https://math.stackexchange.com/questions/2927059/what-does-involutive-span-means
+https://www.egr.msu.edu/~khalil/NonlinearSystems/Sample/Lect_23.pdf
+https://math.stackexchange.com/questions/435801/calculate-the-lie-derivative
+https://abrarhashmi.files.wordpress.com/2017/03/lecture_feedbacklinearization.pdf
+https://www.cse.sc.edu/~gatzke/cache/npc-Chapter4-scan.pdf
+http://ele.aut.ac.ir/~abdollahi/Lec_8_N11.pdf
+https://www.youtube.com/watch?v=ECqr0oUfZz4
+https://www.lehigh.edu/~eus204/teaching/ME450_NSC/lectures/lecture06.pdf
+http://users.isr.ist.utl.pt/~pedro/NCS2012/07_FeedbackLinearization.pdf
+http://localhost:8888/notebooks/YanC_Sol_HW6.ipynb
+https://nbviewer.org/github/abhishekhalder/AM231-S22/blob/main/S22-AM231-HW6.ipynb
