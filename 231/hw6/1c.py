@@ -16,18 +16,18 @@ F1 = 1
 K = 1
 N = 2
 
-J2 = 0.1
+J2 = 0.5
 F2 = 1.6
 
 m = 1
-g = 9
-d = 1
+g = 9.8
+d = 1.7
 
 # controller params
-k1 = 0.1
-k2 = 0.1
-k3 = 0.1
-k4 = 0
+k1 = -24
+k2 = -50
+k3 = -35
+k4 = -10
 k = np.array([k1, k2, k3, k4])
 
 # initial state
@@ -62,10 +62,9 @@ class System(object):
     # feedback control
     z = self.tau(x)
     v = np.dot(k, z)
-    # u = self.alpha(x) + np.dot(self.beta(x), v)
-    u = 1 / self.beta(x) * (-self.alpha(x) + v)
+    u = self.alpha(x) + np.dot(self.beta(x), v)
+    # u = 1 / self.beta(x) * (-self.alpha(x) + v)
     self.us.append(u)
-    print("u", u)
 
     # plant
     xdot[0] = x[Q1DOT]
