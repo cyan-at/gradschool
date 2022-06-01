@@ -44,11 +44,12 @@ g = Matrix([[0], [0], [1/J1], [0]])
 ########################################################
 
 h = x2
+n = 4
 
 ########################################################
 
 alpha = expand(simplify(
-  -lie_derivative(f2, h, xnew, order=4) / lie_derivative(g, lie_derivative(f2, h, xnew, order=3), xnew)))
+  -lie_derivative(f2, h, xnew, order=n) / lie_derivative(g, lie_derivative(f2, h, xnew, order=n-1), xnew)))
 
 print("alpha python:")
 alpha_py = sympy_to_expression(alpha, x_replacements)
@@ -57,7 +58,7 @@ print("\n")
 
 ########################################################
 
-beta = 1 / lie_derivative(g, lie_derivative(f2, h, xnew, order=3), xnew)
+beta = 1 / lie_derivative(g, lie_derivative(f2, h, xnew, order=n-1), xnew)
 
 print("beta python:")
 print(sympy_to_expression(beta, x_replacements))

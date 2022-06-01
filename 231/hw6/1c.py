@@ -70,8 +70,6 @@ class System(object):
     z = self.tau(x)
     v = np.dot(np.array([k1, k2, k3, k4]), z)
     u = self.alpha(x) + self.beta(x) * v
-    # u = 1 / self.beta(x) * (-self.alpha(x) + v)
-    # self.us.append(u)
 
     # plant
     xdot[0] = x[2]
@@ -111,7 +109,7 @@ class System(object):
   def init_data(self):
     self.states = np.zeros((len(self.sampletimes), self.initial_state.shape[0] + 1))
 
-    self.states[0, :4] = self.initial_state
+    self.states[0, :self.initial_state.shape[0]] = self.initial_state
 
     i = 0
     state = self.initial_state
@@ -134,14 +132,14 @@ class System(object):
         x = state
         z = self.tau(x)
         v = np.dot(np.array([k1, k2, k3, k4]), z)
-        self.states[i+1, 4] = self.alpha(x) + self.beta(x) * v
+        self.states[i+1, self.initial_state.shape[0]] = self.alpha(x) + self.beta(x) * v
 
         # solve differential equation, take final result only
         state = integrate.odeint(
           self.derivs_alphabetau,
           state,
           self.sampletimes[i:i+2])[-1]
-        self.states[i+1, :4] = state
+        self.states[i+1, :self.initial_state.shape[0]] = state
 
         #############################################
 
@@ -159,10 +157,10 @@ class System(object):
           z,
           self.sampletimes[i:i+2])[-1]
 
-        self.states[i+1, :4] = self.tau_inv(z)
+        self.states[i+1, :self.initial_state.shape[0]] = self.tau_inv(z)
 
         v = np.dot(np.array([k1, k2, k3, k4]), z)
-        self.states[i+1, 4] = self.alpha(x) + self.beta(x) * v
+        self.states[i+1, self.initial_state.shape[0]] = self.alpha(x) + self.beta(x) * v
 
         i += 1
 
@@ -173,10 +171,10 @@ class System(object):
       zdot = self.derivs_z(z, self.sampletimes[i:i+2])
       z += zdot * (self.sampletimes[i+1] - self.sampletimes[i])
 
-      self.states[i+1, :4] = self.tau_inv(z)
+      self.states[i+1, :self.initial_state.shape[0]] = self.tau_inv(z)
 
       v = np.dot(np.array([k1, k2, k3, k4]), z)
-      self.states[i+1, 4] = self.alpha(x) + self.beta(x) * v
+      self.states[i+1, self.initial_state.shape[0]] = self.alpha(x) + self.beta(x) * v
 
       i += 1
     '''
