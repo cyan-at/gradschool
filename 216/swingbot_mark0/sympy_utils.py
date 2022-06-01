@@ -76,7 +76,7 @@ def pull_out_manipulator_matrices(euler_lagrange_eqs, statevar_dots, t):
 
   return M, C, tau_g
 
-def sympy_to_expression(sympy_expr):
+def sympy_to_expression(sympy_expr, replacements = []):
     expr = python(sympy_expr).split("\n")[-1].split(" = ")[-1]
 
     expr = expr.replace("p1_damping", "Q1_DAMPING")
@@ -88,4 +88,45 @@ def sympy_to_expression(sympy_expr):
     expr = expr.replace("g", "G")
     expr = expr.replace("m", "M")
     expr = expr.replace("l", "L")
+
+    for r in replacements:
+      expr = expr.replace(r[0], r[1])
+
     return expr
+
+def lie_bracket(f, g, x, order=1):
+  '''
+    L_f g
+    f: vector
+    g: vector
+    x: state vector
+  '''
+  res = g
+  while order > 0:
+    res = simplify(res.jacobian(x) * f - f.jacobian(x) * res)
+    order -= 1
+
+  return res
+
+def lie_derivative(f, l, x, order = 1):
+  '''
+    L_f l
+    f: vector
+    l: scalar func
+    x: state vector
+  '''
+  res = l
+  while order > 0:
+    res = Matrix([res.diff(y) for y in x])
+    res = res.dot(f)
+    order -= 1
+  return res
+
+def gradient(f, x):
+  return [f.diff(y) for y in x]
+
+def latex_cleanup(expr, dynamicvars):
+  expr = expr
+  for var in dynamicvars:
+    expr = expr.replace('\operatorname{'+latex(Symbol(var))+'}{\\left(t \\right)}', latex(Symbol(var)))
+  return expr
