@@ -38,50 +38,26 @@ k4 = -10
 x0 = np.array([np.pi / 6, np.pi / 3, 1, 2])
 
 class System(object):
-  # def alpha(self, x):
-  #   return F1*x[2] + F2**3*J1*N*x[3]/(J2**2*K) + F2**2*G*J1*N*d*M*cos(x[1])/(J2**2*K) + F2**2*J1*N*x[1]/J2**2 - F2**2*J1*x[0]/J2**2 + 2*F2*G*J1*N*d*M*x[3]*sin(x[1])/(J2*K) - 2*F2*J1*N*x[3]/J2 + F2*J1*x[2]/J2 + G**2*J1*N*d**2*M**2*sin(x[1])*cos(x[1])/(J2*K) - G*J1*N*d*M*x[3]**2*cos(x[1])/K + G*J1*N*d*M*x[1]*sin(x[1])/J2 - G*J1*N*d*M*cos(x[1])/J2 - G*J1*d*M*x[0]*sin(x[1])/J2 - J1*K*N*x[1]/J2 + J1*K*x[0]/J2 + K*x[1]/N - K*x[0]/N**2
-
-  # def beta(self, x):
-  #   return J1 * J2 * N / K
-
-  # def tau(self, x):
-  #   return np.array([
-  #       x[1],
-  #       x[3],
-  #       -F2*x[3]/J2 - G*d*M*cos(x[1])/J2 - K*x[1]/J2 + K*x[0]/(J2*N),
-  #       -F2*(-F2*x[3]/J2 - G*d*M*cos(x[1])/J2 - K*x[1]/J2 + K*x[0]/(J2*N))/J2 + (G*d*M*sin(x[1])/J2 - K/J2)*x[3] + K*x[2]/(J2*N),
-  #     ])
-
-  # def tau_inv(self, z):
-  #   return np.array([
-  #     N*(F2*z[1] + G*d*M*cos(z[0]) + J2*z[2] + K*z[0])/K,
-  #     z[0],
-  #     N*(F2*z[2] - G*d*M*z[1]*sin(z[0]) + J2*z[3] + K*z[1])/K,
-  #     z[1]])
-
-  ############################################################################
-
   def alpha(self, x):
-    return F1**3*J2*N**4*x[2]/(F1**2*J2*N**4 + J1*J2*K*N**2) + F1**2*J2*K*N**3*x[1]/(F1**2*J2*N**4 + J1*J2*K*N**2) - F1**2*J2*K*N**2*x[0]/(F1**2*J2*N**4 + J1*J2*K*N**2) - F1*J1*J2*K*N**3*x[3]/(F1**2*J2*N**4 + J1*J2*K*N**2) + 2*F1*J1*J2*K*N**2*x[2]/(F1**2*J2*N**4 + J1*J2*K*N**2) - F2*J1**2*K*N**3*x[3]/(F1**2*J2*N**4 + J1*J2*K*N**2) - G*J1**2*K*N**3*d*M*cos(x[1])/(F1**2*J2*N**4 + J1*J2*K*N**2) - J1**2*K**2*N**3*x[1]/(F1**2*J2*N**4 + J1*J2*K*N**2) + J1**2*K**2*N**2*x[0]/(F1**2*J2*N**4 + J1*J2*K*N**2) + J1*J2*K**2*N*x[1]/(F1**2*J2*N**4 + J1*J2*K*N**2) - J1*J2*K**2*x[0]/(F1**2*J2*N**4 + J1*J2*K*N**2)
+    return F1*x[2] + F2**3*J1*N*x[3]/(J2**2*K) + F2**2*G*J1*N*d*M*cos(x[1])/(J2**2*K) + F2**2*J1*N*x[1]/J2**2 - F2**2*J1*x[0]/J2**2 + 2*F2*G*J1*N*d*M*x[3]*sin(x[1])/(J2*K) - 2*F2*J1*N*x[3]/J2 + F2*J1*x[2]/J2 + G**2*J1*N*d**2*M**2*sin(x[1])*cos(x[1])/(J2*K) - G*J1*N*d*M*x[3]**2*cos(x[1])/K + G*J1*N*d*M*x[1]*sin(x[1])/J2 - G*J1*N*d*M*cos(x[1])/J2 - G*J1*d*M*x[0]*sin(x[1])/J2 - J1*K*N*x[1]/J2 + J1*K*x[0]/J2 + K*x[1]/N - K*x[0]/N**2
 
   def beta(self, x):
-    return J1/(F1**2/J1**2 + K/(J1*N**2))
+    return J1 * J2 * N / K
 
   def tau(self, x):
     return np.array([
-      x[0],
-      x[2],
-      -F1*x[2]/J1 - K*x[1]/(J1*N) + K*x[0]/(J1*N**2),
-      -F1*(-F1*x[2]/J1 - K*x[1]/(J1*N) + K*x[0]/(J1*N**2))/J1 - K*x[3]/(J1*N) + K*x[2]/(J1*N**2),
+        x[1],
+        x[3],
+        -F2*x[3]/J2 - G*d*M*cos(x[1])/J2 - K*x[1]/J2 + K*x[0]/(J2*N),
+        -F2*(-F2*x[3]/J2 - G*d*M*cos(x[1])/J2 - K*x[1]/J2 + K*x[0]/(J2*N))/J2 + (G*d*M*sin(x[1])/J2 - K/J2)*x[3] + K*x[2]/(J2*N),
       ])
 
   def tau_inv(self, z):
     return np.array([
-    N*(F1*N*x3(t) + J1*N*z[2] + K*z[0])/K,
-    z[0],
-    N*(F1**2*N*x3(t) + F1*J1*N*z[2] + J1**2*N*z[3] + J1*K*z[1])/(F1**2*N**2 + J1*K),
-    z[1],
-  ])
+      N*(F2*z[1] + G*d*M*cos(z[0]) + J2*z[2] + K*z[0])/K,
+      z[0],
+      N*(F2*z[2] - G*d*M*z[1]*sin(z[0]) + J2*z[3] + K*z[1])/K,
+      z[1]])
 
   ############################################################################
 
