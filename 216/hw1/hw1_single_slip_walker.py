@@ -19,7 +19,10 @@ loose enough, marches right but no way to control for speed
 if k is loose and energy stays in the system, but control angles are not set correctly
 x will converge and system starts to 'bounce-in-place'
 
-the control part in 'takeoff' is how we 'introduce' energy into the system, and the dynamics 'stiffness' remove energy from the system. so it is about regulating and maintaining the amount of energy into the system, at the right timing
+the control part in 'takeoff' is how we 'introduce' energy into the system
+and the dynamics 'stiffness' remove energy from the system.
+it's actually not an explicit stiffness alone, but the angle of takeoff and touchdown that implicitly damp and introduce energy into the system
+so it is about regulating and maintaining the amount of energy into the system, at the right timing
 '''
 
 from numpy import sin, cos
@@ -119,13 +122,17 @@ class SimpleSLIP(object):
     # this is the 'controller'
     xdelta1 = L0 * np.sin(-state[THETA])
 
+    # these are tuned for initial state of -10
+    K1 = 8.05
+    K2 = -11
+
     if state[THETA] < 0:
       # taking off 'right', so angle leg 'right' / +
       # we don't want too high otherwise we bounce 'left' too far
       # too low and it will not 'damp' the rightward acceleration enough
       state[THETA] = min(-state[THETA], 20 / 180 * np.pi)
 
-      state[THETA] = (8.05*state[XDOT] + (1-state[YDOT])) / 180 * np.pi
+      state[THETA] = (K1*state[XDOT] + (1-state[YDOT])) / 180 * np.pi
       # adding the ydot is key, the higher it is, the higher you'll bounce
       # so the less you need to raise the leg. and the lower you'll bounce
       # the more 'stumbling you are', so raise your leg to damp yourself
@@ -134,8 +141,8 @@ class SimpleSLIP(object):
       # so angle leg 'left' / -
       state[THETA] = max(-state[THETA], -20 / 180 * np.pi) 
 
-      state[THETA] = (-11*state[XDOT]) / 180 * np.pi
-      print("hi?") # this doesn't seem to ever run
+      state[THETA] = (K2*state[XDOT]) / 180 * np.pi
+      print("hi?") # this doesn't seem to ever run, unless bouncing straight up/down
 
     # because we render [X] = feet
     # to keep the mass in the same place
