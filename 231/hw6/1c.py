@@ -99,6 +99,53 @@ class System(object):
 
   ############################################################################
 
+  def f_sin(self, x):
+    return np.array([
+      x[2],
+      x[3],
+      -F1*x[2]/J1 - K*x[1]/(J1*N) + K*x[0]/(J1*N**2),
+      -F2*x[3]/J2 - G*d*M*sin(x[1])/J2 - K*x[1]/J2 + K*x[0]/(J2*N),
+    ])
+
+  def alpha_sin(self, x):
+    return F1*x[2] + F2**3*J1*N*x[3]/(J2**2*K) + F2**2*G*J1*N*d*M*sin(x[1])/(J2**2*K) + F2**2*J1*N*x[1]/J2**2 - F2**2*J1*x[0]/J2**2 - 2*F2*G*J1*N*d*M*x[3]*cos(x[1])/(J2*K) - 2*F2*J1*N*x[3]/J2 + F2*J1*x[2]/J2 - G**2*J1*N*d**2*M**2*sin(x[1])*cos(x[1])/(J2*K) - G*J1*N*d*M*x[3]**2*sin(x[1])/K - G*J1*N*d*M*x[1]*cos(x[1])/J2 - G*J1*N*d*M*sin(x[1])/J2 + G*J1*d*M*x[0]*cos(x[1])/J2 - J1*K*N*x[1]/J2 + J1*K*x[0]/J2 + K*x[1]/N - K*x[0]/N**2
+
+  def beta_sin(self, x):
+    return J1*J2*N/K
+
+  def tau_sin(self, x):
+    return np.array([
+      x[1],
+      x[3],
+      -F2*x[3]/J2 - G*d*M*sin(x[1])/J2 - K*x[1]/J2 + K*x[0]/(J2*N),
+      -F2*(-F2*x[3]/J2 - G*d*M*sin(x[1])/J2 - K*x[1]/J2 + K*x[0]/(J2*N))/J2 + (-G*d*M*cos(x[1])/J2 - K/J2)*x[3] + K*x[2]/(J2*N),
+    ])
+
+  def tau_inv_sin(self, z):
+    return np.array([
+      N*(F2*z[1] + G*d*M*sin(z[0]) + J2*z[2] + K*z[0])/K,
+      z[0],
+      N*(F2*z[2] + G*d*M*z[1]*cos(z[0]) + J2*z[3] + K*z[1])/K,
+      z[1],
+    ])
+
+  def derivs_alphabetau_sin(self, x, t):
+    xdot = np.zeros_like(x)
+    # state = [q1,  q2,  q1*,  q2*]
+    # xdot =  [q1*, q2*, q1**, q2**]
+
+    # feedback control
+    z = self.tau_sin(x)
+    v = np.dot(np.array([k1, k2, k3, k4]), z)
+    u = self.alpha_sin(x) + self.beta_sin(x) * v
+
+    # plant
+    xdot = self.f_sin(x) + self.g(x) * u
+
+    return xdot
+
+  ############################################################################
+
   def __init__(self,
     args,
     initial_state,
@@ -187,6 +234,31 @@ class System(object):
         i += 1
       '''
 
+    elif self._args.mode == 2:
+      print("derivs_z_sin")
+
+      z = self.tau_inv_sin(self.initial_state)
+
+      while i < len(self.sampletimes) - 1:
+        x = self.tau_inv_sin(z)
+        v = np.dot(np.array([k1, k2, k3, k4]), z)
+        self.states[i+1, self.initial_state.shape[0]] = self.alpha_sin(x) + self.beta_sin(x) * v
+
+        print("z", z)
+        print("x", x)
+        print(self.tau_inv_sin(np.array([0.0]*4)))
+
+        z = integrate.odeint(
+          self.derivs_z,
+          z,
+          self.sampletimes[i:i+2])[-1]
+
+        self.states[i+1, :self.initial_state.shape[0]] = self.tau_inv(z)
+
+        #############################################
+
+        i += 1
+
     print("done integrating")
 
 if __name__ == '__main__':
@@ -222,6 +294,7 @@ if __name__ == '__main__':
   modes = [
     "derivs_alphabetau",
     "derivs_z",
+    "derivs_z_sin",
   ]
 
   plt.title('Feedback linearization, mode = %s' % (modes[args.mode]))
