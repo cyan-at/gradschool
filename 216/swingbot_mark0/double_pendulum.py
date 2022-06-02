@@ -3,9 +3,16 @@
 """
 USAGE:
 
-./double_pendulum.py --playback 100 --initial "10,0,1,0" --mode 1 --t_stop 250 --plot analysis
+./double_pendulum.py --playback 100 --initial "10,0,1,0.1" --mode 0 --t_stop 500 --plot phase
+./double_pendulum.py --playback 100 --initial "10,0,1,0" --mode 0 --t_stop 500 --plot phase
 
-./double_pendulum.py --playback 100 --initial "5,0,1,0" --mode 2 --t_stop 150 --plot analysis --system 10,1,1,1,0.1
+./double_pendulum.py --playback 100 --initial "10,0,1,0" --mode 1 --t_stop 500 --plot analysis
+
+./double_pendulum.py --playback 100 --initial "5,0,1,0" --mode 2 --t_stop 500 --plot analysis --system 10,1,1,1,0
+./double_pendulum.py --playback 100 --initial "5,0,1,0" --mode 2 --t_stop 500 --plot analysis --system 10,1,1,1,0.1
+./double_pendulum.py --playback 100 --initial "10,0,1,0.1" --mode 2 --t_stop 500 --plot analysis --system 10,1,1,1,1
+
+./double_pendulum.py --playback 20 --initial "20,0,1,0" --mode 3 --t_stop 500 --plot analysis --system 10,1,1,1,0
 
 ##########################################################
 
@@ -198,7 +205,7 @@ energy_goal = 80.0
 K10 = 1.0
 K11 = 1.0 # this term has the effect of 'chilling out' the actuator
 K12 = 1.0
-energy_goal = 120.0
+energy_goal = 100.0
 
 # K7 = 5.0
 # K8 = 20.0 # this term has the effect of 'chilling out' the actuator 30 is too high / slow, 20 is too low
@@ -376,26 +383,65 @@ def hilbert_find_ascending_start(hilbert_abs):
 
     return i-1
 
-def performance_metrics(
-    state,
-    theta1_hilbert_denoised_envelope,
-    converge_threshold=0.05,
-    rise_time_band = 0.05):
-    '''
-    look for semantics in signal:
-    pumped
-    stable
-    rise time
-    energy spent
-    '''
+def add_arrow(line, position=None, direction='right', size=15, color=None):
+    """
+    add an arrow to a line.
 
-    theta1_every_second = theta1_hilbert_denoised_envelope[0::50]
+    line:       Line2D object
+    position:   x-position of the arrow. If None, mean of xdata is taken
+    direction:  'left' or 'right'
+    size:       size of the arrow in fontsize points
+    color:      if None, line color is taken.
+    """
+    if color is None:
+        color = line.get_color()
 
-    slopes = np.gradient(theta1_every_second)
+    xdata = line.get_xdata()
+    ydata = line.get_ydata()
 
-    print(np.max(slopes))
+    if position is None:
+        position = xdata.mean()
+    # find closest index
+    start_ind = np.argmin(np.absolute(xdata - position))
+    if direction == 'right':
+        end_ind = start_ind + 1
+    else:
+        end_ind = start_ind - 1
 
-    import ipdb; ipdb.set_trace();
+    line.axes.annotate('',
+        xytext=(xdata[start_ind], ydata[start_ind]),
+        xy=(xdata[end_ind], ydata[end_ind]),
+        arrowprops=dict(arrowstyle="->", color=color),
+        size=size
+    )
+
+def add_arrow_indices(line, indices, index_width = 5, direction='right', size=5, color=None):
+    """
+    add an arrow to a line.
+
+    line:       Line2D object
+    position:   x-position of the arrow. If None, mean of xdata is taken
+    direction:  'left' or 'right'
+    size:       size of the arrow in fontsize points
+    color:      if None, line color is taken.
+    """
+    if color is None:
+        color = line.get_color()
+
+    xdata = line.get_xdata()
+    ydata = line.get_ydata()
+
+    for start_ind in indices:
+        end_ind = start_ind + index_width
+        line.axes.annotate('',
+            xytext=(xdata[start_ind], ydata[start_ind]),
+            xy=(xdata[end_ind], ydata[end_ind]),
+            arrowprops={
+                "arrowstyle" : "->",
+                "color" : line.get_color(),
+            },
+            size=size
+        )
 
 class Acrobot(object):
     def __init__(self,
@@ -452,6 +498,7 @@ class Acrobot(object):
         dydx = np.zeros_like(state)
 
         dydx[0] = state[1]
+
         dydx[2] = state[3]
 
         t1 = state[0]
@@ -910,7 +957,7 @@ if __name__ == '__main__':
     parser.add_argument(
         '--control3',
         type=str,
-        default="120.0,5.0,5.0") # energy_goal, K7, K8
+        default="100.0,5.0,5.0") # energy_goal, K7, K8
 
     args = parser.parse_args()
     system_params, controller_params, initial_state = deserialize(args)
@@ -930,8 +977,6 @@ if __name__ == '__main__':
     theta1_times = times[clipped_min_idx:]
     theta1_envelope = theta1_envelope[clipped_min_idx:]
     theta1_envelope = butter_filter(theta1_envelope, 2000, 1)
-
-    # performance_metrics(system.state, theta1_envelope)
 
     min_sample = int(60 / args.dt) # 3000 # 3000 * 0.02 = 60 seconds = 1 min
 
@@ -991,13 +1036,14 @@ if __name__ == '__main__':
         ax = fig.add_subplot()
         ax.grid()
 
-        theta1, = ax.plot(times, system.state[:, 0], 'r', linewidth=2) # theta1
-        theta2, = ax.plot(times, system.state[:, 2], 'b', linewidth=1) # theta2
-        envelope, = ax.plot(theta1_times, theta1_envelope, 'g', linewidth=1) # theta2
+        theta1, = ax.plot(times, system.state[:, 0], 'r', linewidth=2, label='theta1') # theta1
+        theta2, = ax.plot(times, system.state[:, 2], 'b', linewidth=1, label='theta2') # theta2
+        envelope, = ax.plot(theta1_times, theta1_envelope, 'g', linewidth=1, label='envelope') # theta2
 
-        _, = ax.plot(slope_times, slopes, 'k', linewidth=1) # theta2
-        _, = ax.plot(times, acc, 'm', linewidth=1) # theta2
+        _, = ax.plot(slope_times, slopes, 'k', linewidth=1, label='slope') # theta2
+        _, = ax.plot(times, acc, 'm', linewidth=1, label='acc') # theta2
 
+        ax.legend()
         title = "r = theta1, b = theta2, green = amplitude (hilbert transform + denoise)"
         title += "\n"
         title += "pumped = %d, stable = %d, rise time = %.1fs, effort = %.1f" % (
@@ -1038,118 +1084,40 @@ if __name__ == '__main__':
             blit=True)
         plt.show()
     elif args.plot == "phase":
-        # TODO
-
         '''
-        #!/usr/bin/env python3
-
-        import numpy as np
-        from scipy.integrate import odeint
-        import matplotlib.pyplot as plt
-
-        from sympy import *
-        from sympy.solvers import solve
-        from sympy import real_root
-
-        def gen_2dcircle_pts(r, n):
-            pts = []
-            for rad in np.linspace(0, 2*np.pi, n):
-                y = r * np.sin(rad)
-                x = r * np.cos(rad)
-                pts.append([x, y])
-            return pts
-
-        def f(x,t):
-            x1 = x[0]
-            x2 = x[1]
-
-            x1p1 = x2
-            x2p1 = -x1 - x2 + x1**3
-
-            return [x1p1, x2p1]
-
-        def gen_pts(v, n):
-            pts = []
-
-            x2 = np.sqrt(2 * v)
-            x2_r = np.linspace(-x2, x2, n) + [x2]
-
-            x1 = Symbol('x1', real=True)
-            f = x1**2 / 2 - x1**4 / 4
-
-            for x2 in x2_r:
-                y = x2**2 / 2 - v
-
-                # f + y = x2**2 / 2 + x1**2 / 2 - x1**4 / 4 - v = 0
-                ans = solve(f + y, x1)
-                # print(ans)
-
-                for a in ans:
-                    if a < 1 and a > -1: # in D
-                        pts.append([a, x2])
-
-                        # print(x2**2 / 2 + a**2 / 2 - a**4 / 4)
-            return pts
+            plot theta1 theta1*
+        '''
 
         fig = plt.figure()
         ax = fig.add_subplot(111)
 
-        bound = 2.0
-        n = 101
-        y1 = np.linspace(-bound, bound, n)
-        y2 = np.linspace(-bound, bound, n)
-        Y1, Y2 = np.meshgrid(y1, y2)
-        u, v = np.zeros(Y1.shape), np.zeros(Y2.shape)
-        NI, NJ = Y1.shape
-        for i in range(NI):
-            for j in range(NJ):
-                x1 = Y1[i, j]
-                x2 = Y2[i, j]
-                xkp1 = f([x1, x2], 0)
-                u[i,j] = xkp1[0]
-                v[i,j] = xkp1[1]
+        q1 = system.state[:,0]
+        q1dot = system.state[:,1]
 
-                # diff = np.abs(u[i, j] - x1) + np.abs(v[i, j] - x2)
-                # print(x1, x2, diff)
-        Q = ax.quiver(Y1, Y2, u, v, color='r')
+        bound = np.max(np.abs(system.state[:, :2])) # max q1 / q1dot magnitude
 
-        bound2 = 0.26
-        n2 = 10
+        line, = plt.plot(q1, q1dot, 'b', linewidth=0.1)
 
-        t = np.linspace(0,100,200)
+        indices = np.linspace(0, len(q1), max(100, len(q1) / 300))
 
-        # r = 0.577
-        # pts = gen_2dcircle_pts(r, 100)
+        add_arrow_indices(line, indices=[int(x) for x in indices[:-1]], index_width=2)
 
-        v = 0.213
-        pts = gen_pts(v, 100)
-
-        for pt in pts:
-            x1 = pt[0]
-            x2 = pt[1]
-
-            path = odeint(f, [x1, x2], t)
-
-            plt.plot(path[:,0], path[:,1], 'b--', linewidth=0.5)
-            plt.plot([path[0,0]], [path[0,1]], 'go') # start
-            plt.plot([path[-1,0]], [path[-1,1]], 'rs') # end
-
-        fig.suptitle('state-space v = %.3f' % (v))
-        ax.set_title('arrows = fields, lines = paths, green = starts, red = ends')
-        fig.tight_layout()
+        # fig.tight_layout()
         ax.set_aspect('equal')
+        ax.grid(linewidth=0.5, linestyle='-.')
 
-        lim = 2
+        lim = bound * 1.2
         ax.set_xlim(-lim, lim)
         ax.set_ylim(-lim, lim)
 
-        # fig2 = plt.figure()
-        # ax2 = fig2.add_subplot(111, projection='3d')
-
-        # z = u + v
-        # ax2.plot_surface(u, v, z,cmap='viridis', edgecolor='none')
+        title = "pumped = %d, stable = %d, rise time = %.1fs, effort = %.1f\n" % (
+            pumped, stable, rise_time, effort)
+        title += "\n"
+        title += "mode=%d, system=%s, initial=%s\n" % (args.mode, args.system, args.initial)
+        plt.title(title)
+        plt.ylabel("q1*")
+        plt.xlabel("q1")
 
         plt.show()
-        '''
 
 #####################################################################
