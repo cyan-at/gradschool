@@ -156,6 +156,12 @@ class System(object):
       z = self.tau(self.initial_state)
       while i < len(self.sampletimes) - 1:
         x = self.tau_inv(z)
+        v = np.dot(np.array([k1, k2, k3, k4]), z)
+        self.states[i+1, self.initial_state.shape[0]] = self.alpha(x) + self.beta(x) * v
+
+        print("z", z)
+        print("x", x)
+        print(self.tau_inv(np.array([0.0]*4)))
 
         z = integrate.odeint(
           self.derivs_z,
@@ -163,9 +169,6 @@ class System(object):
           self.sampletimes[i:i+2])[-1]
 
         self.states[i+1, :self.initial_state.shape[0]] = self.tau_inv(z)
-
-        v = np.dot(np.array([k1, k2, k3, k4]), z)
-        self.states[i+1, self.initial_state.shape[0]] = self.alpha(x) + self.beta(x) * v
 
         i += 1
 
@@ -191,7 +194,6 @@ if __name__ == '__main__':
       description="")
   parser.add_argument('--playback', type=int, default=1, help='')
   parser.add_argument('--history', type=int, default=500, help='')
-  parser.add_argument('--plot', type=str, default="animation", help='')
 
   parser.add_argument('--dt', type=float, default=0.01, help='')
   parser.add_argument('--t_stop', type=int, default=5, help='')

@@ -100,3 +100,37 @@ print("tau_inv python:")
 for i in range(len(tau_inv)):
   print(sympy_to_expression(tau_inv[i], z_replacements))
 print("\n")
+
+print("sanity checking tau_inv, tau")
+for i in range(4):
+  print(simplify(tau_inv[i].replace(z1, tau[0]).replace(z2, tau[1]).replace(z3, tau[2]).replace(z4, tau[3]))) 
+
+'''
+sanity checking tau_inv and tau are inverses of each other:
+
+[tau_inv(tau, z=x), x=z] = x?
+
+In [22]: simplify(tau_inv[0].replace(z1, tau[0]).replace(z2, tau[1]).replace(z3, tau[2]).replace(z4, tau[3]))                        
+Out[22]: x1(t)
+
+In [23]: simplify(tau_inv[1].replace(z1, tau[0]).replace(z2, tau[1]).replace(z3, tau[2]).replace(z4, tau[3]))                        
+Out[23]: x2(t)
+
+In [24]: simplify(tau_inv[2].replace(z1, tau[0]).replace(z2, tau[1]).replace(z3, tau[2]).replace(z4, tau[3]))                        
+Out[24]: x3(t)
+
+In [25]: simplify(tau_inv[3].replace(z1, tau[0]).replace(z2, tau[1]).replace(z3, tau[2]).replace(z4, tau[3]))                        
+Out[25]: x4(t)
+
+you see that tau_inv is the inverse of tau
+
+and tau_inv[0] has a dgmcos(z_1) term, which if z_1 => 0, will converge to Ndgm / K = (1.7*9.8*1 / 1 ) * 2 = 33 which is what se see in the data:
+
+z [-0.01231327  0.01200814 -0.0113987   0.01018241]
+x [ 3.33198749e+01 -1.23132732e-02  2.64938006e-03  1.20081351e-02]
+[33.32  0.    0.    0.  ]
+
+furthermore, since tau_inv[0] = x1 is based on tau[2] = z3 mostly
+and tau[2] is Lfh(2) = f[3], this is something I mostly derived
+without much risk of making a mistake?
+'''
