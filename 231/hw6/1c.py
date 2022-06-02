@@ -29,11 +29,6 @@ k2 = -50
 k3 = -35
 k4 = -10
 
-# k1 = -14
-# k2 = -71
-# k3 = -154
-# k4 = -120
-
 # initial state
 x0 = np.array([np.pi / 6, np.pi / 3, 1, 2])
 
@@ -59,6 +54,22 @@ class System(object):
       N*(F2*z[2] - G*d*M*z[1]*sin(z[0]) + J2*z[3] + K*z[1])/K,
       z[1]])
 
+  def f(self, x):
+    return np.array([
+      x[2],
+      x[3],
+      -F1*x[2]/J1 - K*x[1]/(J1*N) + K*x[0]/(J1*N**2),
+      -F2*x[3]/J2 - G*d*M*cos(x[1])/J2 - K*x[1]/J2 + K*x[0]/(J2*N),
+    ])
+
+  def g(self, x):
+    return np.array([
+        0,
+        0,
+        1/J1,
+        0
+      ])
+
   ############################################################################
 
   def derivs_alphabetau(self, x, t):
@@ -72,13 +83,7 @@ class System(object):
     u = self.alpha(x) + self.beta(x) * v
 
     # plant
-    xdot[0] = x[2]
-    xdot[1] = x[3]
-
-    xdot[2] = -F1*x[2]/J1 - K*x[1]/(J1*N) + K*x[0]/(J1*N**2)
-    xdot[2] += (u / J1)
-
-    xdot[3] = -F2*x[3]/J2 - G*d*M*cos(x[1])/J2 - K*x[1]/J2 + K*x[0]/(J2*N)
+    xdot = self.f(x) + self.g(x) * u
 
     return xdot
 
@@ -164,20 +169,20 @@ class System(object):
 
         i += 1
 
-    '''
-    while i < len(self.sampletimes) - 1:
-      x = self.tau_inv(z)
+      '''
+      while i < len(self.sampletimes) - 1:
+        x = self.tau_inv(z)
 
-      zdot = self.derivs_z(z, self.sampletimes[i:i+2])
-      z += zdot * (self.sampletimes[i+1] - self.sampletimes[i])
+        zdot = self.derivs_z(z, self.sampletimes[i:i+2])
+        z += zdot * (self.sampletimes[i+1] - self.sampletimes[i])
 
-      self.states[i+1, :self.initial_state.shape[0]] = self.tau_inv(z)
+        self.states[i+1, :self.initial_state.shape[0]] = self.tau_inv(z)
 
-      v = np.dot(np.array([k1, k2, k3, k4]), z)
-      self.states[i+1, self.initial_state.shape[0]] = self.alpha(x) + self.beta(x) * v
+        v = np.dot(np.array([k1, k2, k3, k4]), z)
+        self.states[i+1, self.initial_state.shape[0]] = self.alpha(x) + self.beta(x) * v
 
-      i += 1
-    '''
+        i += 1
+      '''
 
     print("done integrating")
 
@@ -211,11 +216,6 @@ if __name__ == '__main__':
   _, = ax.plot(times, system.states[:, 3], 'm', linewidth=1, label="x4") # x4 = q2dot
   _, = ax.plot(times, system.states[:, 4], 'k', linewidth=2, label="u") # x4 = q2dot
   ax.legend()
-
-  # title = "r = theta1, b = theta2, green = amplitude (hilbert transform + denoise)"
-  # title += "\n"
-  # title += "pumped = %d, stable = %d, rise time = %.1fs, effort = %.1f" % (
-  #     pumped, stable, rise_time, effort)
 
   modes = [
     "derivs_alphabetau",
