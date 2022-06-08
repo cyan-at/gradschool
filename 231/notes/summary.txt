@@ -1,0 +1,496 @@
+1:
+terms
+autonomous ode vs non-autonomous ode
+controlled ode has u term x* = f(t, x, u)
+
+nonlinear control system:
+x* = f(t, x, u)
+y = h(t, x, u)
+
+linear control system:
+continuous time
+x* = A(t)x + B(t)u
+y = C(t)x + D(t)u
+
+discrete time
+y(k+1) = A(k)x(k) + B(k)u(k)
+y(k) = C(k)x(k) + D(k)u(k)
+
+open-loop vs closed-loop control system
+stability:
+continuous time stability: (Re(lambda(A)) < 0)
+discrete time stability: spectral radius magnitude < 1
+
+####################################################################
+
+2.
+nonlinear, continuous time stability without control
+stable (S) vs asymptotically stable (AS) vs GAS
+S.: we can get arbitrarily close to x = 0, staying close is not good enough
+A.S.: convergence to x* if we wait long enough, from within a Region of Attraction (ROA)
+G.A.S.: If A.S. and the ball is the entire space, it is GAS. Converges to origin from *anywhere*
+G.A.S. => A.S => S.
+positive vs negative definite functions
+
+####################################################################
+
+3.
+Quadratic function 1/2x^tPx for positive definite P
+
+C^1 Lyapunov function V
+1. V(x) is positive definite
+2. V*(x) is negative semi-definite => Stable
+3. V*(x) negative definite => A.S.
+
+Intuition:
+If V* <= 0, then if a trajectory crosses a LEVEL SET of V(x) = c
+It moves into the set Gamma_c, and can never escape out of it.
+=> Gamma_c is POSITIVELY INVARIANT => origin is S or A.S.
+We can shrink c, then the set shrinks to the origin
+
+Radially unbounded function:
+V(x) is Radially ubdnd if ||x||2 -> infinity => V(x) -> infinity
+
+G.A.S. => unique fixed point
+unique fixed point + A.S. does NOT => G.A.S.
+
+Barbashin-Krasovski Thm:
+Iff:
+1. V is pos def function
+2. V* negative definite
+3. V is radially unbounded / 0-coercive
+origin is G.A.S.
+
+LaSalle Invariance Principle:
+If V* <= 0 (negative SEMIdefinite), let Gamma be a compact set that is positive invariant w.r.t x*
+1. Let V <= 0
+2. Let E part of Gamma s.t. V* = 0 for all x in E
+3. Let M be the largest invariant set in E
+Then, every x starting in Gamma approaches M as t -> infinity (M is A.S.)
+4. Let S = {x | V*(x) = 0} (E but for fixed point)
+4. no solution can stay in S other than the trivial solution x = 0 => x = 0 is A.S.
+
+####################################################################
+
+4.
+Use LaSalle to prove A.S. fixed point
+Use LaSalle to prove A.S. of limit cycle
+
+Chetaev's Theorem to prove x = 0 is UNSTABLE
+1. If V(0) = 0
+2. If V(x) > 0 for some x with arb. small norm
+3. Choose r > 0, ball of points x s.t. norm < r, let u = x in the call for which V(x) > 0
+4. If V* > 0 for all x in U, then x* = 0
+Use V(x1, x2) = 1/2 (x1**2 - x2**2) to prove that origin is unstable
+
+Lyapunov Theory for non-autonomous systems:
+auto systems: x(t - t0), it is time-shift
+
+non-autononomous systems x(t, t0)
+S/A/GAS depend on t0 as well
+if not, the it is UNIFORMLY S/AS/GAS
+
+Can be S but not US
+
+####################################################################
+
+5.
+Lyapunov-style proofs for US, UAS
+
+1. If W1(x) <= V(t, x) <= W2(x) for W1, W2 continuous positive definite functions
+2. V* <= 0
+then x = 0 is US
+
+if above, but <= -W3(x) for pos.def. W3, then x=0 is UAS
+if above + W1 is radially unbounded in x, x = 0 is GUAS
+
+x = 0 exponential stability
+If D is entire space, GES
+
+If for UAS we can only show <= 0 (not <= -W3(x))
+Use Barbalat's Lemma Corollary:
+1. If f(t) is C1 in time, and lim f < infinity
+2. f* is uniformly continuous in t (= f** exists and is bounded)
+Then: lim f* = 0
+
+NOTE: f converges =\> lim f* -> 0
+
+Can use Barbalat's Lemma Corollary to show lim V* = 0
+Does not imply the entire V / state is A.S.
+
+Stability for linear time varying (LTV) systems
+State transition matrix I
+
+NOTE: for LTV systems, no conclusions / relations between eigenvalues of A and stability
+something can have hurwitz A but not be stable
+something can not be hurwitz A but be stable
+
+####################################################################
+
+6.
+
+LTI:
+Must be quadratic Lyapunov function, Linear Matrix Inequality
+
+LTV:
+I state transition matrix methods not practical to check
+Lyapunov Direct Method:
+Let x* = A(t)x
+If there exists C1 bounded P(t) > 0 that solves Lyapunov matrix differential eq.
+then x* is GES <=> GUAES
+There is a Lyapunov Indirect Method, not discussed
+
+####################################################################
+
+7.
+
+Lyapunov application outside stability
+Model invalidation using Barrier Certificates:
+x* = f(t, x, p)
+Given such a model, experimental data trajectory of {x0, xT, T}
+If we can show a B (barrier certificate) s.t. some conditions w.r.t. x* hold
+Then the model x* = f(t, x, p) are falsified by the data
+The level set of B(x) is a barrier: any trajectory
+starting at x0 can never cross this level set to reach xT
+so because empirically the evidence DOES go from x0 to xT
+that means the model is WRONG
+
+Lyapunov application outside stability
+Region of attraction ROA of x* = 0
+ROA: largest positively invariant set containing x* = 0
+1. Get V(x) s.t. V pos. def.
+2. V* check where V* < 0
+3. Construct Gamma-c = {x s.t. V(x) <= c} that is compact, in D
+Then Gamma-c is in the ROA
+
+3 ways to construct a Lyapunov function V
+1. variable gradient method
+
+####################################################################
+
+8.
+
+2. krasovskii method
+3. sum-of-squares method
+SOS polynomials
+
+GAS does not mean a polynomial V exists
+
+####################################################################
+
+9.
+
+stability with control input
+x* = f(t, x, u)
+input-to-state ISS stability
+LTI systems this is YES
+Unforced GAS LTI <=> A is Hurwitz matrix
+for LTI, unforced GAS => ISS
+
+For nonlinear systems:
+1. in general bdd u =/> bdd x
+class K, Kinf, KL functions
+
+Lyapunov ISS stability thm
+proving a nonlinear system is ISS, with some gain
+
+Stability means 2 things:
+1. ISS? bdd u => bdd x
+2. Input-output IO stability u(t) => y(t)
+
+worst-case L2 gain of LTI system
+
+####################################################################
+
+10.
+
+Hamilton-Jacobi inequality => finite gain L2, stable
+does NOT assume stability of unforced system
+
+systems in parallel, in series, feedback Lp gain
+
+
+Passitivity
+control system "energy" = integral of power <u, y>
+i.e. u is current, y is voltage 
+
+Definition of 'passive' = supply rate of energy / instant power >= storage rate
+for some storage function V
+
+Definition of 'lossless', if supply rate = storage rate:
+Dissipation inequality: energy >= energy stored
+Dissipation equality: energy = energy stored + energy dissipated
+if energy dissipation = 0, system is lossless
+
+####################################################################
+
+11.
+
+Strictly passive (SP)
+Input feedforward passive (IFP)
+Input strictly passive if (ISP)
+Output feedback passive (OFP)
+Output strictly passive (OSP)
+
+If system is passive with storage function V, origin of unforced system is stable
+
+If OSP with for some delta, S is finite gain L2 stable with gain <= 1 / delta
+
+Def: Zero-state observable if no solution of x* can stay in the set oh(x, 0) = 0 other than the trivial solution x(t) = 0
+
+If S is SP or OSP + ZSO, then origin is A.S.
+(if also + storage function radially unbounded, origin is GAS)
+
+Passitivity preserved under parallel, feedback, but NOT under series connection in general
+
+LTI system minimal realization (controllable + observable)
+is PASSIVE if G(s) is positive real (PR)
+strictly passive if G(s) is strictly positive real (SPR)
+
+Transfer matrix is PROPER if G(jinfinty) is elementwise finite <=> deg of denominator poly >= deg of numerator poly
+
+strictly proper if G(jinf) = 0 elementwise <=> deg den poly > deg num poly
+
+biproper if both G() and Ginv are proper (deg is equal)
+
+positive real transfer matrix is positive real if:
+1. poles of all G(s) elements are Re(s) <= 0
+2. matrix (G + G*)(jw) >= 0
+
+G(s) is PR / SPR
+=
+LTI system is passive / strictly passive with quadratic storage function V = 1/2xPx
+=
+LTI dissipativity with quadratic storage function
+
+--------------------------------------------
+
+LTI system with nonlinearity in feedback loop
+
+sector bounded nonlinearity
+
+if psi(t, y) is bounded between ay , by
+scalar bounded nonlinearity with interval [a, b]
+
+####################################################################
+
+12.
+
+Time-varying nonlinearity in the loop
+
+Prove stability using only the sector information i.e. not for a specific system but for the family of nonlinearities psi
+
+Defn: system is absolutely stable if origin is GUAS for all psi in the given sector
+Locally absolutely stable if origin is UAS in some domain D
+
+3 conjectures (all wrong in general):
+Aizerman's
+Kalman's
+Markus-Yamabe
+Multivariate Circle Criterion
+
+--------------------------------------------
+
+Feedback stabilization
+Design u(t, x) s.t. x = 0 is UAS for closed-loop ystem
+i. state feedback synthesis
+ii. static state feedback (u(t, x) is static map)
+
+psi = u(x), continuous in x
+
+x* = f(x) + g(x) u
+
+converse lyapunov theorem:
+if psi(x) exists, continuous, origin x* = f(x) + g(x)psi(x) is A.S.
+then there exists V s.t. V* < 0
+
+####################################################################
+
+13.
+
+Control Lyapunov Function (CLF): a C1 pos. def. function V is CLF for controlled dyanmics
+x* = f(x) + g(x)u
+IF V.gradient(g) = 0 for all x in D \ {0}
+V* < 0
+
+V is global CLF if we can satisfy V* < 0 for D = R^n and V is radially unbounded for x in R^n
+
+Sontag's formula:
+V is CLF for x*
+Then origin is stabilizable by u = psi(x) where psi continuous and psi(x) = {
+  0
+  -afsf;ajksf otherwise
+}
+
+--------------------------------------------
+
+Backstepping Controller Design
+
+alternating between observing new state dynamics
+and asserting through desired V
+
+Integrator Backstepping Summary
+
+####################################################################
+
+14.
+
+3 generalizations of backstepping controller design
+1. if only g term, f = 0
+2. Do backstepping recursively for any nonlinear system of x*, z1*, z2*, ...
+3. Block backstepping
+
+--------------------------------------------
+
+Feedback linearization
+
+change of variable z = tau(x), diffeomorphism
+and control u = alpha(x) + beta(x)v homeomorphism
+
+s.t. tuple (tau, alpha, beta0) transforms original SISO to
+
+form1: z* = Az + Bv (feedback linearize)
+form2 n* = f(n, e), e = Ae + Bv, y = Ce (input-output linearize)
+feedback linearize =/> io linearize
+
+2 styles:
+static state feedback linearize
+dynamic state
+
+--------------------------------------------
+
+Lie Derivative
+Lie bracket, ad notation
+
+####################################################################
+
+15.
+
+Lie bracket properties
+1. bilinear
+2. skew-symmetric
+3. Jacobi identity (cyclic order)
+
+vector fields space is vector space over reals
+
+distribution is span of vector fields
+sum, intersection, element of for distributions
+
+dimension of distribution = rank of columns of vector fields F
+
+distribution is involutive if lie bracket of all pairs of vector fields in set is closed under lie bracket (adds no rank)
+
+relative degree r if
+LgLfk h(x) = 0 for all x, for k < r - 1
+LgLfk h(x) != 0
+
+relative deg
+= # of times we take d/dt of output equation so that u appears in the RHS
+= # of integrators between input u and output y
+depends on (f, h, h)
+
+If r < n
+Define remaining tau-r+1(x)...tau_n(x)
+s.t. Lgtau_i(x) = 0
+
+####################################################################
+
+16.
+
+we can define z_r+1...z_n systematically
+
+Overall, we get a normal form / canonical form of SISO control system IO linearization
+
+Feedback linearization is special case of IO linearization 9r = n0
+
+Then we turn control system into integrator LTI system on z, z8 = [0 | e1 | e2...]z + e_n v
+
+This feedback linearization is possible IFF Thm:
+1. M(x) matrix has rank n
+2. distribution is involutive near x
+
+Recipe for feedback linearization
+
+Extension of this for MIMO
+
+relative degree scales to r_i for ith relation between u vector to y_i output
+
+####################################################################
+
+17.
+
+tensor field G(x) of rank m, full state feedback linearization IFF
+i. functions h1(x)... exist s.t. relative degree vector exists
+ii. r satisfies sum of rs = dimension of state space
+
+define feedback control building blocks
+
+--------------------------------------------
+
+partial feedback linearization if r < n
+
+--------------------------------------------
+
+Find, if possible, all pairs (x0, u) s.t. y(t) = 0 for all t >= 0
+assuming f(0) = 0, we want not the trivial pair
+
+1. perform IO linearization
+
+On the other hand, u9t) must be the unique solution of nonlinear equation
+0 = b(0, n(t)) + a(0, n(t)) u(t)
+
+n* = q(0, n(t))
+n(t=0) = n0
+these are the 'zero dynamics'
+
+--------------------------------------------
+
+Controllable if for a given pair (x0, x1)
+there exists T > 0, u(t) s.t. x(t=0) = x0, x(t=T) = x1
+(we can get from start to anywhere)
+
+If f(x) = 0, x* = g(x)u
+
+distribution of g columns m < n, not involutive
+
+####################################################################
+
+18.
+
+If not involutive, keep lie bracketing until so (filtration)
+
+smallest k is degree of nonholonomy
+if dim(k) = n (completely non-holonomic)
+m < dim(k) < n partially non-holonomic
+dim(k0 = m) (non-holonomic)
+
+Rashevsky-Chow Thm
+x* = g(x)u where X is connected
+Controllable IFF bracket generating filtration lie{g1, ... gm}(n) = TnX
+If g_i not analytic, lie algebra rank conditions sufficient not necessary
+
+Show that a mobile base is controllable
+
+
+vs. Kalman rank condition for linear system controllability
+
+####################################################################
+
+19.
+
+For LTI controllability, Kalman rank condition
+
+if linearized system is NOT controllable, nonlinear system IS controllable
+nonlinear controllability wins
+
+f(x) makes applying Rashevsky-Chow difficult
+If you have it, formulate an OPTIMAL CONTROL PROBLEM
+
+Analysis can be done with f(x) if;
+1. f, g, ... satisfy Rashevsky-Chow
+2. Solution of unforced system x* = f(x) is periodic, with bounded period
+THEN system overall is controllable.
+
+####################################################################
+
+20
