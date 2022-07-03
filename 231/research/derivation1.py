@@ -231,3 +231,23 @@ simplify(lambda_expr_k30_4[0]**2 * b1**2 + lambda_expr_k30_4[1]**2 * b2**2 + ((x
 c_expr_k30 = simplify(lambda_expr_k30_4[0]**2 * b1**2 + lambda_expr_k30_4[1]**2 * b2**2 + ((x30 - x31) / (b3**2))**2 * b3**2)
 print(latex(c_expr_k30))
 history
+lambda_expr_3
+lambda_expr_2
+1 / (e**2 + f**2) * Matrix([[e, f], [-f, e]]) * lambda_expr_2
+lambda_expr_2
+lambda_expr_3
+lambda_expr_2
+lambda_expr_3 = 1 / (e**2 + f**2) * Matrix([[e, f], [-f, e]]) * lambda_expr_2
+lambda_expr_3
+lambda_expr_3 = simplify(1 / (e**2 + f**2) * Matrix([[e, f], [-f, e]]) * lambda_expr_2)
+lambda_expr_3
+sympy.matrices.dense.matrix_multiply_elementwise(b1_b2, lambda_expr_3)
+lambda_expr_4 = simplify(sympy.matrices.dense.matrix_multiply_elementwise(b1_b2, lambda_expr_3))
+lambda_expr_4
+lambda_expr_4
+lambda_expr_4 = simplify(lambda_expr_4)
+print(latex(lambda_expr_4))
+c_expr_1 = (lambda_expr_4[0]**2 * b1**2 + lambda_expr_4[1]**2 * b2**2 + lambda_expr_6**2 * b3**2) / 2
+c_expr_1
+c_expr_1 = simplify((lambda_expr_4[0]**2 * b1**2 + lambda_expr_4[1]**2 * b2**2 + lambda_expr_6**2 * b3**2) / 2)
+history
