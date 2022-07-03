@@ -251,3 +251,26 @@ c_expr_1 = (lambda_expr_4[0]**2 * b1**2 + lambda_expr_4[1]**2 * b2**2 + lambda_e
 c_expr_1
 c_expr_1 = simplify((lambda_expr_4[0]**2 * b1**2 + lambda_expr_4[1]**2 * b2**2 + lambda_expr_6**2 * b3**2) / 2)
 history
+c_expr_1 = simplify((lambda_expr_4[0]**2 * b1**2 + lambda_expr_4[1]**2 * b2**2 + lambda_expr_6**2 * b3**2) / 2)
+c_expr_1
+c_expr_1
+c_expr_1 = (lambda_expr_4[0]**2 * b1**2 + lambda_expr_4[1]**2 * b2**2 + lambda_expr_6**2 * b3**2) / 2
+print(latex(c_expr_1))
+phi_k30_int
+phi_k30_int.replace(x30, 0)
+phi_k30
+phi_k30_tau0 = phi_k30.replace(tau, 0)
+phi_k30_tau0
+x11_x21 - phi_k30_tau0 * x10_x20
+x11_x21 - phi_k30_tau0 * x10_x20
+sympy.matrices.dense.matrix_multiply_elementwise(b1_b2, x11_x21 - phi_k30_tau0 * x10_x20)
+sympy.matrices.dense.matrix_multiply_elementwise(b1_b2, x11_x21 - phi_k30_tau0 * x10_x20).replace(x30, 0)
+lambda_expr_x300_1 = sympy.matrices.dense.matrix_multiply_elementwise(b1_b2, x11_x21 - phi_k30_tau0 * x10_x20).replace(x30, 0)
+lambda_expr_x300_1[0]**2 * b1**2 + lambda_expr_x300_1[1]**2 * b2**2 + (-x31 / (b3**2))**2 * b3**2
+(lambda_expr_x300_1[0]**2 * b1**2 + lambda_expr_x300_1[1]**2 * b2**2 + (-x31 / (b3**2))**2 * b3**2) / 2
+simplify((lambda_expr_x300_1[0]**2 * b1**2 + lambda_expr_x300_1[1]**2 * b2**2 + (-x31 / (b3**2))**2 * b3**2) / 2)
+c_expr_x300 = simplify((lambda_expr_x300_1[0]**2 * b1**2 + lambda_expr_x300_1[1]**2 * b2**2 + (-x31 / (b3**2))**2 * b3**2) / 2)
+c_expr_x300
+print(latex(c_expr_x300))
+print(latex(c_expr_x300))
+history
