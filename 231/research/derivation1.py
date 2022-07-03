@@ -227,3 +227,7 @@ lambda_expr_k30_4
 lambda_expr_k30_4[0]**2 * b1**2 + lambda_expr_k30_4[1]**2 * b2**2 + ((x30 - x31) / (b3**2))**2 * b3**2
 simplify(lambda_expr_k30_4[0]**2 * b1**2 + lambda_expr_k30_4[1]**2 * b2**2 + ((x30 - x31) / (b3**2))**2 * b3**2)
 history
+simplify(lambda_expr_k30_4[0]**2 * b1**2 + lambda_expr_k30_4[1]**2 * b2**2 + ((x30 - x31) / (b3**2))**2 * b3**2)
+c_expr_k30 = simplify(lambda_expr_k30_4[0]**2 * b1**2 + lambda_expr_k30_4[1]**2 * b2**2 + ((x30 - x31) / (b3**2))**2 * b3**2)
+print(latex(c_expr_k30))
+history
