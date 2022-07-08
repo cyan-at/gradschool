@@ -235,7 +235,7 @@ parser.add_argument('--times',
 
 parser.add_argument('--mu_0',
     type=float,
-    default=2.0,
+    default=4.5,
     required=False)
 
 parser.add_argument('--sampling',
@@ -320,16 +320,29 @@ for t_e in ts:
 
     X1, X2, X3 = np.meshgrid(x1,x2,x3,copy=False) # each is NxNxN
 
-    omegas = (alpha2 * X3) % (2*np.pi)
+    if (t_e < 1e-8):
+        '''
+        since the inverse flow map is symmetric for x1 , -x1 -> same x10, x2, -x2 -> same x20
+        for t = 0 we ignore the inverse flow map
+        '''
+        x10 = X1
+        x20 = X2
+        x30 = X3
+    else:
+        omegas = (alpha2 * X3) % (2*np.pi)
 
-    tans = np.tan(omegas*t_e)
-    gammas = (X2 - X1 * tans) / (X1 + X2*tans)
+        tans = np.tan(omegas*t_e)
+        gammas = (X2 - X1 * tans) / (X1 + X2*tans)
 
-    gammas = np.nan_to_num(gammas, copy=False)
+        gammas = np.nan_to_num(gammas, copy=False)
 
-    x10 = np.sqrt((X1**2 + X2**2) / (1 + gammas))
-    x20 = gammas * np.sqrt((X1**2 + X2**2) / (1 + gammas**2))
-    x30 = X3
+        x10 = np.sqrt((X1**2 + X2**2) / (1 + gammas))
+        x20 = gammas * np.sqrt((X1**2 + X2**2) / (1 + gammas**2))
+        x30 = X3
+
+        '''
+        TODO: deal with the symmetric alias
+        '''
 
     ###################
 
