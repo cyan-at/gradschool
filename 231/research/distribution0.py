@@ -9,6 +9,8 @@ import numpy as np
 import os, pickle, time, sys
 from matplotlib import cm
 
+import scipy.integrate as integrate
+
 def normal_dist_array(x , mean , cov_matrix):
     '''
     x: vector
@@ -86,6 +88,18 @@ def Sphere(rows, cols, func, args=None):
     faces[faces>vmax] = vmax
 
     return gl.MeshData(vertexes=verts, faces=faces)
+
+X1_index = 0
+X2_index = 1
+X3_index = 2
+def dynamics(state, t, alpha1, alpha2):
+    statedot = np.zeros_like(state)
+
+    statedot[X1_index] = alpha1 * state[X2_index] * state[X3_index]
+    statedot[X2_index] = alpha2 * state[X3_index] * state[X1_index]
+    statedot[X3_index] = 0.0
+
+    return statedot
 
 class MyGLViewWidget(gl.GLViewWidget):
     def __init__(self, data, point_size, distribution_samples, parent=None, devicePixelRatio=None, rotationMethod='euler'):
@@ -308,8 +322,6 @@ for t_e in ts:
 
     omegas = (alpha2 * X3) % (2*np.pi)
 
-    print(t_e, np.min(omegas), np.max(omegas))
-
     tans = np.tan(omegas*t_e)
     gammas = (X2 - X1 * tans) / (X1 + X2*tans)
 
@@ -340,7 +352,7 @@ for t_e in ts:
 
     '''
     start = time.time()
-
+ 
     pdf = gl.GLScatterPlotItem(
         pos=np.vstack([X1.reshape(-1), X2.reshape(-1), X3.reshape(-1)]).T,
         size=np.ones((N**3)) * 0.1,
@@ -362,9 +374,15 @@ for t_e in ts:
 
         t_samples = np.linspace(0, t_e, distribution_samples)
 
-        all_time_data = np.empty((initial_sample.shape[0], initial_sample.shape[1], distribution_samples))
+        all_time_data = np.empty(
+            (
+                initial_sample.shape[0],
+                initial_sample.shape[1],
+                len(t_samples))
+            )
         # x/y slice is all samples at that time, 1 x/y slice per z time initial_sample
 
+        '''
         for i, t_i in enumerate(t_samples):
             x_1 = A * np.cos(alpha2 * initial_sample[:, 2] * t_samples[i] + phi)
             x_2 = A * np.sin(alpha2 * initial_sample[:, 2] * t_samples[i] + phi)
@@ -375,6 +393,15 @@ for t_e in ts:
             all_time_data[:, :, i] = np.vstack([x_1, x_2, x_3]).T
 
         ends = all_time_data[:, :, -1] # the top most time slice is the end
+        '''
+
+        dynamics_with_args = lambda state, t: dynamics(state, t, -alpha2, alpha2)
+        for sample_i in range(initial_sample.shape[0]):
+            sample_states = integrate.odeint(
+                dynamics_with_args,
+                initial_sample[sample_i, :],
+                t_samples)
+            all_time_data[sample_i, :, :] = sample_states.T
 
         '''
         # generate the line from looking at x / z slices
