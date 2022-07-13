@@ -230,7 +230,7 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('--times',
     type=str,
-    default="0,0.5,1,2,5",
+    default="0,0.1,0.25,0.5,1.0",
     required=False)
 
 parser.add_argument('--mu_0',
@@ -240,7 +240,7 @@ parser.add_argument('--mu_0',
 
 parser.add_argument('--sampling',
     type=str,
-    default="10,10,10,10,10,10,100,200",
+    default="15,15,15,15,15,15,100,200",
     required=False)
 
 args = parser.parse_args()
@@ -329,12 +329,30 @@ for t_e in ts:
         x20 = X2
         x30 = X3
     else:
-        omegas = (alpha2 * X3) % (2*np.pi)
+        omegas = (alpha2 * X3)
 
-        tans = np.tan(omegas*t_e)
+        tans = np.tan((omegas*t_e) % (2*np.pi))
+
+        # where arctan(x2 / x1) > 0, x20 / x10 > 0
         gammas = (X2 - X1 * tans) / (X1 + X2*tans)
-
         gammas = np.nan_to_num(gammas, copy=False)
+
+        # quad1 = np.logical_and(np.where(X1 > 0, True, False), np.where(X2 > 0, True, False))
+
+        # where arctan(x2 / x1) < 0, x20 / x10 > 0
+        # gammas2 = (X1*tans - X2) / (X1 + tans * X2)
+        # gammas2 = np.nan_to_num(gammas2, copy=False)
+
+        # quad2 = np.logical_and(np.where(X1 < 0, True, False), np.where(X2 < 0, True, False))
+
+        # import ipdb; ipdb.set_trace();
+
+        # gammas = np.where(
+        #     np.logical_and(np.where(X1 < 0, True, False), np.where(X2 < 0, True, False)),
+        #     gammas1,
+        #     gammas1)
+
+        # gammas = np.select([quad1, quad2], [gammas1, gammas2], 0)
 
         x10 = np.sqrt((X1**2 + X2**2) / (1 + gammas))
         x20 = gammas * np.sqrt((X1**2 + X2**2) / (1 + gammas**2))
@@ -355,6 +373,20 @@ for t_e in ts:
 
     # N**3 x 1
     probs = np.exp(np.einsum('i...,ij,j...',x10_x20_x30,cov_inv,x10_x20_x30)/(-2)) / den
+    # print("probs", probs.shape)
+
+    # probs_reshape = probs.reshape(100,100,100)
+
+    # probs_reshape = np.where(
+    #     np.logical_and(np.where(x10 < 0, True, False), np.where(x20 < 0, True, False)),
+    #     0,
+    #     probs_reshape).reshape(-1)
+
+    # probs = probs_reshape
+
+    # print("probs", probs.shape)
+
+    # import ipdb; ipdb.set_trace();
 
     # probs = probs.reshape(N, N, N)
 
