@@ -102,8 +102,12 @@ def dynamics(state, t, alpha1, alpha2):
     return statedot
 
 class MyGLViewWidget(gl.GLViewWidget):
-    def __init__(self, data, point_size, distribution_samples, parent=None, devicePixelRatio=None, rotationMethod='euler'):
+    def __init__(self, initial_pdf, data, point_size, distribution_samples, parent=None, devicePixelRatio=None, rotationMethod='euler'):
         super(MyGLViewWidget, self).__init__(parent, devicePixelRatio, rotationMethod)
+
+        self.initial_pdf = initial_pdf
+        self.addItem(self.initial_pdf)
+        self.showing_initial_pdf = True
 
         self._data = data
         self.distribution_samples = distribution_samples
@@ -118,7 +122,7 @@ class MyGLViewWidget(gl.GLViewWidget):
 
         self.pdf = gl.GLScatterPlotItem(
             pos=self.pdf_pos,
-            size=np.ones((self.N**3)) * 0.1,
+            size=np.ones((self.N**3)) * 0.05,
             color=cmap(data["probs"]),
             pxMode=False)
         self.addItem(self.pdf)
@@ -131,10 +135,10 @@ class MyGLViewWidget(gl.GLViewWidget):
 
             self.lines.append(gl.GLLinePlotItem(
                 pos = lines,
-                width = 0.5,
+                width = 0.05,
                 color = gray))
             self.addItem(self.lines[-1])
-        self.showing = True
+        self.showing_lines = True
 
         if data["all_time_data"] is not None:
             ends = data["all_time_data"][:, :, -1]
@@ -147,6 +151,7 @@ class MyGLViewWidget(gl.GLViewWidget):
             color=blue,
             pxMode=False)
         self.addItem(self.endpoints)
+        self.showing_endpoints = True
 
     def keyPressEvent(self, ev):
         print("keyPressEvent",
@@ -198,16 +203,34 @@ class MyGLViewWidget(gl.GLViewWidget):
                     pos=lines)
 
         elif ev.text() == "k":
-            if self.showing:
+            if self.showing_lines:
                 for i in range(self.distribution_samples):
                     self.removeItem(self.lines[i])
-                self.showing = False
+                self.showing_lines = False
 
         elif ev.text() == "l":
-            if not self.showing:
+            if not self.showing_lines:
                 for i in range(self.distribution_samples):
                     self.addItem(self.lines[i])
-                self.showing = True
+                self.showing_lines = True
+
+        elif ev.text() == "a":
+            if self.showing_endpoints:
+                self.removeItem(self.endpoints)
+                self.showing_endpoints = False
+
+        elif ev.text() == "b":
+            if not self.showing_endpoints:
+                self.addItem(self.endpoints)
+                self.showing_endpoints = True
+
+        elif ev.text() == "c":
+            if not self.showing_initial_pdf:
+                self.addItem(self.initial_pdf)
+                self.showing_initial_pdf = True
+            else:
+                self.removeItem(self.initial_pdf)
+                self.showing_initial_pdf = False
 
 colors = [
     (0, 0, 0),
@@ -221,7 +244,7 @@ cmap = pg.ColorMap(pos=np.linspace(0.0, 0.5, len(colors)), color=colors)
 cmap = cm.get_cmap('gist_heat') # you want a colormap that for 0 is close to clearColor (black)
 
 green = (0, 1, 0, 1)
-gray = (0.5, 0.5, 0.5, 0.5)
+gray = (0.5, 0.5, 0.5, 0.1)
 blue = (0, 0, 1, 1)
 
 #############################################################################
@@ -230,12 +253,12 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('--times',
     type=str,
-    default="0,0.1,0.25,0.5,1.0",
+    default="0,0.1,0.25,0.5,1.0,5.0,10.0",
     required=False)
 
 parser.add_argument('--mu_0',
     type=float,
-    default=4.5,
+    default=2.0,
     required=False)
 
 parser.add_argument('--sampling',
@@ -303,7 +326,12 @@ cov_inv = np.linalg.inv(cov_0)
 
 initial_sample = np.random.multivariate_normal(
     mu_0, cov_0, distribution_samples) # 100 x 3
-point_size = np.ones(distribution_samples) * 0.2
+
+# for each initial sample, find the closest x3 = x30 layer it can help de-alias
+# x3_closest_index[i] = initial sample[i]'s dealiasing x30 layer
+x3_closest_index = [(np.abs(x3 - initial_sample[i, 2])).argmin() for i in range(initial_sample.shape[0])]
+
+point_size = np.ones(distribution_samples) * 0.08
 
 initial_pdf_sample = gl.GLScatterPlotItem(
     pos=initial_sample,
@@ -375,7 +403,8 @@ for t_e in ts:
     probs = np.exp(np.einsum('i...,ij,j...',x10_x20_x30,cov_inv,x10_x20_x30)/(-2)) / den
     # print("probs", probs.shape)
 
-    # probs_reshape = probs.reshape(100,100,100)
+    probs_reshape = probs.reshape(N,N,N)
+    probs_reshape = np.nan_to_num(probs_reshape, copy=False)
 
     # probs_reshape = np.where(
     #     np.logical_and(np.where(x10 < 0, True, False), np.where(x20 < 0, True, False)),
@@ -465,13 +494,39 @@ for t_e in ts:
         w.addItem(endpoints)
         '''
 
+        ends = all_time_data[:, :, -1]
+
+        atan2s = np.arctan2(ends[:, 1], ends[:, 0])
+
+        xa = np.cos(atan2s + np.pi / 2)
+        ya = np.sin(atan2s + np.pi / 2)
+
+        xb = np.cos(atan2s - np.pi / 2)
+        yb = np.sin(atan2s - np.pi / 2)
+
+        slopes = (yb - ya) / (xb - xa)
+
+        switches = np.where(ends[:, 1] > ends[:, 0] * slopes, 1, 0)
+        not_switches = np.where(ends[:, 1] <= ends[:, 0] * slopes, 1, 0)
+
+        # x3_closest_index[i] = initial sample[i]'s dealiasing x30 layer
+        for i, x3_i in enumerate(x3_closest_index):
+            slope = slopes[i]
+            X2_layer = X2[:, :, x3_i]
+            X1_layer = X1[:, :, x3_i]
+
+            scale = np.where(X2_layer > X1_layer * slope, switches[i], not_switches[i])
+
+            probs_reshape[:, :, x3_i] = probs_reshape[:, :, x3_i] * scale
+
+    probs = probs_reshape.reshape(-1)
+
     te_to_data[t_e] = {
         "probs" : probs,
         "all_time_data" : all_time_data
     }
 
-w = MyGLViewWidget(te_to_data, point_size, distribution_samples)
-w.addItem(initial_pdf_sample)
+w = MyGLViewWidget(initial_pdf_sample, te_to_data, point_size, distribution_samples)
 
 w.setWindowTitle('snapshots')
 w.setCameraPosition(distance=20)
@@ -482,7 +537,7 @@ w.setCameraPosition(distance=20)
 g = gl.GLGridItem()
 g.scale(2,2,1)
 g.setDepthValue(10)  # draw grid after surfaces since they may be translucent
-w.addItem(g)
+# w.addItem(g)
 
 #############################################################################
 
