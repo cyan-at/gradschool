@@ -101,6 +101,48 @@ def dynamics(state, t, alpha1, alpha2):
 
     return statedot
 
+colors = [
+    (0, 0, 0),
+    (45, 5, 61),
+    (84, 42, 55),
+    (150, 87, 60),
+    (208, 171, 141),
+    (255, 255, 255)
+]
+cmap = pg.ColorMap(pos=np.linspace(0.0, 0.5, len(colors)), color=colors)
+cmap = cm.get_cmap('gist_heat') # you want a colormap that for 0 is close to clearColor (black)
+
+red = (1, 0, 0, 1)
+green = (0, 1, 0, 1)
+gray = (0.5, 0.5, 0.5, 0.3)
+blue = (0, 0, 1, 1)
+
+def pyqtgraph_plot_line(
+    view,
+    line_points_row_xyz,
+    mode = 'lines', # 'line_strip' = all points are one line
+    color = red,
+    linewidth = 5.0):
+    plt = gl.GLLinePlotItem(
+        pos = line_points_row_xyz,
+        mode = mode,
+        color = color,
+        width = linewidth
+    )
+    view.addItem(plt)
+
+def pyqtgraph_plot_gnomon(view, g, length = 0.5, linewidth = 5):
+    o = g.dot(np.array([0.0, 0.0, 0.0, 1.0]))
+    x = g.dot(np.array([length, 0.0, 0.0, 1.0]))
+    y = g.dot(np.array([0.0, length, 0.0, 1.0]))
+    z = g.dot(np.array([0.0, 0.0, length, 1.0]))
+
+    # import ipdb; ipdb.set_trace();
+
+    pyqtgraph_plot_line(view, np.vstack([o, x])[:, :-1], color = red, linewidth = linewidth)
+    pyqtgraph_plot_line(view, np.vstack([o, y])[:, :-1], color = green, linewidth = linewidth)
+    pyqtgraph_plot_line(view, np.vstack([o, z])[:, :-1], color = blue, linewidth = linewidth)
+
 class MyGLViewWidget(gl.GLViewWidget):
     def __init__(self, initial_pdf, data, point_size, distribution_samples, parent=None, devicePixelRatio=None, rotationMethod='euler'):
         super(MyGLViewWidget, self).__init__(parent, devicePixelRatio, rotationMethod)
@@ -231,21 +273,6 @@ class MyGLViewWidget(gl.GLViewWidget):
             else:
                 self.removeItem(self.initial_pdf)
                 self.showing_initial_pdf = False
-
-colors = [
-    (0, 0, 0),
-    (45, 5, 61),
-    (84, 42, 55),
-    (150, 87, 60),
-    (208, 171, 141),
-    (255, 255, 255)
-]
-cmap = pg.ColorMap(pos=np.linspace(0.0, 0.5, len(colors)), color=colors)
-cmap = cm.get_cmap('gist_heat') # you want a colormap that for 0 is close to clearColor (black)
-
-green = (0, 1, 0, 1)
-gray = (0.5, 0.5, 0.5, 0.1)
-blue = (0, 0, 1, 1)
 
 #############################################################################
 
@@ -538,6 +565,8 @@ g = gl.GLGridItem()
 g.scale(2,2,1)
 g.setDepthValue(10)  # draw grid after surfaces since they may be translucent
 # w.addItem(g)
+
+pyqtgraph_plot_gnomon(w, np.eye(4), 1.0, 1.0)
 
 #############################################################################
 
