@@ -111,18 +111,18 @@ if __name__ == '__main__':
 
 fig = plt.figure(1)
 ax1 = plt.subplot(121, frameon=False)
-ax1.set_aspect('equal')
+# ax1.set_aspect('equal')
 ax1.grid()
 
 ax2 = plt.subplot(122, frameon=False)
-ax2.set_aspect('equal')
+# ax2.set_aspect('equal')
 ax2.grid()
 
 # ax3 = plt.subplot(133, frameon=False)
 
 fig2 = plt.figure(2)
 ax3 = plt.subplot(111, frameon=False)
-ax3.set_aspect('equal')
+# ax3.set_aspect('equal')
 ax3.grid()
 
 colors="rgbymkc"
