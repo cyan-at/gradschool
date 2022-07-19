@@ -274,305 +274,220 @@ class MyGLViewWidget(gl.GLViewWidget):
                 self.removeItem(self.initial_pdf)
                 self.showing_initial_pdf = False
 
-#############################################################################
-
-parser = argparse.ArgumentParser()
-
-parser.add_argument('--times',
-    type=str,
-    default="0,0.1,0.25,0.5,1.0,5.0,10.0",
-    required=False)
-
-parser.add_argument('--mu_0',
-    type=float,
-    default=2.0,
-    required=False)
-
-parser.add_argument('--sampling',
-    type=str,
-    default="15,15,15,15,15,15,100,200",
-    required=False)
-
-args = parser.parse_args()
-
-# system
-alpha2 = 0.5
-
-# distribution
-mu_0 = np.array([args.mu_0]*3)
-cov_0 = np.eye(3)
-
-# sampling
-ts = [float(x) for x in args.times.split(",")]
-
-sampling = [int(x) for x in args.sampling.split(",")]
-window0 = sampling[0]
-window1 = sampling[1]
-window2 = sampling[2]
-window3 = sampling[3]
-window4 = sampling[4]
-window5 = sampling[5]
-N = sampling[6]
-distribution_samples = sampling[7]
-
-#############################################################################
-
-## Create a GL View widget to display data
-app = QtGui.QApplication([])
-
-#############################################################################
-
-x1 = np.linspace(mu_0[0] - window0, mu_0[0] + window1, N)
-x2 = np.linspace(mu_0[1] - window2, mu_0[1] + window3, N)
-x3 = np.linspace(mu_0[2] - window4, mu_0[2] + window5, N)
-
-with_args = lambda x, y, z: composited(x, y, z, 0, alpha2, mu_0, cov_0)
-
-#############################################################################
-# for loop: 5s
-
-# temp = np.zeros((N, N, N, 1))
-# for i in range(N):
-#     for j in range(N):
-#         for k in range(N):
-#             # pos = inverse_flow(x1[i], x2[j], x3[k], 0, alpha2)
-#             # temp[i, j, k, 3] = normal_dist_array(pos, mu_0 , cov_0)
-#             temp[i, j, k, 0] = with_args(x1[i], x2[j], x3[k])
-
-#############################################################################
-# bad vectorize: 5s
-
-# with_args_vec = np.vectorize(with_args)
-# temp = with_args_vec(X1, X2, X3)
-
-#############################################################################
-# using broadcasting: 0.12s
-
-den = (np.sqrt(2*np.pi*np.linalg.norm(cov_0)))
-cov_inv = np.linalg.inv(cov_0)
-
-initial_sample = np.random.multivariate_normal(
-    mu_0, cov_0, distribution_samples) # 100 x 3
-
-# for each initial sample, find the closest x3 = x30 layer it can help de-alias
-# x3_closest_index[i] = initial sample[i]'s dealiasing x30 layer
-x3_closest_index = [(np.abs(x3 - initial_sample[i, 2])).argmin() for i in range(initial_sample.shape[0])]
-
-point_size = np.ones(distribution_samples) * 0.08
-
-initial_pdf_sample = gl.GLScatterPlotItem(
-    pos=initial_sample,
-    size=point_size,
-    color=green,
-    pxMode=False)
-
-te_to_data = {}
-te_to_data["keys"] = ts
-te_to_data["grid"] = np.meshgrid(x1,x2,x3,copy=False)
-te_to_data["N"] = N
-for t_e in ts:
-    start = time.time()
+def init_data(
+    mu_0, cov_0,
+    windows, distribution_samples, N, ts,
+    alpha2):
+    x1 = np.linspace(mu_0[0] - windows[0], mu_0[0] + windows[1], N)
+    x2 = np.linspace(mu_0[1] - windows[2], mu_0[1] + windows[3], N)
+    x3 = np.linspace(mu_0[2] - windows[4], mu_0[2] + windows[5], N)
 
     X1, X2, X3 = np.meshgrid(x1,x2,x3,copy=False) # each is NxNxN
 
-    if (t_e < 1e-8):
-        '''
-        since the inverse flow map is symmetric for x1 , -x1 -> same x10, x2, -x2 -> same x20
-        for t = 0 we ignore the inverse flow map
-        '''
-        x10 = X1
-        x20 = X2
-        x30 = X3
-    else:
-        omegas = (alpha2 * X3)
+    #############################################################################
+    # using broadcasting: 0.12s
 
-        tans = np.tan((omegas*t_e) % (2*np.pi))
+    den = (np.sqrt(2*np.pi*np.linalg.norm(cov_0)))
+    cov_inv = np.linalg.inv(cov_0)
 
-        # where arctan(x2 / x1) > 0, x20 / x10 > 0
-        gammas = (X2 - X1 * tans) / (X1 + X2*tans)
-        gammas = np.nan_to_num(gammas, copy=False)
+    initial_sample = np.random.multivariate_normal(
+        mu_0, cov_0, distribution_samples) # 100 x 3
 
-        # quad1 = np.logical_and(np.where(X1 > 0, True, False), np.where(X2 > 0, True, False))
+    # for each initial sample, find the closest x3 = x30 layer it can help de-alias
+    # x3_closest_index[i] = initial sample[i]'s dealiasing x30 layer
+    x3_closest_index = [(np.abs(x3 - initial_sample[i, 2])).argmin() for i in range(initial_sample.shape[0])]
 
-        # where arctan(x2 / x1) < 0, x20 / x10 > 0
-        # gammas2 = (X1*tans - X2) / (X1 + tans * X2)
-        # gammas2 = np.nan_to_num(gammas2, copy=False)
+    te_to_data = {}
+    te_to_data["keys"] = ts
+    te_to_data["grid"] = np.meshgrid(x1,x2,x3,copy=False)
+    te_to_data["N"] = N
+    for t_e in ts:
+        start = time.time()
 
-        # quad2 = np.logical_and(np.where(X1 < 0, True, False), np.where(X2 < 0, True, False))
+        if (t_e < 1e-8):
+            '''
+            since the inverse flow map is symmetric for x1 , -x1 -> same x10, x2, -x2 -> same x20
+            for t = 0 we ignore the inverse flow map
+            '''
+            x10 = X1
+            x20 = X2
+            x30 = X3
+        else:
+            omegas = (alpha2 * X3)
 
-        # import ipdb; ipdb.set_trace();
+            tans = np.tan((omegas*t_e) % (2*np.pi))
 
-        # gammas = np.where(
-        #     np.logical_and(np.where(X1 < 0, True, False), np.where(X2 < 0, True, False)),
-        #     gammas1,
-        #     gammas1)
+            # where arctan(x2 / x1) > 0, x20 / x10 > 0
+            gammas = (X2 - X1 * tans) / (X1 + X2*tans)
+            gammas = np.nan_to_num(gammas, copy=False)
 
-        # gammas = np.select([quad1, quad2], [gammas1, gammas2], 0)
+            x10 = np.sqrt((X1**2 + X2**2) / (1 + gammas))
+            x20 = gammas * np.sqrt((X1**2 + X2**2) / (1 + gammas**2))
+            x30 = X3
 
-        x10 = np.sqrt((X1**2 + X2**2) / (1 + gammas))
-        x20 = gammas * np.sqrt((X1**2 + X2**2) / (1 + gammas**2))
-        x30 = X3
+        ###################
 
-        '''
-        TODO: deal with the symmetric alias
-        '''
+        x10_diff = x10 - mu_0[0]
+        x20_diff = x20 - mu_0[1]
+        x30_diff = x30 - mu_0[2]
 
-    ###################
+        # 3 x NxNxN to N**3 x 3
+        x10_x20_x30 = np.vstack([x10_diff.reshape(-1), x20_diff.reshape(-1), x30_diff.reshape(-1)])
 
-    x10_diff = x10 - mu_0[0]
-    x20_diff = x20 - mu_0[1]
-    x30_diff = x30 - mu_0[2]
+        # N**3 x 1
+        probs = np.exp(np.einsum('i...,ij,j...',x10_x20_x30,cov_inv,x10_x20_x30)/(-2)) / den
 
-    # 3 x NxNxN to N**3 x 3
-    x10_x20_x30 = np.vstack([x10_diff.reshape(-1), x20_diff.reshape(-1), x30_diff.reshape(-1)])
+        probs_reshape = probs.reshape(N,N,N)
+        probs_reshape = np.nan_to_num(probs_reshape, copy=False)
 
-    # N**3 x 1
-    probs = np.exp(np.einsum('i...,ij,j...',x10_x20_x30,cov_inv,x10_x20_x30)/(-2)) / den
-    # print("probs", probs.shape)
+        total_time = time.time() - start
+        print("compute %s\n" % str(total_time))
 
-    probs_reshape = probs.reshape(N,N,N)
-    probs_reshape = np.nan_to_num(probs_reshape, copy=False)
+        #############################################################################
 
-    # probs_reshape = np.where(
-    #     np.logical_and(np.where(x10 < 0, True, False), np.where(x20 < 0, True, False)),
-    #     0,
-    #     probs_reshape).reshape(-1)
+        all_time_data = None
+        if t_e > 0:
+            A = np.sqrt(initial_sample[:, 0]**2 + initial_sample[:, 1]**2)
+            phi = np.arctan(initial_sample[:, 1] / initial_sample[:, 0])
 
-    # probs = probs_reshape
+            t_samples = np.linspace(0, t_e, distribution_samples)
 
-    # print("probs", probs.shape)
+            all_time_data = np.empty(
+                (
+                    initial_sample.shape[0],
+                    initial_sample.shape[1],
+                    len(t_samples))
+                )
+            # x/y slice is all samples at that time, 1 x/y slice per z time initial_sample
 
-    # import ipdb; ipdb.set_trace();
+            dynamics_with_args = lambda state, t: dynamics(state, t, -alpha2, alpha2)
+            for sample_i in range(initial_sample.shape[0]):
+                sample_states = integrate.odeint(
+                    dynamics_with_args,
+                    initial_sample[sample_i, :],
+                    t_samples)
+                all_time_data[sample_i, :, :] = sample_states.T
 
-    # probs = probs.reshape(N, N, N)
+            '''
+            deal with the aliasing issue here
+            for each integrated endpoint, create a decision boundary
+            +-90 deg on either side
+            and all probabilities on the side where the endpoint lives
+            scaled by 1, otherwise scaled by 0
+            '''
 
-    total_time = time.time() - start
-    print("compute %s\n" % str(total_time))
+            ends = all_time_data[:, :, -1]
+
+            atan2s = np.arctan2(ends[:, 1], ends[:, 0])
+            xa = np.cos(atan2s + np.pi / 2)
+            ya = np.sin(atan2s + np.pi / 2)
+            xb = np.cos(atan2s - np.pi / 2)
+            yb = np.sin(atan2s - np.pi / 2)
+            slopes = (yb - ya) / (xb - xa)
+
+            switches = np.where(ends[:, 1] > ends[:, 0] * slopes, 1, 0)
+            not_switches = np.where(ends[:, 1] <= ends[:, 0] * slopes, 1, 0)
+
+            # x3_closest_index[i] = initial sample[i]'s dealiasing x30 layer
+            for i, x3_i in enumerate(x3_closest_index):
+                slope = slopes[i]
+                X2_layer = X2[:, :, x3_i]
+                X1_layer = X1[:, :, x3_i]
+
+                scale = np.where(X2_layer > X1_layer * slope, switches[i], not_switches[i])
+                probs_reshape[:, :, x3_i] = probs_reshape[:, :, x3_i] * scale
+
+        probs = probs_reshape.reshape(-1)
+
+        te_to_data[t_e] = {
+            "probs" : probs,
+            "all_time_data" : all_time_data
+        }
+
+    return initial_sample, te_to_data, X1, X2, X3
+
+#############################################################################
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--times',
+        type=str,
+        default="0,0.1,0.25,0.5,1.0,5.0,10.0",
+        required=False)
+
+    parser.add_argument('--mu_0',
+        type=float,
+        default=2.0,
+        required=False)
+
+    parser.add_argument('--sampling',
+        type=str,
+        default="15,15,15,15,15,15,100,200",
+        required=False)
+
+    args = parser.parse_args()
+
+    # system
+    alpha2 = 0.5
+
+    # distribution
+    mu_0 = np.array([args.mu_0]*3)
+    cov_0 = np.eye(3)
+
+    # sampling
+    ts = [float(x) for x in args.times.split(",")]
+
+    sampling = [int(x) for x in args.sampling.split(",")]
+    window0 = sampling[0]
+    window1 = sampling[1]
+    window2 = sampling[2]
+    window3 = sampling[3]
+    window4 = sampling[4]
+    window5 = sampling[5]
+    windows = sampling[:6]
+    N = sampling[6]
+    distribution_samples = sampling[7]
 
     #############################################################################
 
-    '''
-    start = time.time()
- 
-    pdf = gl.GLScatterPlotItem(
-        pos=np.vstack([X1.reshape(-1), X2.reshape(-1), X3.reshape(-1)]).T,
-        size=np.ones((N**3)) * 0.1,
-        color=cmap(probs),
+    initial_sample, te_to_data, X1, X2, X3 = init_data(
+        mu_0, cov_0,
+        windows, distribution_samples, N, ts,
+        alpha2)
+
+    #############################################################################
+
+    ## Create a GL View widget to display data
+    app = QtGui.QApplication([])
+
+    point_size = np.ones(distribution_samples) * 0.08
+
+    initial_pdf_sample = gl.GLScatterPlotItem(
+        pos=initial_sample,
+        size=point_size,
+        color=green,
         pxMode=False)
 
-    total_time = time.time() - start
-    print("render %s\n" % str(total_time))
+    w = MyGLViewWidget(initial_pdf_sample, te_to_data, point_size, distribution_samples)
 
-    w.addItem(pdf)
-    '''
+    w.setWindowTitle('snapshots')
+    w.setCameraPosition(distance=20)
 
     #############################################################################
 
-    all_time_data = None
-    if t_e > 0:
-        A = np.sqrt(initial_sample[:, 0]**2 + initial_sample[:, 1]**2)
-        phi = np.arctan(initial_sample[:, 1] / initial_sample[:, 0])
+    ## Add a grid to the view
+    g = gl.GLGridItem()
+    g.scale(2,2,1)
+    g.setDepthValue(10)  # draw grid after surfaces since they may be translucent
+    # w.addItem(g)
 
-        t_samples = np.linspace(0, t_e, distribution_samples)
+    pyqtgraph_plot_gnomon(w, np.eye(4), 1.0, 1.0)
 
-        all_time_data = np.empty(
-            (
-                initial_sample.shape[0],
-                initial_sample.shape[1],
-                len(t_samples))
-            )
-        # x/y slice is all samples at that time, 1 x/y slice per z time initial_sample
+    #############################################################################
 
-        '''
-        for i, t_i in enumerate(t_samples):
-            x_1 = A * np.cos(alpha2 * initial_sample[:, 2] * t_samples[i] + phi)
-            x_2 = A * np.sin(alpha2 * initial_sample[:, 2] * t_samples[i] + phi)
-            x_3 = initial_sample[:, 2]
-            # all are nx1 for t_i
+    ## Start Qt event loop unless running in interactive mode.
+    w.show()
 
-            # stack it up
-            all_time_data[:, :, i] = np.vstack([x_1, x_2, x_3]).T
-
-        ends = all_time_data[:, :, -1] # the top most time slice is the end
-        '''
-
-        dynamics_with_args = lambda state, t: dynamics(state, t, -alpha2, alpha2)
-        for sample_i in range(initial_sample.shape[0]):
-            sample_states = integrate.odeint(
-                dynamics_with_args,
-                initial_sample[sample_i, :],
-                t_samples)
-            all_time_data[sample_i, :, :] = sample_states.T
-
-        '''
-        # generate the line from looking at x / z slices
-        for i in range(initial_sample.shape[0]):
-            item = gl.GLLinePlotItem(
-                pos = all_time_data[i, :, :].T,
-                width = 0.5,
-                color = gray)
-            w.addItem(item)
-
-        endpoints = gl.GLScatterPlotItem(
-            pos=ends,
-            size=size,
-            color=b,
-            pxMode=False)
-        w.addItem(endpoints)
-        '''
-
-        ends = all_time_data[:, :, -1]
-
-        atan2s = np.arctan2(ends[:, 1], ends[:, 0])
-
-        xa = np.cos(atan2s + np.pi / 2)
-        ya = np.sin(atan2s + np.pi / 2)
-
-        xb = np.cos(atan2s - np.pi / 2)
-        yb = np.sin(atan2s - np.pi / 2)
-
-        slopes = (yb - ya) / (xb - xa)
-
-        switches = np.where(ends[:, 1] > ends[:, 0] * slopes, 1, 0)
-        not_switches = np.where(ends[:, 1] <= ends[:, 0] * slopes, 1, 0)
-
-        # x3_closest_index[i] = initial sample[i]'s dealiasing x30 layer
-        for i, x3_i in enumerate(x3_closest_index):
-            slope = slopes[i]
-            X2_layer = X2[:, :, x3_i]
-            X1_layer = X1[:, :, x3_i]
-
-            scale = np.where(X2_layer > X1_layer * slope, switches[i], not_switches[i])
-
-            probs_reshape[:, :, x3_i] = probs_reshape[:, :, x3_i] * scale
-
-    probs = probs_reshape.reshape(-1)
-
-    te_to_data[t_e] = {
-        "probs" : probs,
-        "all_time_data" : all_time_data
-    }
-
-w = MyGLViewWidget(initial_pdf_sample, te_to_data, point_size, distribution_samples)
-
-w.setWindowTitle('snapshots')
-w.setCameraPosition(distance=20)
-
-#############################################################################
-
-## Add a grid to the view
-g = gl.GLGridItem()
-g.scale(2,2,1)
-g.setDepthValue(10)  # draw grid after surfaces since they may be translucent
-# w.addItem(g)
-
-pyqtgraph_plot_gnomon(w, np.eye(4), 1.0, 1.0)
-
-#############################################################################
-
-## Start Qt event loop unless running in interactive mode.
-w.show()
-if __name__ == '__main__':
-    import sys
     if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
         QtGui.QApplication.instance().exec_()
