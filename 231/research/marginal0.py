@@ -14,12 +14,14 @@ import scipy.integrate as integrate
 
 from distribution0 import *
 
+from RSB_traj import *
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--times',
         type=str,
-        default="0,1.0,2.0,3.0,4.0,5.0,10.0",
+        default="0,1.0,2.0,3.0",
         required=False)
 
     parser.add_argument('--mu_0',
@@ -30,6 +32,11 @@ if __name__ == '__main__':
     parser.add_argument('--sampling',
         type=str,
         default="15,15,15,15,15,15,100,200",
+        required=False)
+
+    parser.add_argument('--plot',
+        type=int,
+        default=0,
         required=False)
 
     args = parser.parse_args()
@@ -68,7 +75,13 @@ if __name__ == '__main__':
 
     #############################################################################
 
-    for t_e in ts:
+    cloud_t_e = np.empty((distribution_samples, 3, len(ts)))
+    # n x 3 slices of end points at time t_e
+    # one layer per t_e
+    # xi state points at time t_e is
+    # cloud_t_e[:, i, t_e]
+
+    for t_e_i, t_e in enumerate(ts):
         '''
         te_to_data[t_e] = {
             "probs" : probs,
@@ -109,44 +122,163 @@ if __name__ == '__main__':
                 , x=x1) # x1 slice for one x3 => R
         for j in range(len(x3))])
 
-fig = plt.figure(1)
-ax1 = plt.subplot(121, frameon=False)
-# ax1.set_aspect('equal')
-ax1.grid()
+        if te_to_data[t_e]["all_time_data"] is not None:
+            cloud_t_e[:, :, t_e_i] = te_to_data[t_e]["all_time_data"][:, :, -1]
+        else:
+            cloud_t_e[:, :, t_e_i] = initial_sample
 
-ax2 = plt.subplot(122, frameon=False)
-# ax2.set_aspect('equal')
-ax2.grid()
+    #############################################################################
 
-# ax3 = plt.subplot(133, frameon=False)
+    if args.plot == 0:
+        fig = plt.figure(1)
+        ax1 = plt.subplot(121, frameon=False)
+        # ax1.set_aspect('equal')
+        ax1.grid()
 
-fig2 = plt.figure(2)
-ax3 = plt.subplot(111, frameon=False)
-# ax3.set_aspect('equal')
-ax3.grid()
+        ax2 = plt.subplot(122, frameon=False)
+        # ax2.set_aspect('equal')
+        ax2.grid()
 
-colors="rgbymkc"
+        # ax3 = plt.subplot(133, frameon=False)
 
-for i, t_e in enumerate(ts):
-    ax1.plot(x1,
-        te_to_data[t_e]["x1_marginal"],
-        colors[i % len(colors)],
-        linewidth=1,
-        label=t_e)
-    ax1.legend(loc='lower right')
+        fig2 = plt.figure(2)
+        ax3 = plt.subplot(111, frameon=False)
+        # ax3.set_aspect('equal')
+        ax3.grid()
 
-    ax2.plot(x2,
-        te_to_data[t_e]["x2_marginal"],
-        colors[i % len(colors)],
-        linewidth=1,
-        label=t_e)
-    ax2.legend(loc='lower right')
+        colors="rgbymkc"
 
-    ax3.plot(x3,
-        te_to_data[t_e]["x3_marginal"],
-        colors[i % len(colors)],
-        linewidth=1,
-        label=t_e)
-    ax3.legend(loc='lower right')
+        for i, t_e in enumerate(ts):
+            ax1.plot(x1,
+                te_to_data[t_e]["x1_marginal"],
+                colors[i % len(colors)],
+                linewidth=1,
+                label=t_e)
+            ax1.legend(loc='lower right')
 
-plt.show()
+            ax2.plot(x2,
+                te_to_data[t_e]["x2_marginal"],
+                colors[i % len(colors)],
+                linewidth=1,
+                label=t_e)
+            ax2.legend(loc='lower right')
+
+            ax3.plot(x3,
+                te_to_data[t_e]["x3_marginal"],
+                colors[i % len(colors)],
+                linewidth=1,
+                label=t_e)
+            ax3.legend(loc='lower right')
+    elif args.plot == 1:
+        params = plot_params()
+        plt.rcParams.update(params)
+
+        fig = plt.figure(1,
+            figsize=params["figure.figsize"]) 
+        # figsize accepts only inches.
+        fig.subplots_adjust(
+            left=0.04,
+            right=0.98,
+            top=0.93,
+            bottom=0.15,
+            hspace=0.05,
+            wspace=0.02)
+
+        ax1 = fig.add_subplot(1, 2, 1, projection='3d')
+
+        ax2 = fig.add_subplot(1, 2, 2, projection='3d')
+
+        fig2 = plt.figure(2,
+            figsize=params["figure.figsize"]) 
+        # figsize accepts only inches.
+        fig2.subplots_adjust(
+            left=0.04,
+            right=0.98,
+            top=0.93,
+            bottom=0.15,
+            hspace=0.05,
+            wspace=0.02)
+
+        ax3 = fig2.add_subplot(1, 1, 1, projection='3d')
+
+        for i, t_e in enumerate(ts):
+            c1 = 'k'
+            c2 = 'gray'
+            alpha = 0.3
+            if (i == 0):
+                c1 = 'g'
+                c2 = 'green'
+                alpha = 0.15
+            elif (i == len(ts) - 1):
+                c1 = 'r'
+                c2 = 'red'
+                alpha = 0.15
+
+            ax1.plot(
+                x1,
+                t_e*np.ones((len(x1),1)),
+                te_to_data[t_e]["x1_marginal"],
+                color=c1,
+                lw=1)
+            ax1.add_collection3d(
+                ax1.fill_between(
+                    x1,
+                    te_to_data[t_e]["x1_marginal"],
+                    color=c2,
+                    alpha=alpha),
+                zs=t_e, zdir='y')
+
+            ax1.set_title('x1')
+
+            ax2.plot(
+                x2,
+                t_e*np.ones((len(x2),1)),
+                te_to_data[t_e]["x2_marginal"],
+                color=c1,
+                lw=1)
+            ax2.add_collection3d(
+                ax2.fill_between(
+                    x2,
+                    te_to_data[t_e]["x2_marginal"],
+                    color=c2,
+                    alpha=alpha),
+                zs=t_e, zdir='y')
+
+            ax2.set_title('x2')
+
+            ax3.plot(
+                x3,
+                t_e*np.ones((len(x3),1)),
+                te_to_data[t_e]["x3_marginal"],
+                color=c1,
+                lw=1)
+            ax3.add_collection3d(
+                ax3.fill_between(
+                    x3,
+                    te_to_data[t_e]["x3_marginal"],
+                    color=c2,
+                    alpha=alpha),
+                zs=t_e, zdir='y')
+
+            ax3.set_title('x3')
+
+        for i in range(distribution_samples):
+            ax1.plot(
+                cloud_t_e[i, 0, :],
+                ts,
+                [0.0]*len(ts),
+                lw=.3)
+
+            ax2.plot(
+                cloud_t_e[i, 1, :],
+                ts,
+                [0.0]*len(ts),
+                lw=.3)
+
+            ax3.plot(
+                cloud_t_e[i, 2, :],
+                ts,
+                [0.0]*len(ts),
+                lw=.3)
+
+    plt.show()
