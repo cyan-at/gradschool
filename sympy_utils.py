@@ -130,3 +130,17 @@ def latex_cleanup(expr, dynamicvars):
   for var in dynamicvars:
     expr = expr.replace('\operatorname{'+latex(Symbol(var))+'}{\\left(t \\right)}', latex(Symbol(var)))
   return expr
+
+def swap_symbol(expr, a, b, t=Symbol('q')):
+  '''
+  note the right diagonal shifting
+  '''
+  temp = expr.replace(a, t)
+  temp = temp.replace(b, a)
+  temp = temp.replace(t, b)
+  return temp
+
+def swap_symbols(expr, a, b, t=Symbol('q')):
+  for i, a_ in enumerate(a):
+    expr = swap_symbol(expr, a_, b[i], t)
+  return expr
