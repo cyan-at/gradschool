@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 
 import scipy.integrate as integrate
 
+import time
 
 S_INDEX = 0
 C_INDEX = 1
@@ -24,11 +25,45 @@ def fresnel(state, t):
 
   return statedot
 
-def S(x):
-  pass
+def fresnel_s(state, t):
+  return np.sin(t**2)
 
-def C(x):
-  pass
+def fresnel_c(state, t):
+  return np.cos(t**2)
+
+def S(x, dx):
+  '''
+  state = 0
+  i = 0
+  while i < x:
+    state = integrate.odeint(
+      fresnel_s,
+      state,
+      [i, i+dx])[-1]
+    i += dx
+  return state
+  '''
+
+  xs = np.arange(0, x, dx)
+  trapz_x = np.cumsum([dx]*len(xs))
+  return np.trapz([np.sin(i**2) for i in xs], x=trapz_x)
+
+def C(x, dx):
+  '''
+  state = 0
+  i = 0
+  while i < x:
+    state = integrate.odeint(
+      fresnel_c,
+      state,
+      [i, i+dx])[-1]
+    i += dx
+  return state
+  '''
+
+  xs = np.arange(0, x, dx)
+  trapz_x = np.cumsum([dx]*len(xs))
+  return np.trapz([np.cos(i**2) for i in xs], x=trapz_x)
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
@@ -53,7 +88,6 @@ if __name__ == '__main__':
     i += 1
   print("done integrating")
 
-
   fig = plt.figure(1)
   ax1 = plt.subplot(111, frameon=False)
   ax1.set_aspect('equal')
@@ -66,5 +100,31 @@ if __name__ == '__main__':
       linewidth=1,
       label='euler')
   ax1.legend(loc='lower right')
+
+  sc = ax1.scatter(
+    [states[-1, 0]],
+    [states[-1, 1]],
+    c = [1])
+
+  start = time.time()
+  test_c = C(args.t_stop, args.dt)
+  test_s = S(args.t_stop, args.dt)
+  sc = ax1.scatter(
+    [test_c],
+    [test_s],
+    c = [3])
+  print("odeint dt: %.3f", time.time() - start)
+
+  # trapz is the fastest way
+  start = time.time()
+  trapz_x = np.cumsum([args.dt]*len(times))
+  test_s2 = np.trapz([np.sin(i**2) for i in times], x=trapz_x)
+  test_c2 = np.trapz([np.cos(i**2) for i in times], x=trapz_x)
+  print("trapz dt: %.3f", time.time() - start)
+
+  sc = ax1.scatter(
+    [test_c2],
+    [test_s2],
+    c = [5])
 
   plt.show()
