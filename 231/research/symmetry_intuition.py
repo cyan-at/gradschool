@@ -511,4 +511,69 @@ A2
 A1
   history
 
+
+def get_fterms_for_x03_x13(X03, X13, alpha2, b1, b2, b3): 
+  t1 = alpha2/ (2*(X03 - X13)) * X13**2 
+  t0 = alpha2/ (2*(X03 - X13)) * X03**2 
+
+  den = np.sqrt(alpha2*(X03 - X13)) / np.sqrt(2) 
+
+  a1 = np.cos(t1) / den 
+  a2 = np.sin(t1) / den 
+
+  e = a1 * (C(t1) - C(t0)) + a2 * (S(t1) - S(t0)) 
+  f = -a2 * (C(t1) - C(t0)) + a1 * (S(t1) - S(t0)) 
+  l = ((S(t1) - S(t0)) ** 2 + (C(t1) - C(t0)) ** 2) / den 
+
+  g = e / l 
+  h = f / l 
+
+  f1 = h**2 / b2 + g**2 / b1 
+  f2 = g*h / b1 - g*h / b2 
+  f3 = g**2 / b2 + h**2 / b1 
+  f4 = 1 / b3 
+
+  return f1, f2, f3, f4 
+                                                                                                                            
+
+In [35]: b2                                                                                                                          
+Out[35]: 5.0
+
+In [36]: b1                                                                                                                          
+Out[36]: 1.0
+
+In [37]: b3                                                                                                                          
+Out[37]: 1.0
+
+In [38]: b2 = 1.0                                                                                                                    
+
+In [39]: alpha2                                                                                                                      
+Out[39]: 0.5
+
+In [40]: get_fterms_for_x03_x13(12, 0, alpha2, b1, b2, b3)                                                                           
+Out[40]: (0.105052569030896, 0, 0.105052569030896, 1.0)
+
+In [41]: get_fterms_for_x03_x13(100, 0, alpha2, b1, b2, b3)                                                                          
+Out[41]: (0.00159894036312497, 0, 0.00159894036312497, 1.0)
+
+In [42]: get_fterms_for_x03_x13(1e-8,  0, alpha2, b1, b2, b3)                                                                        
+Out[42]: (1.6e+17, 0, 1.6e+17, 1.0)
+
+In [43]: get_fterms_for_x03_x13(200,  0, alpha2, b1, b2, b3)                                                                         
+Out[43]: (0.000399937718540554, 0, 0.000399937718540554, 1.0)
+
+In [44]: get_fterms_for_x03_x13(0, 200, alpha2, b1, b2, b3)                                                                          
+<ipython-input-34-fe514efcd97c>:5: RuntimeWarning: invalid value encountered in sqrt
+  den = np.sqrt(alpha2*(X03 - X13)) / np.sqrt(2)
+Out[44]: (nan, nan, nan, 1.0)
+
+In [45]: get_fterms_for_x03_x13(200, 0, alpha2, b1, b2, b3)                                                                          
+Out[45]: (0.000399937718540554, 0, 0.000399937718540554, 1.0)
+
+In [46]: get_fterms_for_x03_x13(10, 0, alpha2, b1, b2, b3)                                                                           
+Out[46]: (0.15168289318321, 0, 0.15168289318321, 1.0)
+
+In [47]: get_fterms_for_x03_x13(100, 0, alpha2, b1, b2, b3)                                                                          
+Out[47]: (0.00159894036312497, 0, 0.00159894036312497, 1.0)
+
 '''
