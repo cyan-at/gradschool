@@ -52,7 +52,7 @@ def get_fterms_for_x03_x13(X03, X13, alpha2, b1, b2, b3):
     f3 = g**2 / b2 + h**2 / b1
     f4 = 1 / b3
 
-    return f1, f2, f3, f4, e, f, l, t1, t0, g, l2
+    return f1, f2, f3, f4, e, f, l, t1, t0, g, h
 
 #############################################################################
 
@@ -69,16 +69,14 @@ if __name__ == '__main__':
         default=2.0,
         required=False)
 
-    parser.add_argument('--sampling',
+    parser.add_argument('--alpha2',
         type=str,
-        default="15,15,15,15,15,15,100,200",
+        default="0.5,1,25",
         required=False)
 
     args = parser.parse_args()
 
     # system
-    alpha2 = 0.5
-
     b1 = 1.0
     b2 = 1.0
     b3 = 1.0
@@ -146,6 +144,8 @@ if __name__ == '__main__':
     (x03 - x13 must be positive otherwise imaginary term)
     (in sqrt den term)
 
+
+    not reproducible:
     get_fterms_for_x03_x13(1e-8,  0, alpha2, b1, b2, b3)
     Out[42]: (1.6e+17, 0, 1.6e+17, 1.0)
 
@@ -153,64 +153,74 @@ if __name__ == '__main__':
     (0.000399937718540554, 0, 0.000399937718540554, 1.0)
 
     as X03 - X13 shrinks: f1, f3 grows, so C asymmetry increases
-    as X03 - X13 grows:   f1, f3 shrinks, so C converges towards only the third state terms, which is symmetrical
+    as X03 - X13 grows:   f1, f3 shrinks, so C converges
+    towards only the third state terms, which is symmetrical
+
+    this seems to converge to a smaller and smaller value as we tune up alpha2
     '''
 
     X03 = np.linspace(0.5, 200, 200)
     X13 = np.zeros_like(X03)
+    D = X03 - X13
 
-    f1, f2, f3, f4, e, f, l, t1, t0, a1, a2 = get_fterms_for_x03_x13(X03, X13, alpha2, b1, b2, b3)
-
-    print(f1)
-    print(f3)
+    colors = 'rgbymck'
 
     fig = plt.figure(1)
     ax1 = plt.subplot(111)
     # ax1.set_aspect('equal')
     ax1.grid()
 
-    D = X03 - X13
+    alpha2s = [float(x) for x in args.alpha2.split(",")]
 
-    ax1.plot(D, f1,
-        'r',
-        linewidth=1,
-        label='f1')
+    for alpha_i, alpha2 in enumerate(alpha2s):
 
-    ax1.plot(D, f3,
-        'b',
-        linewidth=1,
-        label='f3')
+        f1, f2, f3, f4, e, f, l, t1, t0, a1, a2 =\
+            get_fterms_for_x03_x13(X03, X13, alpha2, b1, b2, b3)
 
+        ax1.plot(D, f1,
+            colors[alpha_i % len(colors)],
+            linewidth=1,
+            label='f1,a2=%.3f,lim=%.3f' % (alpha2, f1[-1]))
 
-    ax1.plot(D, e,
-        'm',
-        linewidth=1,
-        label='e')
+        ax1.plot(D, f3,
+            colors[alpha_i % len(colors)],
+            linewidth=1,
+            label='f3,a2=%.3f,lim=%.3f' % (alpha2, f1[-1]))
 
-    ax1.plot(D, f,
-        'k',
-        linewidth=1,
-        label='f')
+        '''
+        ax1.plot(D, e,
+            'm',
+            linewidth=1,
+            label='e')
 
-    ax1.plot(D, l,
-        'c',
-        linewidth=1,
-        label='l')
+        ax1.plot(D, f,
+            'k',
+            linewidth=1,
+            label='f')
 
-
-    ax1.plot(D, a1,
-        'y',
-        linewidth=1,
-        label='g')
-
-    ax1.plot(D, a2,
-        'g',
-        linewidth=1,
-        label='h')
+        ax1.plot(D, l,
+            'c',
+            linewidth=1,
+            label='l')
 
 
-    ax1.legend(loc='lower right')
+        ax1.plot(D, a1,
+            'y',
+            linewidth=1,
+            label='g')
 
+        ax1.plot(D, a2,
+            'g',
+            linewidth=1,
+            label='h')
+        '''
+
+    ax1.legend(loc='upper right')
+
+    ax1.set_xlabel('D = X03 - X13')
+    ax1.set_ylabel('f1, f3')
+
+    plt.title('b1 == b2, D^T * F * D')
     plt.show()
 
 
