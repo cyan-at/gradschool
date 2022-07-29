@@ -31,7 +31,12 @@ def fresnel_s(state, t):
 def fresnel_c(state, t):
   return np.cos(t**2)
 
-def S(x, dx):
+def S_helper(x, dx=0.02):
+  xs = np.arange(0, x, dx)
+  trapz_x = np.cumsum([dx]*len(xs))
+  return np.trapz(np.sin(xs**2), x=trapz_x)
+
+def S(x, dx=0.02):
   '''
   state = 0
   i = 0
@@ -43,12 +48,18 @@ def S(x, dx):
     i += dx
   return state
   '''
+  if type(x) == np.ndarray:
+    print("S, array")
+    return np.array([S_helper(x_, dx) for x_ in x])
+  else:
+    return S_helper(x, dx)
 
+def C_helper(x, dx=0.02):
   xs = np.arange(0, x, dx)
   trapz_x = np.cumsum([dx]*len(xs))
-  return np.trapz([np.sin(i**2) for i in xs], x=trapz_x)
+  return np.trapz(np.cos(xs**2), x=trapz_x)
 
-def C(x, dx):
+def C(x, dx=0.02):
   '''
   state = 0
   i = 0
@@ -60,10 +71,11 @@ def C(x, dx):
     i += dx
   return state
   '''
-
-  xs = np.arange(0, x, dx)
-  trapz_x = np.cumsum([dx]*len(xs))
-  return np.trapz([np.cos(i**2) for i in xs], x=trapz_x)
+  if type(x) == np.ndarray:
+    print("C, array")
+    return np.array([C_helper(x_, dx) for x_ in x])
+  else:
+    return C_helper(x, dx)
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
@@ -77,15 +89,17 @@ if __name__ == '__main__':
   times = np.arange(0, args.t_stop, args.dt)
   states = np.zeros((len(times), state.shape[0]))
 
-  i = 0
-  while i < len(times) - 1:
-    # solve differential equation, take final result only
-    state = integrate.odeint(
-      fresnel,
-      state,
-      times[i:i+2])[-1]
-    states[i+1, :] = state
-    i += 1
+  # i = 0
+  # while i < len(times) - 1:
+  #   # solve differential equation, take final result only
+  #   state = integrate.odeint(
+  #     fresnel,
+  #     state,
+  #     times[i:i+2])[-1]
+  #   states[i+1, :] = state
+  #   i += 1
+  states[:, S_INDEX] = S(times)
+  states[:, C_INDEX] = C(times)
   print("done integrating")
 
   fig = plt.figure(1)
@@ -120,6 +134,8 @@ if __name__ == '__main__':
   trapz_x = np.cumsum([args.dt]*len(times))
   test_s2 = np.trapz([np.sin(i**2) for i in times], x=trapz_x)
   test_c2 = np.trapz([np.cos(i**2) for i in times], x=trapz_x)
+  print(test_c2)
+
   print("trapz dt: %.3f", time.time() - start)
 
   sc = ax1.scatter(
