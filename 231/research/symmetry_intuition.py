@@ -220,7 +220,7 @@ if __name__ == '__main__':
     ax1.set_xlabel('D = X03 - X13')
     ax1.set_ylabel('f1, f3')
 
-    plt.title('b1 == b2, D^T * F * D')
+    plt.title('b1 == b2, D^T * F * D\nsmaller f1,f3 means tending towards symmetrical c')
     plt.show()
 
 
