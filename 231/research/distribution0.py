@@ -1,5 +1,18 @@
 #!/usr/bin/python3
 
+'''
+USAGE: ./distribution0.py
+
+n: next
+p: prev
+
+k: hide lines
+l: show lines
+
+a: hide blue
+b: show blue
+'''
+
 import argparse
 
 from pyqtgraph.Qt import QtCore, QtGui

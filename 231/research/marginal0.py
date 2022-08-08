@@ -1,5 +1,13 @@
 #!/usr/bin/python3
 
+'''
+USAGE:
+
+./marginal0.py
+
+./marginal0.py --plot 1
+'''
+
 import argparse
 
 from pyqtgraph.Qt import QtCore, QtGui
@@ -14,19 +22,19 @@ import scipy.integrate as integrate
 
 from distribution0 import *
 
-from RSB_traj import *
+from RSB_traj import plot_params
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--times',
         type=str,
-        default="0,1.0,2.0,3.0",
+        default="0,1.0,2.0,3.0,4.0,5.0",
         required=False)
 
     parser.add_argument('--mu_0',
         type=float,
-        default=2.0,
+        default=3.0,
         required=False)
 
     parser.add_argument('--sampling',
