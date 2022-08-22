@@ -557,9 +557,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    # system
-    alpha2 = 0.5
-
     # distribution
     mu_0 = np.array([args.mu_0]*3)
     cov_0 = np.eye(3)

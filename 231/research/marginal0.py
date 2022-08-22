@@ -42,15 +42,17 @@ if __name__ == '__main__':
         default="15,15,15,15,15,15,100,200",
         required=False)
 
+    parser.add_argument('--system',
+        type=str,
+        default="3,2,1",
+        required=False)
+
     parser.add_argument('--plot',
         type=int,
         default=0,
         required=False)
 
     args = parser.parse_args()
-
-    # system
-    alpha2 = 0.5
 
     # distribution
     mu_0 = np.array([args.mu_0]*3)
@@ -70,12 +72,14 @@ if __name__ == '__main__':
     N = sampling[6]
     distribution_samples = sampling[7]
 
+    j1, j2, j3 = [float(x) for x in args.system.split(",")]
+
     #############################################################################
 
     initial_sample, te_to_data, X1, X2, X3 = init_data(
         mu_0, cov_0,
         windows, distribution_samples, N, ts,
-        alpha2)
+        j1, j2, j3)
 
     x1 = X1[0, :, 0]
     x2 = X2[:, 0, 0]
@@ -131,9 +135,9 @@ if __name__ == '__main__':
         for j in range(len(x3))])
 
         if te_to_data[t_e]["all_time_data"] is not None:
-            cloud_t_e[:, :, t_e_i] = te_to_data[t_e]["all_time_data"][:, :, -1]
+            cloud_t_e[:, :3, t_e_i] = te_to_data[t_e]["all_time_data"][:, :3, -1]
         else:
-            cloud_t_e[:, :, t_e_i] = initial_sample
+            cloud_t_e[:, :3, t_e_i] = initial_sample[:, :3]
 
     #############################################################################
 
