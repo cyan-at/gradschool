@@ -23,6 +23,7 @@ import os, pickle, time, sys
 from matplotlib import cm
 
 import scipy.integrate as integrate
+from scipy.interpolate import griddata
 
 def normal_dist_array(x , mean , cov_matrix):
     '''
@@ -105,12 +106,32 @@ def Sphere(rows, cols, func, args=None):
 X1_index = 0
 X2_index = 1
 X3_index = 2
-def dynamics(state, t, alpha1, alpha2):
+def dynamics(state, t, j1, j2, j3):
+    alpha1 = (j2 - j3) / j1
+    alpha2 = (j3 - j1) / j2
+    alpha3 = (j1 - j2) / j3
+
     statedot = np.zeros_like(state)
+    # implicit is that all state dimension NOT set
+    # have 0 dynamics == do not change in value
 
     statedot[X1_index] = alpha1 * state[X2_index] * state[X3_index]
     statedot[X2_index] = alpha2 * state[X3_index] * state[X1_index]
-    statedot[X3_index] = 0.0
+    statedot[X3_index] = alpha3 * state[X1_index] * state[X2_index]
+
+    return statedot
+
+def v(state, t):
+    return [0.0, 0.0, 0.0]
+
+def controlled_dynamics(state, t, alpha1, alpha2):
+    statedot = np.zeros_like(state)
+
+    bu = v(state, t) # B * u
+
+    statedot[X1_index] = alpha1 * state[X2_index] * state[X3_index] + bu[X1_index]
+    statedot[X2_index] = alpha2 * state[X3_index] * state[X1_index] + bu[X2_index]
+    statedot[X3_index] = bu[X3_index]
 
     return statedot
 
@@ -182,11 +203,13 @@ class MyGLViewWidget(gl.GLViewWidget):
             pxMode=False)
         self.addItem(self.pdf)
 
+        # import ipdb; ipdb.set_trace();
+
         self.lines = []
         for i in range(distribution_samples):
             lines = np.zeros((self.distribution_samples, 3))
             if data["all_time_data"] is not None:
-                lines = data["all_time_data"][i, :, :].T
+                lines = data["all_time_data"][i, :3, :].T
 
             self.lines.append(gl.GLLinePlotItem(
                 pos = lines,
@@ -196,7 +219,7 @@ class MyGLViewWidget(gl.GLViewWidget):
         self.showing_lines = True
 
         if data["all_time_data"] is not None:
-            ends = data["all_time_data"][:, :, -1]
+            ends = data["all_time_data"][:, :3, -1]
         else:
             ends = np.zeros((self.distribution_samples, 3))
 
@@ -222,7 +245,7 @@ class MyGLViewWidget(gl.GLViewWidget):
                 color=cmap(data["probs"]))
 
             if data["all_time_data"] is not None:
-                ends = data["all_time_data"][:, :, -1]
+                ends = data["all_time_data"][:, :3, -1]
             else:
                 ends = np.zeros((self.distribution_samples, 3))
             self.endpoints.setData(pos=ends)
@@ -230,7 +253,7 @@ class MyGLViewWidget(gl.GLViewWidget):
             for i in range(self.distribution_samples):
                 lines = np.zeros((self.distribution_samples, 3))
                 if data["all_time_data"] is not None:
-                    lines = data["all_time_data"][i, :, :].T
+                    lines = data["all_time_data"][i, :3, :].T
 
                 self.lines[i].setData(
                     pos=lines)
@@ -244,7 +267,7 @@ class MyGLViewWidget(gl.GLViewWidget):
                 color=cmap(data["probs"]))
 
             if data["all_time_data"] is not None:
-                ends = data["all_time_data"][:, :, -1]
+                ends = data["all_time_data"][:, :3, -1]
             else:
                 ends = np.zeros((self.distribution_samples, 3))
             self.endpoints.setData(pos=ends)
@@ -252,7 +275,7 @@ class MyGLViewWidget(gl.GLViewWidget):
             for i in range(self.distribution_samples):
                 lines = np.zeros((self.distribution_samples, 3))
                 if data["all_time_data"] is not None:
-                    lines = data["all_time_data"][i, :, :].T
+                    lines = data["all_time_data"][i, :3, :].T
 
                 self.lines[i].setData(
                     pos=lines)
@@ -290,7 +313,20 @@ class MyGLViewWidget(gl.GLViewWidget):
 def init_data(
     mu_0, cov_0,
     windows, distribution_samples, N, ts,
-    alpha2):
+    j1, j2, j3):
+
+    alpha1 = (j2 - j3) / j1
+    alpha2 = (j3 - j1) / j2
+    alpha3 = (j1 - j2) / j3
+    # if j1 = j2 != j3
+    # alpha1 = j1 - j3 / j1
+    # alpha2 = j3 - j1 / j1 = -alpha1
+    # alpha3 = 0
+
+    dynamics_with_args = lambda state, t: dynamics(state, t, j1, j2, j3)
+
+    #############################################################################
+
     x1 = np.linspace(mu_0[0] - windows[0], mu_0[0] + windows[1], N)
     x2 = np.linspace(mu_0[1] - windows[2], mu_0[1] + windows[3], N)
     x3 = np.linspace(mu_0[2] - windows[4], mu_0[2] + windows[5], N)
@@ -306,26 +342,41 @@ def init_data(
     initial_sample = np.random.multivariate_normal(
         mu_0, cov_0, distribution_samples) # 100 x 3
 
+    #############################################################################
+
+    x1_closest_index = [(np.abs(x1 - initial_sample[i, 0])).argmin() for i in range(initial_sample.shape[0])]
+    x2_closest_index = [(np.abs(x2 - initial_sample[i, 1])).argmin() for i in range(initial_sample.shape[0])]
+
     # for each initial sample, find the closest x3 = x30 layer it can help de-alias
     # x3_closest_index[i] = initial sample[i]'s dealiasing x30 layer
     x3_closest_index = [(np.abs(x3 - initial_sample[i, 2])).argmin() for i in range(initial_sample.shape[0])]
 
-    te_to_data = {}
-    te_to_data["keys"] = ts
-    te_to_data["grid"] = np.meshgrid(x1,x2,x3,copy=False)
-    te_to_data["N"] = N
+    #############################################################################
+
+    te_to_data = {
+        "keys" : ts,
+        "grid" : np.meshgrid(x1,x2,x3,copy=False),
+        "N" : N
+    }
+
     for t_e in ts:
         start = time.time()
 
-        if (t_e < 1e-8):
+        if (t_e < 1e-8) or (np.abs(j1 - j2) > 1e-8):
             '''
-            since the inverse flow map is symmetric for x1 , -x1 -> same x10, x2, -x2 -> same x20
             for t = 0 we ignore the inverse flow map
+            also for the non-axissymmetric case
             '''
+            if (t_e > 1e-8):
+                print("NOT axis-symmetric, NOT using inverse flow map")
+
             x10 = X1
             x20 = X2
             x30 = X3
         else:
+            print("axis-symmetric, using inverse flow map")
+            # axis-symmetric inverse flow map
+            # implemented with numpy broadcasting
             omegas = (alpha2 * X3)
 
             tans = np.tan((omegas*t_e) % (2*np.pi))
@@ -338,7 +389,7 @@ def init_data(
             x20 = gammas * np.sqrt((X1**2 + X2**2) / (1 + gammas**2))
             x30 = X3
 
-        ###################
+        ################### compute the gaussian given the corresponding x0
 
         x10_diff = x10 - mu_0[0]
         x20_diff = x20 - mu_0[1]
@@ -358,6 +409,15 @@ def init_data(
 
         #############################################################################
 
+        if t_e > 0 and (np.abs(j1 - j2) > 1e-8):
+            print("NOT axis-symmetric, integrating initial pdf")
+
+            initial_probs = probs_reshape[x1_closest_index, x2_closest_index, x3_closest_index]
+
+            initial_sample = np.column_stack((initial_sample, initial_probs))
+
+        #############################################################################
+
         all_time_data = None
         if t_e > 0:
             A = np.sqrt(initial_sample[:, 0]**2 + initial_sample[:, 1]**2)
@@ -373,7 +433,10 @@ def init_data(
                 )
             # x/y slice is all samples at that time, 1 x/y slice per z time initial_sample
 
-            dynamics_with_args = lambda state, t: dynamics(state, t, -alpha2, alpha2)
+            # x[i] is sample [i]
+            # y[i] is state dim [i]
+            # z[i] is time [i]
+
             for sample_i in range(initial_sample.shape[0]):
                 sample_states = integrate.odeint(
                     dynamics_with_args,
@@ -381,13 +444,17 @@ def init_data(
                     t_samples)
                 all_time_data[sample_i, :, :] = sample_states.T
 
+        #############################################################################
+
+        if t_e > 0 and (np.abs(j1 - j2) < 1e-8):
             '''
-            deal with the aliasing issue here
+            deal with the aliasing issue here for axissymmetric case / inverse flow map
             for each integrated endpoint, create a decision boundary
             +-90 deg on either side
             and all probabilities on the side where the endpoint lives
             scaled by 1, otherwise scaled by 0
             '''
+            print("axis-symmetric, fixing aliasing")
 
             ends = all_time_data[:, :, -1]
 
@@ -410,11 +477,55 @@ def init_data(
                 scale = np.where(X2_layer > X1_layer * slope, switches[i], not_switches[i])
                 probs_reshape[:, :, x3_i] = probs_reshape[:, :, x3_i] * scale
 
+        #############################################################################
+
+        if t_e > 0 and (np.abs(j1 - j2) > 1e-8):
+            print("NOT axis-symmetric, assigning and interpolating integrated pdf")
+
+            # probs_reshape = np.zeros
+
+            latest_slice = all_time_data[:, :, -1] # this will be distribution_samples x 4
+
+            closest_1 = [(np.abs(x1 - latest_slice[i, 0])).argmin() for i in range(latest_slice.shape[0])]
+            closest_2 = [(np.abs(x2 - latest_slice[i, 1])).argmin() for i in range(latest_slice.shape[0])]
+            closest_3 = [(np.abs(x3 - latest_slice[i, 2])).argmin() for i in range(latest_slice.shape[0])]
+
+            probs_reshape = np.zeros_like(probs_reshape)
+            # some transposing going on in some reshape
+            # swapping closest_1/2 works well
+            probs_reshape[closest_2, closest_1, closest_3] = latest_slice[:, 3] # 1.0
+
+            # import ipdb; ipdb.set_trace();
+
+        #############################################################################
+
+        controlled_all_time_data = None
+        if t_e > 0:
+            '''
+            adding control
+            '''
+            controlled_all_time_data = np.empty(
+                (
+                    initial_sample.shape[0],
+                    initial_sample.shape[1],
+                    len(t_samples))
+                )
+
+            controlled_dynamics_with_args = lambda state, t: controlled_dynamics(state, t, -alpha2, alpha2)
+            for sample_i in range(initial_sample.shape[0]):
+                sample_states = integrate.odeint(
+                    controlled_dynamics_with_args,
+                    initial_sample[sample_i, :],
+                    t_samples)
+                controlled_all_time_data[sample_i, :, :] = sample_states.T
+
+        # NxNxN back to N**3 x 1
         probs = probs_reshape.reshape(-1)
 
         te_to_data[t_e] = {
             "probs" : probs,
-            "all_time_data" : all_time_data
+            "all_time_data" : all_time_data,
+            "controlled_all_time_data" : controlled_all_time_data,
         }
 
     return initial_sample, te_to_data, X1, X2, X3
@@ -436,7 +547,12 @@ if __name__ == '__main__':
 
     parser.add_argument('--sampling',
         type=str,
-        default="15,15,15,15,15,15,100,200",
+        default="15,15,15,15,15,15,100,500",
+        required=False)
+
+    parser.add_argument('--system',
+        type=str,
+        default="3,2,1",
         required=False)
 
     args = parser.parse_args()
@@ -462,12 +578,14 @@ if __name__ == '__main__':
     N = sampling[6]
     distribution_samples = sampling[7]
 
+    j1, j2, j3 = [float(x) for x in args.system.split(",")]
+
     #############################################################################
 
     initial_sample, te_to_data, X1, X2, X3 = init_data(
         mu_0, cov_0,
         windows, distribution_samples, N, ts,
-        alpha2)
+        j1, j2, j3)
 
     #############################################################################
 
@@ -477,10 +595,12 @@ if __name__ == '__main__':
     point_size = np.ones(distribution_samples) * 0.08
 
     initial_pdf_sample = gl.GLScatterPlotItem(
-        pos=initial_sample,
+        pos=initial_sample[:, :3],
         size=point_size,
         color=green,
         pxMode=False)
+
+    # import ipdb; ipdb.set_trace();
 
     w = MyGLViewWidget(initial_pdf_sample, te_to_data, point_size, distribution_samples)
 
