@@ -39,7 +39,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--sampling',
         type=str,
-        default="15,15,15,15,15,15,100,200",
+        default="15,15,15,15,15,15,100,100",
         required=False)
 
     parser.add_argument('--system',
@@ -47,9 +47,14 @@ if __name__ == '__main__':
         default="3,2,1",
         required=False)
 
-    parser.add_argument('--plot',
+    parser.add_argument('--ignore_symmetry',
         type=int,
         default=0,
+        required=False)
+
+    parser.add_argument('--plot',
+        type=int,
+        default=1,
         required=False)
 
     args = parser.parse_args()
@@ -79,7 +84,8 @@ if __name__ == '__main__':
     initial_sample, te_to_data, X1, X2, X3 = init_data(
         mu_0, cov_0,
         windows, distribution_samples, N, ts,
-        j1, j2, j3)
+        j1, j2, j3,
+        args.ignore_symmetry)
 
     x1 = X1[0, :, 0]
     x2 = X2[:, 0, 0]

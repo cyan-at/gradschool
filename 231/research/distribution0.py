@@ -313,7 +313,8 @@ class MyGLViewWidget(gl.GLViewWidget):
 def init_data(
     mu_0, cov_0,
     windows, distribution_samples, N, ts,
-    j1, j2, j3):
+    j1, j2, j3,
+    ignore_symmetry=False):
 
     alpha1 = (j2 - j3) / j1
     alpha2 = (j3 - j1) / j2
@@ -359,10 +360,12 @@ def init_data(
         "N" : N
     }
 
+    do_dealiasing = False
+
     for t_e in ts:
         start = time.time()
 
-        if (t_e < 1e-8) or (np.abs(j1 - j2) > 1e-8):
+        if (t_e < 1e-8) or (np.abs(j1 - j2) > 1e-8) or ignore_symmetry:
             '''
             for t = 0 we ignore the inverse flow map
             also for the non-axissymmetric case
@@ -389,6 +392,8 @@ def init_data(
             x20 = gammas * np.sqrt((X1**2 + X2**2) / (1 + gammas**2))
             x30 = X3
 
+            do_dealiasing = True
+
         ################### compute the gaussian given the corresponding x0
 
         x10_diff = x10 - mu_0[0]
@@ -409,7 +414,7 @@ def init_data(
 
         #############################################################################
 
-        if t_e > 0 and (np.abs(j1 - j2) > 1e-8):
+        if t_e > 0 and ((np.abs(j1 - j2) > 1e-8) or ignore_symmetry):
             print("NOT axis-symmetric, integrating initial pdf")
 
             initial_probs = probs_reshape[x1_closest_index, x2_closest_index, x3_closest_index]
@@ -446,7 +451,7 @@ def init_data(
 
         #############################################################################
 
-        if t_e > 0 and (np.abs(j1 - j2) < 1e-8):
+        if t_e > 0 and (do_dealiasing):
             '''
             deal with the aliasing issue here for axissymmetric case / inverse flow map
             for each integrated endpoint, create a decision boundary
@@ -479,7 +484,7 @@ def init_data(
 
         #############################################################################
 
-        if t_e > 0 and (np.abs(j1 - j2) > 1e-8):
+        if t_e > 0 and ((np.abs(j1 - j2) > 1e-8) or ignore_symmetry):
             print("NOT axis-symmetric, assigning and interpolating integrated pdf")
 
             # probs_reshape = np.zeros
@@ -547,12 +552,17 @@ if __name__ == '__main__':
 
     parser.add_argument('--sampling',
         type=str,
-        default="15,15,15,15,15,15,100,500",
+        default="15,15,15,15,15,15,100,100",
         required=False)
 
     parser.add_argument('--system',
         type=str,
         default="3,2,1",
+        required=False)
+
+    parser.add_argument('--ignore_symmetry',
+        type=int,
+        default=0,
         required=False)
 
     args = parser.parse_args()
@@ -582,7 +592,8 @@ if __name__ == '__main__':
     initial_sample, te_to_data, X1, X2, X3 = init_data(
         mu_0, cov_0,
         windows, distribution_samples, N, ts,
-        j1, j2, j3)
+        j1, j2, j3,
+        args.ignore_symmetry)
 
     #############################################################################
 
