@@ -337,7 +337,9 @@ def init_data(
     #############################################################################
     # using broadcasting: 0.12s
 
-    den = (np.sqrt(2*np.pi*np.linalg.norm(cov_0)))
+    # den = np.sqrt(np.linalg.det(2*np.pi*cov_0))
+    # https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.multivariate_normal.html
+    den = (2*np.pi)**(len(mu_0)/2) * np.linalg.det(cov_0)**(1/2)
     cov_inv = np.linalg.inv(cov_0)
 
     initial_sample = np.random.multivariate_normal(

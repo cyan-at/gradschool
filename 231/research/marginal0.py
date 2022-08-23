@@ -140,6 +140,27 @@ if __name__ == '__main__':
                 , x=x1) # x1 slice for one x3 => R
         for j in range(len(x3))])
 
+        # normalize all the pdfs so area under curve ~= 1.0
+        x1_pdf_area = np.trapz(te_to_data[t_e]["x1_marginal"], x=x1)
+        x2_pdf_area = np.trapz(te_to_data[t_e]["x2_marginal"], x=x2)
+        x3_pdf_area = np.trapz(te_to_data[t_e]["x3_marginal"], x=x3)
+        print("prior to normalization: %.2f, %.2f, %.2f" % (
+            x1_pdf_area,
+            x2_pdf_area,
+            x3_pdf_area))
+
+        te_to_data[t_e]["x1_marginal"] /= x1_pdf_area
+        te_to_data[t_e]["x2_marginal"] /= x2_pdf_area
+        te_to_data[t_e]["x3_marginal"] /= x3_pdf_area
+
+        x1_pdf_area = np.trapz(te_to_data[t_e]["x1_marginal"], x=x1)
+        x2_pdf_area = np.trapz(te_to_data[t_e]["x2_marginal"], x=x2)
+        x3_pdf_area = np.trapz(te_to_data[t_e]["x3_marginal"], x=x3)
+        print("after to normalization: %.2f, %.2f, %.2f" % (
+            x1_pdf_area,
+            x2_pdf_area,
+            x3_pdf_area))
+
         if te_to_data[t_e]["all_time_data"] is not None:
             cloud_t_e[:, :3, t_e_i] = te_to_data[t_e]["all_time_data"][:, :3, -1]
         else:
@@ -202,22 +223,22 @@ if __name__ == '__main__':
             hspace=0.05,
             wspace=0.02)
 
-        ax1 = fig.add_subplot(1, 2, 1, projection='3d')
+        ax1 = fig.add_subplot(1, 3, 1, projection='3d')
 
-        ax2 = fig.add_subplot(1, 2, 2, projection='3d')
+        ax2 = fig.add_subplot(1, 3, 2, projection='3d')
 
-        fig2 = plt.figure(2,
-            figsize=params["figure.figsize"]) 
-        # figsize accepts only inches.
-        fig2.subplots_adjust(
-            left=0.04,
-            right=0.98,
-            top=0.93,
-            bottom=0.15,
-            hspace=0.05,
-            wspace=0.02)
+        # fig2 = plt.figure(2,
+        #     figsize=params["figure.figsize"]) 
+        # # figsize accepts only inches.
+        # fig2.subplots_adjust(
+        #     left=0.04,
+        #     right=0.98,
+        #     top=0.93,
+        #     bottom=0.15,
+        #     hspace=0.05,
+        #     wspace=0.02)
 
-        ax3 = fig2.add_subplot(1, 1, 1, projection='3d')
+        ax3 = fig.add_subplot(1, 3, 3, projection='3d')
 
         for i, t_e in enumerate(ts):
             c1 = 'k'
@@ -279,6 +300,8 @@ if __name__ == '__main__':
                 zs=t_e, zdir='y')
 
             ax3.set_title('x3')
+
+            fig.suptitle('j1=%.3f, j2=%.3f, j3=%.3f' % (j1, j2, j3))
 
         for i in range(distribution_samples):
             ax1.plot(
