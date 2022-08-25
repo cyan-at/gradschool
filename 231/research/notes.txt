@@ -1,0 +1,425 @@
+E. B. Lee and L. Markus, Foundations of Optimal Control Theory.York, Wiley, 1967.
+M. Athans and P. Falb, Optimal Control: An Introduction to the Theory
+and Its Applications. New York, McGraw-Hill, 1966.
+
+control grammaian: a square matrix
+you can take the eigenvectors of it, sorted by eigenvalue magnitude
+the larger the eigenvalue magnitude, the more controllable directions in state-space
+
+biggest eigenvalue eigenvectors, most bang-for-buck u to controllable direction
+seems related to minimizing u
+
+the goal is to pull out the states x0 and x1 from c, not to simplify
+
+https://stackoverflow.com/questions/67513799/efficiently-zero-elements-of-numpy-array-using-a-boolean-mask
+https://numpy.org/doc/stable/reference/generated/numpy.unique.html
+https://www.google.com/search?q=numpy+meshgrid+unique&sxsrf=ALiCzsagUMJsAFWsM7dW8HkyXdRlnwxjpg%3A1657325093441&ei=JcbIYr61GrSJptQPrNassA4&ved=0ahUKEwj-2-KLwer4AhW0hIkEHSwrC-YQ4dUDCA4&uact=5&oq=numpy+meshgrid+unique&gs_lcp=Cgdnd3Mtd2l6EAMyCAgAEB4QDxAWMgUIABCGAzIFCAAQhgM6BwgAEEcQsAM6BAgjECc6BAgAEE
+M6BQgAEJECOhEILhCABBCxAxCDARDHARDRAzoLCAAQgAQQsQMQgwE6CAguELEDEIMBOggIABCABBCxAzoKCAAQsQMQgwEQQzoLCAAQsQMQgwEQkQI6EAgAEIAEEIcCELEDEIMBEBQ6CAgAELEDEJECOgoIABCABBCHAhAUOgUIABCABDoGCAAQHhAWSgQIQRgASgQIRhgAUN4HWMEbYJMcaANwAXgAgAGOAYgBjBCSAQUxMC4xMJgBAKABAcgBCMABAQ&sclient=gws-wiz
+https://www.google.com/search?q=arctan+vs+arctan2&sxsrf=ALiCzsad93kJ6w5XFyxtPo60xxG2yTygjA:1657325980625&source=lnms&tbm=isch&sa=X&ved=2ahUKEwiCl-iyxOr4AhUoBTQIHX4eCGsQ_AUoAXoECAEQAw&biw=1337&bih=769&dpr=1
+https://www.google.com/imgres?imgurl=https%3A%2F%2Fupload.wikimedia.org%2Fwikipedia%2Fcommons%2Fthumb%2Fa%2Fad%2FAtan2definition.svg%2F1200px-Atan2definition.svg.png&imgrefurl=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FAtan2&tbnid=xeznMjlFq0ix0M&vet=12ahUKEwi7gdvBxOr4AhVRGs0KHTClCnwQMygCegUIARDEAQ..i&docid=jkCJ2q9P0pl7TM&w=1200&h=1028&q=arctan%20vs%20arctan2&ved=2ahUKEwi7gdvBxOr4AhVRGs0KHTClCnwQMygCegUIARDEAQ
+https://en.wikipedia.org/wiki/Atan2
+https://www.google.com/search?q=tan+of+sum&sxsrf=ALiCzsZamNBJvdzxcecMLmDIslLCm8VZLQ:1657326153376&tbm=isch&source=iu&ictx=1&vet=1&fir=IlbDXKKW8F-ywM%252Cr1t2yaerf4UAvM%252C_%253BuBY8SiVJATahIM%252CSb_TidArUMQb2M%252C_%253BM1WpEgpN7-1-5M%252CgOL58tiFiTQpoM%252C_%253BZf4uxxOWZak8BM%252COfnZcIXs1yyzSM%252C_%253BpN4J1p_LbYdeRM%252Cid3NXHI2JXISxM%252C_%253BYEhoghIFr2C0rM%252CGZJrwJC47lYNvM%252C_%253B--KWHNJ8KyeVpM%252CKqCvCr5bI-IZEM%252C_%253B4bqZ4oI75XseGM%252C-WhakXe_xh4TWM%252C_%253BjErIK5_39IIuFM%252CIquR0pfKx-XiVM%252C_%253B3mrPXrFWR_jmmM%252CJ_df47F9xogO4M%252C_%253B56PYcoGrd9PIqM%252CnwgMbwFJ-iVpCM%252C_%253BvymHKhqOz3Ls_M%252C5FFZsWAJhqhaQM%252C_%253BQDdfAd9sd1S2DM%252C6fX_5fSiAQriuM%252C_%253BBBcQqvS06JAJmM%252CL6VEnPMaTyzWDM%252C_&usg=AI4_-kR1pCbUS6gHHTRh4WOM7GXuhrQYYQ&sa=X&ved=2ahUKEwjsmJiFxer4AhXpK0QIHalVCHQQ9QF6BAgFEAE#imgrc=IlbDXKKW8F-ywM
+https://stackoverflow.com/questions/59990370/doing-conditional-operations-using-meshgrids-in-numpy-and-merging-them
+https://numpy.org/doc/stable/reference/generated/numpy.logical_and.html
+https://numpy.org/doc/stable/reference/generated/numpy.select.html
+https://numpy.org/doc/stable/reference/generated/numpy.where.html
+
+
+https://www.overleaf.com/project/62b5c6c39d656f008886d0f0
+https://github.com/fwilliams/point-cloud-utils#deduplicating-point-clouds-and-meshes
+https://github.com/cvg/pcdmeshing
+http://www.open3d.org/docs/release/getting_started.html
+https://auth.launchpad.nasa.gov/logout?SAMLRequest=jZJbT4NAEIX%2fCtl3boVS2ACxkTRBq1Zr%2buCLWXYXSgK7yOw29d%2fLRU1MmsbXk3NmzpeZGEjbdHgrK6nVC%2f%2fQHJSRZwl6D8LC94uSmYTxyPSjcmlGQcRMHroud72SBaGLjAPvoZYiQQvLQUYOoHkuQBGhBslZLExnZTrhqxNiP8D%2b0gpW3hsysmFLLYiakkelOsC2TbQ6Wg3Rgh47wixBgFiVPNnN1A0Zt1IAH%2bfqXmBJoAYsSMsBK4r364ctHipgOpuwFtBxWpc1Z8g4t40APJFeT3e9VJLKBqXxhNLP0eshAsD7EQWlI8o3SQnuJRjCSrAH%2f6mmHGzVa1CxPe9K48dhdp4ZG9m35Aqna7mTUjOznKwXaP9dmX4S4d0IRn87xvbcI43n39hzGE%2bcC8bP6f3jcr177vfKOZDzU3fnOjRbF1G%2bKarE8aLduUqS2L4Q%2fBH%2ffFr6BQ%3d%3d&Signature=lfbVo%2fnhMMLnP9n2lFtF0DIwxRzT6nRSLrHGWdvXN53hN%2fm7%2fjP3P%2fBraa6JTEFjMLUU49VyylnfaAw4buaMmftNSS7pFW4ovk3mg2Git00tNmUXS3TfNrVRIj9CCTQcIQF3ZoNV4FSjJrhd14dWl%2bsWjrrZK536nWxPeS70YvCyZR1Jqfo%2be0WBishsQHcWET3blbBerKrTgwSlO15ww4MNkNHi218Vm6DpmkfMVRGryrsp%2bbOI2RVLn6cTrhux%2feHxFND9BFTHx2GesJDzSPT2T2dnq6cOIxGKmPdXm4MdCp2ProwDhAKPAx89lbMiMS0Dwe%2bGn9%2bSP5dD3twCJQ%3d%3d&SigAlg=http%3a%2f%2fwww.w3.org%2f2001%2f04%2fxmldsig-more%23rsa-sha256&client-request-id=c2e92ade-2e83-4fe0-6f1a-008006000015
+https://realpython.com/python-virtual-environments-a-primer/
+https://docs.rstudio.com/resources/install-python-source/
+https://pip.pypa.io/en/stable/installation/
+https://stackoverflow.com/questions/1534210/use-different-python-version-with-virtualenv
+https://stackoverflow.com/questions/49478573/pip3-install-not-working-no-module-named-pip-vendor-pkg-resources
+https://numpy.org/doc/stable/reference/random/generated/numpy.random.multivariate_normal.html
+https://teams.microsoft.com/_#/conversations/19:9834c96b9c0246b4a37e3e56475a8a55@thread.v2?ctx=chat
+https://trunk.arc.nasa.gov/bitbucket/projects/VIPERGDS/repos/viper_verve/pull-requests/353/diff#bundles/gov.nasa.arc.verve.robot.ros.viper/src/gov/nasa/arc/verve/robot/ros/viper/commandmonitor/commands/MonitoredStereoTrigger.java
+https://numpy.org/doc/stable/reference/random/generated/numpy.random.multivariate_normal.html
+https://stackoverflow.com/questions/18608349/updated-apply-vectorized-function-on-each-cell-to-interpolate-grid
+https://realpython.com/python-lambda/
+https://wellsr.com/python/3-ways-to-calculate-python-execution-time/#:~:text=The%20first%20method%20to%20find,returns%20the%20current%20system%20time.
+https://www.google.com/search?q=numpmy+vectorize&sxsrf=ALiCzsZEZ1gHVimE6W7FwdfzljglW4IxfA%3A1657296882814&ei=8lfIYrybMYGIptQP5vyciAM&ved=0ahUKEwi83PL_1-n4AhUBhIkEHWY-BzEQ4dUDCA4&uact=5&oq=numpmy+vectorize&gs_lcp=Cgdnd3Mtd2l6EAMyBwgjELACECcyBAgAEA0yBAgAEA0yBAgAEA0yBAgAEA0yBAgAEA0yBAgAEA0yBAgAEA0yBAgAEA0yBAgAEA06BwgAEEcQsAM6BAgjECc6BAgAEEM6BQgAEJECOhEILhCABBCxAxCDARDHARDRAzoLCAAQgAQQsQMQgwE6BwguENQCEEM6CggAELEDEIMBEEM6EAgAEIAEEIcCELEDEIMBEBQ6BwgAELEDEAo6BAgAEAo6BAguEEM6CggAELEDEIMBEAo6CggAELEDEIMBEA06BggAEB4QDUoECEEYAEoECEYYAFDJCliNIGDvIWgEcAF4AIABoAGIAeMPkgEEMi4xNZgBAKABAcgBA8ABAQ&sclient=gws-wiz
+https://stackoverflow.com/questions/70327194/run-time-optimization-in-python-for-loop-and-meshgrid-with-numpy
+https://numpy.org/doc/stable/reference/generated/numpy.vectorize.html
+https://blog.paperspace.com/numpy-optimization-vectorization-and-broadcasting/
+https://www.youtube.com/watch?v=KOlQWNGAAbM
+https://stackoverflow.com/questions/57640827/best-way-of-combining-meshgrid-with-matrix-multiplication-in-function
+https://numpy.org/doc/stable/reference/generated/numpy.einsum.html
+https://stackoverflow.com/questions/49776481/use-meshgrid-with-two-different-vectors
+https://stackoverflow.com/questions/3337301/numpy-matrix-to-array
+https://www.google.com/search?q=np+horzcat&oq=np+horzcat&aqs=chrome..69i57.2843j0j7&sourceid=chrome&ie=UTF-8
+https://stackoverflow.com/questions/50440837/color-lookup-with-a-matplotlib-colormap
+https://pyqtgraph.readthedocs.io/en/latest/3dgraphics/glscatterplotitem.html
+https://pyqtgraph.readthedocs.io/en/latest/3dgraphics/gllineplotitem.html
+https://matplotlib.org/stable/tutorials/colors/colormaps.html
+https://docs.google.com/spreadsheets/d/1MG4PqBMiFMIlG9CeMuyddmCjwkTpC23EEIAEkpXbL8A/edit#gid=2038720634
+https://stackoverflow.com/questions/40423999/pyqtgraph-where-to-find-signal-for-key-preses
+https://outlook.office365.com/mail/inbox/id/AAQkADAyZDgxZDI4LTg1ZDctNDEyYi1hMzA3LTZhMDg3Y2IxZjE1ZgAQAPVXYPO79EZHl%2Fs0ch3RSoQ%3D
+https://www.google.com/search?q=GLViewWidget+keypress+pyqtgraph&sxsrf=ALiCzsZaoK1e2Jipihm41c_pqqHUvbV2xA%3A1657310744258&ei=GI7IYu2uD_OhkPIPrcuY2A8&ved=0ahUKEwjtmsbRi-r4AhXzEEQIHa0lBvsQ4dUDCA4&uact=5&oq=GLViewWidget+keypress+pyqtgraph&gs_lcp=Cgdnd3Mtd2l6EAMyBQghEKABOgcIABBHELADOgUIIRCrAkoECEEYAEoECEYYAFDPA1iKD2CtEGgBcAF4AIAB0QGIAZMOkgEFMC40LjWYAQCgAQHIAQjAAQE&sclient=gws-wiz
+https://www.google.com/search?q=glscatterPlotItem+hide&oq=glscatterPlotItem+hide&aqs=chrome..69i57.2106j0j7&sourceid=chrome&ie=UTF-8
+https://calendar.google.com/calendar/u/0/r/week?pli=1
+https://calendar.google.com/calendar/u/1/r
+
+https://stackoverflow.com/questions/46257759/spherical-coordinates-plot-in-pyqtgraph
+https://github.com/LucasF27/pyQtgraph_test
+https://numpy.org/doc/stable/reference/random/generated/numpy.random.normal.html
+https://stackoverflow.com/questions/38698277/plot-normal-distribution-in-3d
+https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.stats.multivariate_normal.html
+https://en.wikipedia.org/wiki/Multivariate_normal_distribution
+https://numpy.org/doc/stable/reference/generated/numpy.meshgrid.html
+https://numpy.org/doc/stable/reference/generated/numpy.meshgrid.html
+https://stackoverflow.com/questions/45058690/when-using-scipy-stats-multivariate-normal-pdf-having-the-erroroperands-could-n
+https://docs.scipy.org/doc//scipy-1.4.1/reference/generated/scipy.stats.multivariate_normal.html
+https://stackoverflow.com/questions/29042182/creating-a-4d-matrix-full-of-zeros-in-python-numpy
+https://www.google.com/search?q=multivariate_normal+not+yet+returned&oq=multivariate_normal+not+yet+returned&aqs=chrome..69i57.2065j0j7&sourceid=chrome&ie=UTF-8
+https://www.tutorialspoint.com/matplotlib/matplotlib_3d_contour_plot.htm
+https://numpy.org/doc/stable/reference/generated/numpy.sum.html
+https://numpy.org/doc/stable/reference/generated/numpy.sum.html
+https://stackoverflow.com/questions/9170838/surface-plots-in-matplotlib
+https://stackoverflow.com/questions/51645694/how-to-plot-a-perfectly-smooth-sphere-in-python-using-matplotlib
+https://www.esp8266.com/viewtopic.php?p=77659
+https://www.askpython.com/python/normal-distribution
+https://www.geeksforgeeks.org/visualizing-the-bivariate-gaussian-distribution-in-python/
+https://stackoverflow.com/questions/63564845/contour-plots-for-multivariate-gaussian
+https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.contourf.html
+https://github.com/search?l=Python&q=GLSurfacePlotItem&type=Code
+https://stackoverflow.com/questions/61076696/pyqtgraph-opengl-how-to-create-a-sphere-between-two-coordinates
+https://www.google.com/search?q=python+normal+distribution&oq=python+normal+distribution&aqs=chrome..69i57j69i60l3.3266j0j7&sourceid=chrome&ie=UTF-8
+https://stackoverflow.com/questions/20228546/how-do-i-apply-some-function-to-a-python-meshgrid
+https://pyqtgraph.readthedocs.io/en/latest/colormap.html
+https://stackoverflow.com/questions/11218477/how-can-i-use-pickle-to-save-a-dict-or-any-other-python-object
+https://www.google.com/search?q=pyqtgraph+slider+scatter+plot&oq=pyqtgraph+slider+scatter+plot&aqs=chrome..69i57.4859j0j7&sourceid=chrome&ie=UTF-8
+https://github.com/sioan/softXRayDataAndControls/tree/a1ab1ecd86cdc55478bdbb1b4b5fbc861f3eae0b/myAnalysisTools/pyqtgraphExamples
+https://github.com/cyan-at/gradschool/blob/main/231/research/distribution0.py
+https://stackoverflow.com/questions/15415455/plotting-probability-density-function-by-sample-with-matplotlib
+https://stackoverflow.com/questions/38082936/best-way-to-pass-repeated-parameter-to-a-numpy-vectorized-function
+https://www.mail-archive.com/pyqtgraph@googlegroups.com/msg00520.html
+https://gitlab.tue.mpg.de/elacosse/vviewer/-/blob/d37275d6fac3d1e15f678a74a6d27e2f75f0e71d/vviewer/pyqtgraph/colormap.py
+https://pyqtgraph.readthedocs.io/en/pyqtgraph-0.12.1/colormap.html
+https://www.programcreek.com/python/example/94476/pyqtgraph.ColorMap
+https://doc.qt.io/qtforpython-5/PySide2/QtGui/QColor.html#PySide2.QtGui.PySide2.QtGui.QColor.getRgbF
+
+
+show that F matrix is non-singular (fresnels) are non-singular
+what does c look like in matrix form for A2 != I?
+
+###############################################
+
+loss plotting:
+[0] epoch
+[0] y1, psi, hjb
+[1] y2, rho, plank pde
+[2] rho0, initial
+[3] rhoT, terminal
+
+###############################################
+
+control policy
+v1, v2, v3 => u = B^(-1)v
+v = gradient of psi
+
+test:
+x1, x2, x3, t, y1 (psi), y2 (rho)
+
+dy1 / x1
+dy1 / x2
+dy1 / x3
+
+import tensorflow as tf
+tf.compat.v1.disable_eager_execution()
+
+test = np.genfromtxt('test.dat')
+psi = test[:, 4]
+x1 = test[:, 0]
+x2 = test[:, 1]
+x3 = test[:, 2]
+tf.gradients(psi, x1)
+
+
+v2 = tf.gradients(psi, x2)
+v3 = tf.gradients(psi, x3)
+
+###############################################
+
+https://www.tensorflow.org/api_docs/python/tf/gradients
+https://stackoverflow.com/questions/41822308/how-tf-gradients-work-in-tensorflow
+https://www.tensorflow.org/api_docs/python/tf/gradients
+https://stackoverflow.com/questions/65950732/tf-tape-gradient-returns-none-for-my-numerical-function-model
+https://www.tensorflow.org/guide/autodiff#getting_a_gradient_of_none
+https://www.geeksforgeeks.org/how-to-convert-numpy-array-to-tensor/
+https://stackoverflow.com/questions/34097281/convert-a-tensor-to-numpy-array-in-tensorflow
+https://stackoverflow.com/questions/52357542/attributeerror-tensor-object-has-no-attribute-numpy
+https://www.google.com/search?q=tensorflow+InternalError%3A+Attempting+to+perform+BLAS+operation+using+StreamExecutor+without+BLAS+support+%5BOp%3AMatMul%5D&sxsrf=ALiCzsamTmVRqpWIRDeqRPhZUwPmsJ1YRQ%3A1660858274079&ei=oq_-Yp6sBPuuptQP5Pqx4A4&ved=0ahUKEwiehcubq9H5AhV7l4kEHWR9DOwQ4dUDCA4&uact=5&oq=tensorflow+InternalError%3A+Attempting+to+perform+BLAS+operation+using+StreamExecutor+without+BLAS+support+%5BOp%3AMatMul%5D&gs_lcp=Cgdnd3Mtd2l6EANKBAhBGABKBAhGGABQAFjgDWDZDmgAcAB4AIABAIgBAJIBAJgBAKABAcABAQ&sclient=gws-wiz
+https://stackoverflow.com/questions/35226428/how-do-i-get-the-gradient-of-the-loss-at-a-tensorflow-variable
+https://numpy.org/doc/stable/reference/generated/numpy.gradient.html
+http://localhost:8888/notebooks/optimality_conditions-Copy1.ipynb
+http://localhost:8889/notebooks/EulerOMT_plots.ipynb
+https://www.tensorflow.org/guide/variable
+https://towardsdatascience.com/mastering-tensorflow-variables-in-5-easy-step-5ba8062a1756
+https://www.tensorflow.org/api_docs/python/tf/Tensor
+
+https://www.geeksforgeeks.org/how-to-convert-numpy-array-to-tensor/
+https://www.tensorflow.org/guide/autodiff#getting_a_gradient_of_none
+https://stackoverflow.com/questions/34097281/convert-a-tensor-to-numpy-array-in-tensorflow
+https://stackoverflow.com/questions/52357542/attributeerror-tensor-object-has-no-attribute-numpy
+https://www.google.com/search?q=tensorflow+InternalError%3A+Attempting+to+perform+BLAS+operation+using+StreamExecutor+without+BLAS+support+%5BOp%3AMatMul%5D&sxsrf=ALiCzsamTmVRqpWIRDeqRPhZUwPmsJ1YRQ%3A1660858274079&ei=oq_-Yp6sBPuuptQP5Pqx4A4&ved=0ahUKEwiehcubq9H5AhV7l4kEHWR9DOwQ4dUDCA4&uact=5&oq=tensorflow+InternalError%3A+Attempting+to+perform+BLAS+operation+using+StreamExecutor+without+BLAS+support+%5BOp%3AMatMul%5D&gs_lcp=Cgdnd3Mtd2l6EANKBAhBGABKBAhGGABQAFjgDWDZDmgAcAB4AIABAIgBAJIBAJgBAKABAcABAQ&sclient=gws-wiz
+https://stackoverflow.com/questions/35226428/how-do-i-get-the-gradient-of-the-loss-at-a-tensorflow-variable
+https://numpy.org/doc/stable/reference/generated/numpy.gradient.html
+https://www.tensorflow.org/guide/variable
+https://towardsdatascience.com/mastering-tensorflow-variables-in-5-easy-step-5ba8062a1756
+https://www.tensorflow.org/api_docs/python/tf/Tensor
+
+https://numpy.org/doc/stable/reference/generated/numpy.hstack.html
+http://localhost:8889/tree
+http://localhost:8889/notebooks/EulerOMT_plots.ipynb
+http://localhost:8889/notebooks/EulerOMT_plots.ipynb
+https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.griddata.html
+https://stackoverflow.com/questions/56099302/how-to-zero-out-all-values-of-matrix-2d-array-except-top-n-values-using-numpy
+https://www.google.com/search?q=scipy+griddata+3d&sxsrf=ALiCzsYbvhqFKmTZsI4hWGqaifx5E1Um0w%3A1661205372352&ei=fPsDY8qMFaTckPIP186H6AM&ved=0ahUKEwjKuviguNv5AhUkLkQIHVfnAT0Q4dUDCA4&uact=5&oq=scipy+griddata+3d&gs_lcp=Cgdnd3Mtd2l6EAMyBggAEB4QBzIFCAAQhgMyBQgAEIYDMgUIABCGAzoHCCMQsAIQJzoGCAAQHhANOggIABAeEA0QBUoECEEYAEoECEYYAFAAWOoFYK4HaABwAHgAgAGkAYgByAaSAQMwLjaYAQCgAQHAAQE&sclient=gws-wiz
+https://stackoverflow.com/questions/47235152/how-to-interpolate-3d-using-pythons-griddata
+https://stackoverflow.com/questions/29037424/using-numpy-trapz-to-calculate-a-pdf
+https://www.google.com/search?q=numpy+trapz+normalize&oq=numpy+trapz+normalize&aqs=chrome..69i57.2635j0j7&sourceid=chrome&ie=UTF-8
+https://stackoverflow.com/questions/11615664/multivariate-normal-density-in-python
+https://numpy.org/doc/stable/reference/random/generated/numpy.random.normal.html
+https://stackoverflow.com/questions/22071987/generate-random-array-of-floats-between-a-range
+https://stackoverflow.com/questions/12402045/mesh-grid-functions-in-python-meshgrid-mgrid-ogrid-ndgrid
+https://numpy.org/doc/stable/reference/generated/numpy.ogrid.html
+https://anaconda.org/anaconda/pyqtgraph
+https://anaconda.org/conda-forge/pyopengl
+https://anaconda.org/fastchan/qt
+
+https://stackoverflow.com/questions/2828059/sorting-arrays-in-numpy-by-column
+https://stackoverflow.com/questions/60724146/after-upgraded-tensorflow2-1-i-got-runtimeerror-tf-placeholder-is-not-compat
+https://stackoverflow.com/questions/72301866/how-to-replace-tf-placeholder-in-eager-execution
+https://trunk.arc.nasa.gov/jira/browse/VIPERMOS-879
+https://deepxde.readthedocs.io/en/latest/user/installation.html
+https://deepxde.readthedocs.io/en/latest/_modules/deepxde/model.html
+https://numpy.org/doc/stable/reference/generated/numpy.hstack.html
+http://localhost:8889/tree
+http://localhost:8889/notebooks/EulerOMT_plots.ipynb
+https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.griddata.html
+https://stackoverflow.com/questions/56099302/how-to-zero-out-all-values-of-matrix-2d-array-except-top-n-values-using-numpy
+https://www.google.com/search?q=scipy+griddata+3d&sxsrf=ALiCzsYbvhqFKmTZsI4hWGqaifx5E1Um0w%3A1661205372352&ei=fPsDY8qMFaTckPIP186H6AM&ved=0ahUKEwjKuviguNv5AhUkLkQIHVfnAT0Q4dUDCA4&uact=5&oq=scipy+griddata+3d&gs_lcp=Cgdnd3Mtd2l6EAMyBggAEB4QBzIFCAAQhgMyBQgAEIYDMgUIABCGAzoHCCMQsAIQJzoGCAAQHhANOggIABAeEA0QBUoECEEYAEoECEYYAFAAWOoFYK4HaABwAHgAgAGkAYgByAaSAQMwLjaYAQCgAQHAAQE&sclient=gws-wiz
+https://stackoverflow.com/questions/47235152/how-to-interpolate-3d-using-pythons-griddata
+https://stackoverflow.com/questions/29037424/using-numpy-trapz-to-calculate-a-pdf
+https://www.google.com/search?q=numpy+trapz+normalize&oq=numpy+trapz+normalize&aqs=chrome..69i57.2635j0j7&sourceid=chrome&ie=UTF-8
+https://stackoverflow.com/questions/11615664/multivariate-normal-density-in-python
+https://numpy.org/doc/stable/reference/random/generated/numpy.random.normal.html
+https://stackoverflow.com/questions/22071987/generate-random-array-of-floats-between-a-range
+https://stackoverflow.com/questions/12402045/mesh-grid-functions-in-python-meshgrid-mgrid-ogrid-ndgrid
+https://numpy.org/doc/stable/reference/generated/numpy.ogrid.html
+https://anaconda.org/anaconda/pyqtgraph
+https://anaconda.org/conda-forge/pyopengl
+https://anaconda.org/fastchan/qt
+https://stackoverflow.com/questions/23359886/selecting-rows-in-numpy-ndarray-based-on-the-value-of-two-columns
+https://stackoverflow.com/questions/16343752/numpy-where-function-multiple-conditions
+https://stackoverflow.com/questions/26545051/is-there-a-way-to-delete-created-variables-functions-etc-from-the-memory-of-th
+https://online-voice-recorder.com/
+https://www.google.com/search?q=numpy+gradient+vs+tensorflow+gradient&oq=numpy+gradient+vs+tensorflow+gradient&aqs=chrome..69i57.5348j0j7&sourceid=chrome&ie=UTF-8
+https://www.tensorflow.org/guide/autodiff
+https://www.toptal.com/python/gradient-descent-in-tensorflow
+https://blog.finxter.com/np-gradient/
+https://trvrm.github.io/using-tensorflow-to-compute-gradients.html
+https://numpy.org/doc/stable/reference/random/generated/numpy.random.shuffle.html
+https://numpy.org/doc/stable/reference/generated/numpy.column_stack.html
+https://www.google.com/search?q=tensorflow+take+gradient+model&sxsrf=ALiCzsZMgrwVnLqmJyGc_3QvitFPOyG8ig%3A1661283985084&ei=kS4FY7bkBJuoptQPxrO7sAI&ved=0ahUKEwj28LSO3d35AhUblIkEHcbZDiYQ4dUDCA8&uact=5&oq=tensorflow+take+gradient+model&gs_lcp=Cgdnd3Mtd2l6EAM6BwgAEEcQsANKBAhBGABKBAhGGABQzSVY0Chg2yloA3AAeAGAAaUCiAGDBpIBAzItM5gBAKABAcgBCMABAQ&sclient=gws-wiz
+https://stackoverflow.com/questions/35226428/how-do-i-get-the-gradient-of-the-loss-at-a-tensorflow-variable
+https://stackoverflow.com/questions/59145221/how-to-compute-gradient-of-output-wrt-input-in-tensorflow-2-0
+https://www.google.com/search?q=deepxde+save+model&sxsrf=ALiCzsay03iuHedMEG3e_h937a4e2VK-PA%3A1661284123016&ei=Gy8FY8pE0oim1A-a3ongBQ&ved=0ahUKEwiKvpfQ3d35AhVShIkEHRpvAlwQ4dUDCA8&uact=5&oq=deepxde+save+model&gs_lcp=Cgdnd3Mtd2l6EAM6BwgAEEcQsAM6BwgAELADEEM6BggAEB4QBzoICAAQHhAIEAc6CAgAEB4QBxAFOgYIABAeEAg6BQgAEIYDOggIABAeEAgQDUoECEEYAEoECEYYAFCQA1iGFGCNGmgCcAF4AIAB_AGIAeEMkgEDMi03mAEAoAEByAEKwAEB&sclient=gws-wiz
+https://deepxde.readthedocs.io/en/latest/modules/deepxde.html#module-deepxde.model
+https://www.google.com/search?q=deepxde+%27numpy.ndarray%27+object+has+no+attribute+%27_id%27&oq=deepxde+%27numpy.ndarray%27+object+has+no+attribute+%27_id%27&aqs=chrome..69i57.1878j0j7&sourceid=chrome&ie=UTF-8
+https://fixexception.com/tensorflow/numpy-is-only-available-when-eager-execution-is-enabled/
+https://www.google.com/search?q=deepxde+gradient&oq=deepxde+gradient&aqs=chrome..69i57.2760j0j7&sourceid=chrome&ie=UTF-8
+https://deepxde.readthedocs.io/en/latest/modules/deepxde.html#module-deepxde.model
+https://www.google.com/search?q=deepxde.gradients.jacobian&oq=deepxde.gradients.jacobian&aqs=chrome..69i57.192j0j7&sourceid=chrome&ie=UTF-8
+https://github.com/lululxvi/deepxde/issues/377
+https://github.com/tensorflow/tensorflow/issues/18304
+
+
+##############################################################
+
+q_statepenalty_gain = 0.5, T_t = 200, 2.0 -> 0.0
+
+nonaxissym_4/
+axissymmetric_6/
+
+q_statepenalty_gain = 0.5, T_t = 5.0, 2.0 -> 0.0
+
+run_-2.000_2.000__5.000__2000__0.001__1_1_2__0.500__2.000_1.000__0.000_1.000__12000_1000__50000/
+run_-2.000_2.000__5.000__2000__0.001__3_2_1__0.500__2.000_1.000__0.000_1.000__12000_1000__50000/
+
+q_statepenalty_gain = 0.5, T_t = 5.0, 5.0 -> 0.0
+
+run_-2.000_2.000__5.000__2000__0.001__3_2_1__0.500__5.000_1.000__0.000_1.000__12000_1000__50000
+run_-2.000_2.000__5.000__2000__0.001__1_1_2__0.500__5.000_1.000__0.000_1.000__12000_1000__50000
+
+##############################################################
+
+non-axissymmetric uncontrolled pdf:
+
+then validate axissymmetric specific case on above code
+
+
+########################################################################
+
+(1) training error/residual plots (see attached),
+(2) optimally controlled univariate state marginals superimposed with
+optimally controlled (i.e., closed loop) sample paths as three
+subfigures of the same figure
+(3) optimal control tau1, tau2, tau3 versus time sample paths as three
+subfigures of the same figure
+
+run_-2.000_2.000__5.000__2000__0.001__1_1_2__0.500__2.000_1.000__0.000_1.000__12000_1000__50000/
+
+16k:
+
+time=2k
+initial=1k
+samples_between_initial_and_final=12k
+final=1k
+
+########################################################################
+
+
+i've been training with tensorflow v1
+
+using tensorflow v2 fails because of libdevice error???
+but now it runs
+  maybe this is why:  %env XLA_FLAGS=--xla_gpu_cuda_data_dir=/usr/lib/cuda
+but is very, very slow? 2 epoch / minute
+
+maybe this is why v1 is faster: 
+Enable just-in-time compilation with XLA.
+
+
+@tf.function(jit_compile=config.xla_jit)
+def train_step(inputs, targets, auxiliary_vars):
+    # inputs and targets are np.ndarray and automatically converted to Tensor.
+    with tf.GradientTape() as tape:
+        losses = outputs_losses_train(inputs, targets, auxiliary_vars)[1]
+        total_loss = tf.math.reduce_sum(losses)
+
+self.train_state.y_pred_test, self.train_state.loss_test = self._outputs_losses(
+    False,
+    self.train_state.X_test,
+    self.train_state.y_test,
+    self.train_state.test_aux_vars,
+)
+
+#########################################################
+
+2022-08-24 17:37:21.671109: I tensorflow/compiler/xla/service/service.cc:170] XLA service 0x562d3ec2f240 initialized for platform CUDA (this does not guarantee that XLA will be used). Devices:
+2022-08-24 17:37:21.671135: I tensorflow/compiler/xla/service/service.cc:178]   StreamExecutor device (0): NVIDIA RTX A2000 Laptop GPU, Compute Capability 8.6
+2022-08-24 17:37:21.702060: I tensorflow/compiler/mlir/tensorflow/utils/dump_mlir_util.cc:263] disabling MLIR crash reproducer, set env var `MLIR_CRASH_REPRODUCER_DIRECTORY` to enable.
+2022-08-24 17:37:22.296729: W tensorflow/stream_executor/gpu/asm_compiler.cc:111] *** WARNING *** You are using ptxas 10.1.243, which is older than 11.1. ptxas before 11.1 is known to miscompile XLA code, leading to incorrect results or invalid-address errors.
+
+You may not need to update to CUDA 11.1; cherry-picking the ptxas binary is often sufficient.
+2022-08-24 17:37:22.297851: W tensorflow/stream_executor/gpu/asm_compiler.cc:230] Falling back to the CUDA driver for PTX compilation; ptxas does not support CC 8.6
+2022-08-24 17:37:22.297860: W tensorflow/stream_executor/gpu/asm_compiler.cc:233] Used ptxas at ptxas
+2022-08-24 17:37:22.297914: W tensorflow/stream_executor/gpu/redzone_allocator.cc:314] UNIMPLEMENTED: ptxas ptxas too old. Falling back to the driver to compile.
+Relying on driver to perform ptx compilation. 
+Modify $PATH to customize ptxas location.
+This message will be only logged once.
+2022-08-24 17:37:22.302210: W tensorflow/stream_executor/gpu/asm_compiler.cc:111] *** WARNING *** You are using ptxas 10.1.243, which is older than 11.1. ptxas before 11.1 is known to miscompile XLA code, leading to incorrect results or invalid-address errors.
+
+You may not need to update to CUDA 11.1; cherry-picking the ptxas binary is often sufficient.
+2022-08-24 17:37:22.303268: W tensorflow/compiler/xla/service/gpu/buffer_comparator.cc:640] UNIMPLEMENTED: ptxas ptxas too old. Falling back to the driver to compile.
+Relying on driver to perform ptx compilation. 
+Setting XLA_FLAGS=--xla_gpu_cuda_data_dir=/path/to/cuda  or modifying $PATH can be used to set the location of ptxas
+This message will only be logged once.
+2022-08-24 17:37:24.311800: W tensorflow/stream_executor/gpu/asm_compiler.cc:111] *** WARNING *** You are using ptxas 10.1.243, which is older than 11.1. ptxas before 11.1 is known to miscompile XLA code, leading to incorrect results or invalid-address errors.
+
+You may not need to update to CUDA 11.1; cherry-picking the ptxas binary is often sufficient.
+2022-08-24 17:37:24.314325: I tensorflow/compiler/jit/xla_compilation_cache.cc:478] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+Step      Train loss                                  Test loss                                   Test metric
+0         [1.33e+01, 1.20e-01, 1.47e-01, 1.00e+00]    [1.33e+01, 1.20e-01, 1.47e-01, 1.00e+00]    []  
+2022-08-24 17:37:25.662765: W tensorflow/stream_executor/gpu/asm_compiler.cc:111] *** WARNING *** You are using ptxas 10.1.243, which is older than 11.1. ptxas before 11.1 is known to miscompile XLA code, leading to incorrect results or invalid-address errors.
+
+You may not need to update to CUDA 11.1; cherry-picking the ptxas binary is often sufficient.
+2022-08-24 17:37:36.285751: E tensorflow/compiler/xla/service/slow_operation_alarm.cc:61] Constant folding an instrution is taking > 1s:
+
+  %dot.51 = f32[128000,70]{1,0} dot(f32[128000,70]{1,0} %constant.263, f32[70,70]{1,0} %constant.395), lhs_contracting_dims={1}, rhs_contracting_dims={1}
+
+This isn't necessarily a bug; constant-folding is inherently a trade-off between compilation time and speed at runtime.  XLA has some guards that attempt to keep constant folding from taking too long, but fundamentally you'll always be able to come up with an input program that takes a long time.
+
+If you'd like to file a bug, run with envvar XLA_FLAGS=--xla_dump_to=/tmp/foo and attach the results.
+2022-08-24 17:37:43.947684: E tensorflow/compiler/xla/service/slow_operation_alarm.cc:61] Constant folding an instrution is taking > 2s:
+
+  %dot.17 = f32[128000,70]{1,0} dot(f32[128000,70]{1,0} %constant.363, f32[70,70]{1,0} %constant.321), lhs_contracting_dims={1}, rhs_contracting_dims={1}
+
+This isn't necessarily a bug; constant-folding is inherently a trade-off between compilation time and speed at runtime.  XLA has some guards that attempt to keep constant folding from taking too long, but fundamentally you'll always be able to come up with an input program that takes a long time.
+
+If you'd like to file a bug, run with envvar XLA_FLAGS=--xla_dump_to=/tmp/foo and attach the results.
+
+
+
+https://deepxde.readthedocs.io/en/latest/_modules/deepxde/gradients.html#jacobian
+https://github.com/lululxvi/deepxde/blob/master/deepxde/backend/set_default_backend.py
+https://www.google.com/search?q=tensorflow+model+gradient&sxsrf=ALiCzsa3aiffvv-oWa4Aqr80xM00LUJvNA%3A1661310552985&ei=WJYFY4LZO4qr0PEPjbSPsAU&ved=0ahUKEwiC5fyKwN75AhWKFTQIHQ3aA1YQ4dUDCA8&uact=5&oq=tensorflow+model+gradient&gs_lcp=Cgdnd3Mtd2l6EAMyCAgAEB4QCBAHMgQIABAeMgYIABAeEAgyBQgAEIYDMgUIABCGAzoHCAAQRxCwAzoGCAAQHhAHOgoIABAeEAgQBxAKOgUIABCABDoICAAQHhAIEAo6BAgAEA1KBAhBGABKBAhGGABQ_hJYvTVg3TZoBnABeACAAXOIAfIJkgEDOS40mAEAoAEByAEIwAEB&sclient=gws-wiz
+https://www.tensorflow.org/api_docs/python/tf/test/compute_gradient
+https://www.tensorflow.org/guide/autodiff
+https://www.google.com/search?q=%22deepxde%22+WARNING%3Atensorflow%3AGradients+do+not+exist+for+variables+%5B%27Variable%3A0%27%5D+when+minimizing+the+loss.&sxsrf=ALiCzsZ_-SNy5zTNdoLSB4FArclt9RkzsQ%3A1661311385340&ei=mZkFY-a6FOuaptQPhcOKmAc&ved=0ahUKEwim6--Xw975AhVrjYkEHYWhAnMQ4dUDCA8&uact=5&oq=%22deepxde%22+WARNING%3Atensorflow%3AGradients+do+not+exist+for+variables+%5B%27Variable%3A0%27%5D+when+minimizing+the+loss.&gs_lcp=Cgdnd3Mtd2l6EAM6BwgAEEcQsANKBAhBGABKBAhGGABQmQtY1RxguR5oAnABeACAAVSIAfIBkgEBM5gBAKABAcgBCMABAQ&sclient=gws-wiz
+https://stackoverflow.com/questions/68614547/tensorflow-libdevice-not-found-why-is-it-not-found-in-the-searched-path
+https://stackoverflow.com/questions/68614547/tensorflow-libdevice-not-found-why-is-it-not-found-in-the-searched-path
+https://stackoverflow.com/questions/62670495/using-xla-in-tensorflow-libdevice-10-bc-internaler
+https://towardsdatascience.com/accelerate-your-training-and-inference-running-on-tensorflow-896aa963aa70
+https://www.google.com/search?q=deepxde+train+model&oq=deepxde+train+model&aqs=chrome..69i57.3338j0j7&sourceid=chrome&ie=UTF-8
+https://deepxde.readthedocs.io/en/latest/_modules/deepxde/model.html#Model.predict
+https://deepxde.readthedocs.io/en/latest/_modules/deepxde/callbacks.html#Callback.on_epoch_end
+https://deepxde.readthedocs.io/en/latest/_modules/deepxde/model.html#Model.predict
+https://deepxde.readthedocs.io/en/latest/_modules/deepxde/callbacks.html#CallbackList.on_epoch_end
+https://deepxde.readthedocs.io/en/latest/_modules/deepxde/callbacks.html#EarlyStopping
+https://deepxde.readthedocs.io/en/latest/_modules/deepxde/callbacks.html#Callback.on_epoch_end
+https://deepxde.readthedocs.io/en/latest/modules/deepxde.data.html?highlight=TimePDE#deepxde.data.pde.TimePDE
+https://deepxde.readthedocs.io/en/latest/_modules/deepxde/data/pde.html#TimePDE
+https://github.com/lululxvi/deepxde/issues/377
+https://deepxde.readthedocs.io/en/latest/_modules/deepxde/model.html
+http://fischerp.cs.illinois.edu/tam470/refs/notes_time1c.pdf
+https://www.tensorflow.org/api_docs/python/tf/compat/v1/gradients
+https://www.tensorflow.org/api_docs/python/tf/compat/v1
+https://deepxde.readthedocs.io/en/latest/_modules/deepxde/gradients.html#jacobian
+https://github.com/lululxvi/deepxde/blob/master/examples/function/dataset.py
+https://www.google.com/search?sxsrf=ALiCzsZIowiN3nCUm_PU4xQRBcmMbn14Zw:1661318728876&q=%22conda%22+tensorflow+INTERNAL:+libdevice+not+found+at+./libdevice.10.bc&sa=X&ved=2ahUKEwim1sXF3t75AhV_jIkEHU-lCFoQ7xYoAHoECAEQNg&biw=1247&bih=939&dpr=1
+https://www.google.com/search?q=jupyter+XLA_FLAGS%3D--xla_gpu_cuda_data_dir%3D%2Fpath%2Fto%2Fcuda&sxsrf=ALiCzsZQIaynGWofJcF6yzMx9gzvT2tgLw%3A1661319292367&ei=fLgFY8OMFt6IptQP4pOR-AU&ved=0ahUKEwjDup7S4N75AhVehIkEHeJJBF8Q4dUDCA4&uact=5&oq=jupyter+XLA_FLAGS%3D--xla_gpu_cuda_data_dir%3D%2Fpath%2Fto%2Fcuda&gs_lcp=Cgdnd3Mtd2l6EAMyBQgAEKIEMgUIABCiBDIFCAAQogRKBAhBGABKBAhGGABQAFicEGD5EWgAcAB4AIABfYgBgQeSAQMxLjeYAQCgAQHAAQE&sclient=gws-wiz
+https://github.com/google/jax/issues/989
+https://stackoverflow.com/questions/72107119/how-to-use-system-gpu-in-jupyter-notebook
+https://www.pythonfixing.com/2022/05/fixed-tensorflow-libdevice-not-found.html
+https://stackoverflow.com/questions/37890898/how-to-set-env-variable-in-jupyter-notebook
+https://www.tensorflow.org/guide/advanced_autodiff
+https://stackoverflow.com/questions/59590766/how-do-i-get-the-gradient-of-a-keras-model-with-respect-to-its-inputs
+https://stackoverflow.com/questions/55066710/computing-gradients-wrt-model-inputs-in-tensorflow-eager-mode
+https://stackoverflow.com/questions/57529831/solved-how-to-combine-tf-gradients-with-tf-data-dataset-and-keras-models
+https://stackoverflow.com/questions/62325764/calculating-the-derivates-of-the-output-with-respect-to-input-for-a-give-time-st
+https://www.tensorflow.org/api_docs/python/tf/GradientTape
+https://www.tutorialexample.com/fix-tf-gradienttape-attributeerror-refvariable-object-has-no-attribute-_id-error-tensorflow-tutorial/
+https://stackoverflow.com/questions/51440135/tensorflow-stop-training-when-losses-reach-a-defined-value
+https://www.tensorflow.org/api_docs/python/tf/compat/v1/gradients
+https://stackoverflow.com/questions/58888215/sess-run-and-eval-in-tensorflow-programming
+https://www.tensorflow.org/api_docs/python/tf/compat/v1/Session
+https://deepxde.readthedocs.io/en/latest/_modules/deepxde/gradients.html
+
+https://www.google.com/search?q=tf+v1+session+gradient&oq=tf+v1+session+gradient&aqs=chrome..69i57.4203j0j7&sourceid=chrome&ie=UTF-8
+https://www.google.com/search?q=tensorflow+train+with+gradienttape&oq=tensorflow+train+with+gradienttape&aqs=chrome..69i57.11482j0j4&sourceid=chrome&ie=UTF-8
+https://pyimagesearch.com/2020/03/23/using-tensorflow-and-gradienttape-to-train-a-keras-model/
+https://www.tensorflow.org/guide/keras/writing_a_training_loop_from_scratch
+https://deepxde.readthedocs.io/en/latest/search.html?q=speed&check_keywords=yes&area=default#
+https://deepxde.readthedocs.io/en/latest/user/installation.html?highlight=speed#which-backend-should-i-choose
+https://deepxde.readthedocs.io/en/latest/modules/deepxde.html?highlight=compile#deepxde.model.Model.compile
+https://www.google.com/search?q=or+modifying+%24PATH+can+be+used+to+set+the+location+of+ptxas&sxsrf=ALiCzsarY71FmutQi-_Qvl4TsJp1IQ_6IA%3A1661379568515&ei=8KMGY4yPH-bZkPIPqauo0Ao&ved=0ahUKEwiMx5KYweD5AhXmLEQIHakVCqoQ4dUDCA4&uact=5&oq=or+modifying+%24PATH+can+be+used+to+set+the+location+of+ptxas&gs_lcp=Cgdnd3Mtd2l6EAMyBQgAEKIEOgcIABBHELADSgQIQRgASgQIRhgAUNEDWNEDYL0KaANwAXgAgAGqAYgBqgGSAQMwLjGYAQCgAQKgAQHIAQjAAQE&sclient=gws-wiz
+https://stackoverflow.com/questions/46064433/cuda-home-path-for-tensorflow
+https://groups.google.com/a/tensorflow.org/g/testing/c/4aPvoX21D9g
+https://stackoverflow.com/questions/53429896/how-do-i-disable-tensorflows-eager-execution
+
+https://towardsdatascience.com/pytorch-autograd-understanding-the-heart-of-pytorchs-magic-2686cd94ec95
+https://majianglin2003.medium.com/pytorch-gradients-8ed224a6b54d
+https://discuss.pytorch.org/t/gradient-between-two-different-tensor/68410/16
+
+https://en.wikipedia.org/wiki/Power_iteration
+https://www.google.com/search?q=power+iteration+geometry&tbm=isch&ved=2ahUKEwjXuYfR5MH5AhWKADQIHdlbAqIQ2-cCegQIABAA#imgrc=IcPPr_-27Gj8sM
+https://en.wikipedia.org/wiki/Quadratic_form
+https://www.overleaf.com/project/62b5c6c39d656f008886d0f0
+https://www.google.com/search?q=proximal+recursion+github&sxsrf=ALiCzsY8MkWmpDXb7hk2wcXXlrv86WYdZA%3A1660337310782&ei=nrz2Yu-oL_GaptQPzcC5sA4&ved=0ahUKEwjv7_a8lsL5AhVxjYkEHU1gDuYQ4dUDCA4&uact=5&oq=proximal+recursion+github&gs_lcp=Cgdnd3Mtd2l6EANKBAhBGAFKBAhGGABQnwVY0gpgogtoAXAAeAGAAfUBiAGPBZIBBTUuMC4xmAEAoAEBwAEB&sclient=gws-wiz
