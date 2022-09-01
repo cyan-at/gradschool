@@ -1,0 +1,54 @@
+#!/bin/bash -l
+
+<<setup
+2022-08-16 14:00:55.274410: I tensorflow/compiler/mlir/mlir_graph_optimization_pass.cc:354] MLIR V1 optimization pass is not enabled
+
+conda create --name tf python=3.9
+conda activate tf
+
+conda install -c conda-forge cudatoolkit=11.2 cudnn=8.1.0
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/
+mkdir -p $CONDA_PREFIX/etc/conda/activate.d
+echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/' > $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
+
+pip3 install tensorflow --target=/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages
+
+(tf) cyan3@scorpius:/usr/local/home/cyan3/Dev/jim/gradschool/231/research$ python3 -c "import tensorflow as tf; print(tf.reduce_sum(tf.random.normal([1000, 1000])))"
+2022-08-16 18:28:34.600557: I tensorflow/core/util/util.cc:169] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2022-08-16 18:28:35.400232: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:975] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2022-08-16 18:28:35.403662: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:975] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2022-08-16 18:28:35.403901: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:975] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2022-08-16 18:28:35.404315: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 AVX512F AVX512_VNNI FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2022-08-16 18:28:35.405086: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:975] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2022-08-16 18:28:35.405325: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:975] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2022-08-16 18:28:35.405536: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:975] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2022-08-16 18:28:35.699174: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:975] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2022-08-16 18:28:35.699410: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:975] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2022-08-16 18:28:35.699599: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:975] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2022-08-16 18:28:35.699786: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 1684 MB memory:  -> device: 0, name: NVIDIA RTX A2000 Laptop GPU, pci bus id: 0000:01:00.0, compute capability: 8.6
+tf.Tensor(697.80804, shape=(), dtype=float32)
+(tf) cyan3@scorpius:/usr/local/home/cyan3/Dev/jim/gradschool/231/research$ python3 -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
+2022-08-16 18:28:44.062975: I tensorflow/core/util/util.cc:169] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
+2022-08-16 18:28:44.776287: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:975] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2022-08-16 18:28:44.780290: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:975] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+2022-08-16 18:28:44.780529: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:975] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
+[PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
+setup
+
+echo "hello, starting tf conda"
+
+echo "unsetting PYTHONPATH to not confuse conda"
+unset PYTHONPATH
+
+echo "loading conda, doing what source /miniforge/bin/activate inside .enterevent"
+# source ~/miniforge/bin/activate
+# below is how you run equivalent of above 'source' inside .enterevent
+_CONDA_ROOT="/home/cyan3/miniforge"
+. "$_CONDA_ROOT/etc/profile.d/conda.sh" || return $?
+# conda activate "$@"
+conda activate ""
+
+echo "loading tf environment for tensorflow"
+conda activate tf

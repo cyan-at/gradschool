@@ -1,6 +1,8 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 '''
+#!/usr/bin/python3
+
 USAGE:
 
 ./marginal0.py
@@ -24,6 +26,9 @@ from distribution0 import *
 
 from RSB_traj import plot_params
 
+import matplotlib
+matplotlib.use("TkAgg")
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
@@ -44,12 +49,17 @@ if __name__ == '__main__':
 
     parser.add_argument('--system',
         type=str,
-        default="3,2,1",
+        default="1,1,2",
         required=False)
 
     parser.add_argument('--ignore_symmetry',
         type=int,
         default=0,
+        required=False)
+
+    parser.add_argument('--control_prefix',
+        type=str,
+        default="run_tensorflow_-2.500_2.500__5.000__2000__0.001__1_1_2__0.000__2.000_1.000__0.000_1.000__12000_1000__20000",
         required=False)
 
     parser.add_argument('--plot',
@@ -81,10 +91,62 @@ if __name__ == '__main__':
 
     #############################################################################
 
+    control_data = None
+    if len(args.control_prefix) > 0:
+        vinterp_N = 10
+        vinterp_T = 20
+        state_min = -2.5
+        state_max = 2.5
+        T_t = 5.0
+
+        t0_v_mat_fname = '%s/%s/%s_post_predict_t0_%d_%d_v.mat' % (
+            os.path.abspath("./"), args.control_prefix, args.control_prefix, vinterp_N, vinterp_T)
+
+        mid_v_mat_fname = '%s/%s/%s_post_predict_mid_%d_%d_v.mat' % (
+            os.path.abspath("./"), args.control_prefix, args.control_prefix, vinterp_N, vinterp_T)
+
+        t5_v_mat_fname = '%s/%s/%s_post_predict_t5_%d_%d_v.mat' % (
+            os.path.abspath("./"), args.control_prefix, args.control_prefix, vinterp_N, vinterp_T)
+
+        x_1_ = np.linspace(state_min, state_max, vinterp_N)
+        x_2_ = np.linspace(state_min, state_max, vinterp_N)
+        x_3_ = np.linspace(state_min, state_max, vinterp_N)
+        t_ = np.linspace(0, T_t, vinterp_T)
+        # t5_v_mat_fname = '%s/%s/%s_post_predict_x1_x2_x3_t.mat' % (
+        #     os.path.abspath("./"), args.control_prefix, args.control_prefix)
+
+        if os.path.exists(t0_v_mat_fname) and os.path.exists(mid_v_mat_fname) and os.path.exists(t5_v_mat_fname):
+            control_data = {
+                "x_1_" : x_1_,
+                "x_2_" : x_2_,
+                "x_3_" : x_3_,
+                "t_" : t_,
+            }
+
+            mat_contents = scipy.io.loadmat(t0_v_mat_fname)
+            for k in ["t0_V1", "t0_V2", "t0_V3"]:
+                control_data[k] = mat_contents[k]
+            del mat_contents
+
+            mat_contents = scipy.io.loadmat(mid_v_mat_fname)
+            for k in ["mid_V1", "mid_V2", "mid_V3"]:
+                control_data[k] = mat_contents[k]
+            del mat_contents
+
+            mat_contents = scipy.io.loadmat(t5_v_mat_fname)
+            for k in ["t5_V1", "t5_V2", "t5_V3"]:
+                control_data[k] = mat_contents[k]
+            del mat_contents
+        else:
+            print("missing one of the control v files")
+
+    #############################################################################
+
     initial_sample, te_to_data, X1, X2, X3 = init_data(
         mu_0, cov_0,
         windows, distribution_samples, N, ts,
         j1, j2, j3,
+        control_data,
         args.ignore_symmetry)
 
     x1 = X1[0, :, 0]
@@ -115,6 +177,8 @@ if __name__ == '__main__':
         # x/y slice is all samples at that time, 1 x/y slice per z time initial_sample
         '''
         probs_reshape = te_to_data[t_e]["probs"].reshape(N, N, N)
+
+        # import ipdb; ipdb.set_trace();
 
         te_to_data[t_e]["x1_marginal"] = np.array([
             np.trapz(
@@ -160,6 +224,12 @@ if __name__ == '__main__':
             x1_pdf_area,
             x2_pdf_area,
             x3_pdf_area))
+
+        # swap x1 and x2, reflect assignment swap
+        # to undo the swapping for plotting
+        tmp = te_to_data[t_e]["x2_marginal"]
+        te_to_data[t_e]["x2_marginal"] = te_to_data[t_e]["x1_marginal"]
+        te_to_data[t_e]["x1_marginal"] = tmp
 
         if te_to_data[t_e]["all_time_data"] is not None:
             cloud_t_e[:, :3, t_e_i] = te_to_data[t_e]["all_time_data"][:, :3, -1]
