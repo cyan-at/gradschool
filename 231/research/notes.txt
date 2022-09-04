@@ -462,10 +462,316 @@ https://www.google.com/search?q=proximal+recursion+github&sxsrf=ALiCzsY8MkWmpDXb
 https://stackoverflow.com/questions/59922755/how-to-compute-the-gradient-of-only-one-output-unit
 
 #########################################################
+
+2022-08-29 12:26:54.086402: W tensorflow/compiler/xla/service/gpu/buffer_comparator.cc:640] UNIMPLEMENTED: ptxas ptxas too old. Falling back to the driver to compile.
+Relying on driver to perform ptx compilation. 
+Setting XLA_FLAGS=--xla_gpu_cuda_data_dir=/path/to/cuda  or modifying $PATH can be used to set the location of ptxas
+
+
+
+https://numpy.org/doc/stable/reference/generated/numpy.ediff1d.html
+https://www.fast.ai/2022/08/25/jupyter-git/
+https://www.mathworks.com/help/matlab/ref/gradient.html#bvhp8_m
+https://www.google.com/search?q=speeding+up+tensorflow+v2+training+%22xla%22&sxsrf=ALiCzsZPE7uBuYPGdKjc6NBpoWriCdAj4A%3A1661654949458&ei=pdcKY7vSG8KL0PEPm5WsqA8&ved=0ahUKEwj7uIGIw-j5AhXCBTQIHZsKC_UQ4dUDCA4&uact=5&oq=speeding+up+tensorflow+v2+training+%22xla%22&gs_lcp=Cgdnd3Mtd2l6EAMyBQghEKABMgUIIRCgATIFCCEQoAEyBQghEKABMgUIIRCrAjIFCCEQqwI6BwgAEEcQsAM6CAghEB4QFhAdSgQIQRgASgQIRhgAUJ0JWJkQYL8RaAJwAXgAgAGQAYgB5ASSAQMwLjWYAQCgAQHIAQjAAQE&sclient=gws-wiz
+https://www.sicara.fr/blog-technique/tensorflow-tutorial-training-time#:~:text=To%20optimize%20training%20speed%2C%20you,are%20smarter%20tools%20out%20there.
+https://www.kdnuggets.com/2020/03/tensorflow-optimizing-training-time-performance.html
+https://numpy.org/doc/stable/reference/generated/numpy.gradient.html
+https://github.com/ami-iit/lie-group-controllers
+https://medium.com/sicara/tensorflow-2-0-tutorial-optimizing-training-time-performance-ba9418a8c288
+https://blog.seeso.io/a-simple-guide-to-speed-up-your-training-in-tensorflow-2-8386e6411be4
+https://deepxde.readthedocs.io/en/latest/search.html?q=config&check_keywords=yes&area=default#
+https://deepxde.readthedocs.io/en/latest/user/installation.html?highlight=configure
+https://deepxde.readthedocs.io/en/latest/modules/deepxde.html?highlight=config#module-deepxde.config
+https://deepxde.readthedocs.io/en/latest/modules/deepxde.html?highlight=config#deepxde.config.default_float
+https://www.google.com/maps/place/%E5%A4%A7%E6%9D%89%E8%B0%B7/@34.2110449,136.1507057,15z/data=!3m1!4b1!4m5!3m4!1s0x600683406724a5fb:0x7202ad7a09b76b5f!8m2!3d34.2110455!4d136.1507057?hl=en
+https://github.com/ainfosec/FISSURE
+https://pianochord.io/chord/A-flat/Ab-lydian
+https://www.scientific-ml.com/software
+https://github.com/pettni/smooth
+https://pettni.github.io/smooth/
+https://www.cs.cmu.edu/~kmcrane/Projects/LieGroupIntegrators/paper.pdf
+https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.459.5190&rep=rep1&type=pdf
+https://drum.lib.umd.edu/bitstream/handle/1903/5567/PhD_94-9.pdf?sequence=1&isAllowed=y
+https://stackoverflow.com/questions/59922755/how-to-compute-the-gradient-of-only-one-output-unit
+https://www.google.com/search?q=tensorflow+gradient+vs+numerical+gradient&biw=1290&bih=741&sxsrf=ALiCzsbOaIyW9vM2m8fKD3FUUlizBbpWHA%3A1661649533475&ei=fcIKY-_HHLmGptQPwOWB4Ag&ved=0ahUKEwiv-rvxruj5AhU5g4kEHcByAIwQ4dUDCA4&uact=5&oq=tensorflow+gradient+vs+numerical+gradient&gs_lcp=Cgdnd3Mtd2l6EAMyBQgAEKIEMgUIABCiBDoHCAAQRxCwA0oECEEYAEoECEYYAFCVCVieEWD4EmgCcAF4AIABdIgB_waSAQM1LjSYAQCgAQHIAQjAAQE&sclient=gws-wiz
+https://towardsdatascience.com/implement-gradient-descent-in-python-9b93ed7108d1
+https://arxiv.org/pdf/2007.11898.pdf
+https://github.com/UZ-SLAMLab/ORB_SLAM3
+https://arxiv.org/pdf/1502.00956.pdf
+https://www.researchgate.net/figure/Semantic-understanding-allows-humans-to-predict-changes-in-the-environment-at-different_fig4_304163768
+https://www.researchgate.net/figure/The-front-end-and-back-end-of-the-SLAM-process_fig4_263057565
+https://vnav.mit.edu/material/23-SLAM1-formulationsAndSparsity-notes.pdf
+https://stackoverflow.com/questions/39870642/matplotlib-how-to-plot-a-high-resolution-graph
+https://numpy.org/doc/stable/reference/generated/numpy.savetxt.html
+https://numpy.org/doc/stable/reference/generated/numpy.genfromtxt.html
+https://towardsdatascience.com/jypyter-notebook-shortcuts-bf0101a98330
+https://deepxde.readthedocs.io/en/latest/modules/deepxde.html
+https://deepxde.readthedocs.io/en/latest/demos/pinn_forward/eulerbeam.html?highlight=.jacobian#implementation
+https://stackoverflow.com/questions/56072634/tf-2-0-runtimeerror-gradienttape-gradient-can-only-be-called-once-on-non-pers
+https://stackoverflow.com/questions/62453756/how-to-move-jupyter-notebook-cells-up-down-using-keyboard-shortcut#:~:text=Now%2C%20when%20you%20are%20in,Edit%20%2D%3E%20Move%20Cells%20Down%20.&text=That%20works!
+https://www.mathworks.com/help/symbolic/sym.gradient.html
+https://www.mathworks.com/matlabcentral/answers/462287-how-to-import-a-3d-python-numpy-array-into-matlab
+https://stackoverflow.com/questions/10997254/converting-numpy-arrays-to-matlab-and-vice-versa
+http://www.cds.caltech.edu/~murray/courses/cds101/fa08/pdf/L2-2_lyapunov.pdf
+https://www.egr.msu.edu/~khalil/NonlinearSystems/Sample/Lect_8.pdf
+https://www.researchgate.net/publication/324578263_Asymptotic_Controllability_and_Lyapunov-like_Functions_Determined_by_Lie_Brackets
+http://localwww.math.unipd.it/~marson/TS16/Slides/Rampazzo.pdf
+https://web.stanford.edu/class/ee363/lectures/lyap.pdf
+https://arxiv.org/abs/1608.02712
+https://www.quora.com/How-does-TensorFlow-calculate-gradients
+https://docs.scipy.org/doc/scipy/reference/generated/scipy.io.loadmat.html
+https://github.com/lululxvi/deepxde/blob/master/examples/pinn_forward/diffusion_reaction.py
+https://github.com/lululxvi/deepxde/blob/770e7c1f703682633fe182a6de984987fd579afa/deepxde/gradients.py
+https://deepxde.readthedocs.io/en/latest/demos/pinn_forward.html#time-dependent-pdes
+https://numpy.org/doc/stable/reference/generated/numpy.savetxt.html
+https://stackoverflow.com/questions/22071987/generate-random-array-of-floats-between-a-range
+file:///home/cyan3/Desktop/Schrodinger__factor_for_EulerOMT.pdf
+https://matlab.mathworks.com/
+https://codeutility.org/python-3-x-how-to-compute-gradient-of-output-wrt-input-in-tensorflow-2-0-stack-overflow/
+http://localhost:8888/notebooks/pinn_tensorflowv2.ipynb#
+https://www.youtube.com/watch?v=y8HbErj_6j8
+https://stackoverflow.com/questions/59922755/how-to-compute-the-gradient-of-only-one-output-unit
+https://www.google.com/search?q=tensorflow+gradient+vs+numerical+gradient&biw=1290&bih=741&sxsrf=ALiCzsbOaIyW9vM2m8fKD3FUUlizBbpWHA%3A1661649533475&ei=fcIKY-_HHLmGptQPwOWB4Ag&ved=0ahUKEwiv-rvxruj5AhU5g4kEHcByAIwQ4dUDCA4&uact=5&oq=tensorflow+gradient+vs+numerical+gradient&gs_lcp=Cgdnd3Mtd2l6EAMyBQgAEKIEMgUIABCiBDoHCAAQRxCwA0oECEEYAEoECEYYAFCVCVieEWD4EmgCcAF4AIABdIgB_waSAQM1LjSYAQCgAQHIAQjAAQE&sclient=gws-wiz
+https://towardsdatascience.com/implement-gradient-descent-in-python-9b93ed7108d1
+https://arxiv.org/pdf/2007.11898.pdf
+https://github.com/UZ-SLAMLab/ORB_SLAM3
+https://arxiv.org/pdf/1502.00956.pdf
+https://www.researchgate.net/figure/Semantic-understanding-allows-humans-to-predict-changes-in-the-environment-at-different_fig4_304163768
+https://www.researchgate.net/figure/The-front-end-and-back-end-of-the-SLAM-process_fig4_263057565
+https://vnav.mit.edu/material/23-SLAM1-formulationsAndSparsity-notes.pdf
+https://stackoverflow.com/questions/39870642/matplotlib-how-to-plot-a-high-resolution-graph
+https://numpy.org/doc/stable/reference/generated/numpy.savetxt.html
+https://numpy.org/doc/stable/reference/generated/numpy.genfromtxt.html
+https://towardsdatascience.com/jypyter-notebook-shortcuts-bf0101a98330
+https://deepxde.readthedocs.io/en/latest/modules/deepxde.html
+https://deepxde.readthedocs.io/en/latest/demos/pinn_forward/eulerbeam.html?highlight=.jacobian#implementation
+https://stackoverflow.com/questions/56072634/tf-2-0-runtimeerror-gradienttape-gradient-can-only-be-called-once-on-non-pers
+https://stackoverflow.com/questions/62453756/how-to-move-jupyter-notebook-cells-up-down-using-keyboard-shortcut#:~:text=Now%2C%20when%20you%20are%20in,Edit%20%2D%3E%20Move%20Cells%20Down%20.&text=That%20works!
+https://www.mathworks.com/help/symbolic/sym.gradient.html
+https://www.mathworks.com/matlabcentral/answers/462287-how-to-import-a-3d-python-numpy-array-into-matlab
+https://stackoverflow.com/questions/10997254/converting-numpy-arrays-to-matlab-and-vice-versa
+http://www.cds.caltech.edu/~murray/courses/cds101/fa08/pdf/L2-2_lyapunov.pdf
+https://www.egr.msu.edu/~khalil/NonlinearSystems/Sample/Lect_8.pdf
+https://www.researchgate.net/publication/324578263_Asymptotic_Controllability_and_Lyapunov-like_Functions_Determined_by_Lie_Brackets
+http://localwww.math.unipd.it/~marson/TS16/Slides/Rampazzo.pdf
+https://web.stanford.edu/class/ee363/lectures/lyap.pdf
+https://arxiv.org/abs/1608.02712
+https://www.quora.com/How-does-TensorFlow-calculate-gradients
+https://docs.scipy.org/doc/scipy/reference/generated/scipy.io.loadmat.html
+https://github.com/lululxvi/deepxde/blob/master/examples/pinn_forward/diffusion_reaction.py
+https://github.com/lululxvi/deepxde/blob/770e7c1f703682633fe182a6de984987fd579afa/deepxde/gradients.py
+https://deepxde.readthedocs.io/en/latest/demos/pinn_forward.html#time-dependent-pdes
+https://numpy.org/doc/stable/reference/generated/numpy.savetxt.html
+https://stackoverflow.com/questions/22071987/generate-random-array-of-floats-between-a-range
+file:///home/cyan3/Desktop/Schrodinger__factor_for_EulerOMT.pdf
+https://codeutility.org/python-3-x-how-to-compute-gradient-of-output-wrt-input-in-tensorflow-2-0-stack-overflow/
+https://www.youtube.com/watch?v=y8HbErj_6j8
+
 #########################################################
+
+restored_psi
+tf.Tensor([-0.066 -0.066 -0.065 ...  0.04   0.04   0.04 ], shape=(16000,), dtype=float32)
+
+test output
+[-0.066 -0.066 -0.066 ...  0.04   0.04   0.04 ]
+
+restored_vopt_xt
+[[ 0.036  0.018 -0.     0.028]
+ [ 0.036  0.018 -0.     0.028]
+ [ 0.047  0.016  0.003  0.002]
+ ...
+ [ 0.018  0.031  0.024 -0.025]
+ [ 0.018  0.031  0.024 -0.025]
+ [ 0.018  0.031  0.024 -0.025]]
+
+
+ restored_psi
+tf.Tensor([-0.066 -0.066 -0.065 ...  0.04   0.04   0.04 ], shape=(16000,), dtype=float32)
+
+test output
+[-0.066 -0.066 -0.066 ...  0.04   0.04   0.04 ]
+
+restored_vopt_xt
+[[ 0.036  0.018 -0.     0.028]
+ [ 0.036  0.018 -0.     0.028]
+ [ 0.047  0.016  0.003  0.002]
+ ...
+ [ 0.018  0.031  0.024 -0.025]
+ [ 0.018  0.031  0.024 -0.025]
+ [ 0.018  0.031  0.024 -0.025]]
+
 #########################################################
+
+print(np.max(t0_V1))
+print(np.max(t0_V2))
+print(np.max(t0_V3))
+
+print(np.max(mid_V1))
+print(np.max(mid_V2))
+print(np.max(mid_V3))
+
+print(np.max(t5_V1))
+print(np.max(t5_V2))
+print(np.max(t5_V3))
+
+# the histogram of the data
+b = 4
+n, bins, patches = plt.hist(t0_V1.reshape(-1), bins=b, density=True, facecolor='r', alpha=0.5)
+n, bins, patches = plt.hist(t0_V2.reshape(-1), bins=b, density=True, facecolor='r', alpha=0.5)
+n, bins, patches = plt.hist(t0_V3.reshape(-1), bins=b, density=True, facecolor='r', alpha=0.5)
+
+n, bins, patches = plt.hist(mid_V1.reshape(-1), bins=b, density=True, facecolor='g', alpha=0.5)
+n, bins, patches = plt.hist(mid_V2.reshape(-1), bins=b, density=True, facecolor='g', alpha=0.5)
+n, bins, patches = plt.hist(mid_V3.reshape(-1), bins=b, density=True, facecolor='g', alpha=0.5)
+
+n, bins, patches = plt.hist(t5_V1.reshape(-1), bins=b, density=True, facecolor='c', alpha=0.5)
+n, bins, patches = plt.hist(t5_V2.reshape(-1), bins=b, density=True, facecolor='c', alpha=0.5)
+n, bins, patches = plt.hist(t5_V3.reshape(-1), bins=b, density=True, facecolor='c', alpha=0.5)
+
+plt.xlabel('v')
+plt.ylabel('counts')
+plt.title('vs: %.2f, %.2f, %.2f --- %.2f, %.2f, %.2f --- %.2f, %2.f, %.2f' % (
+    np.max(t0_V1),
+    np.max(t0_V2),
+    np.max(t0_V3),
+
+    np.max(mid_V1),
+    np.max(mid_V2),
+    np.max(mid_V3),
+
+    np.max(t5_V1),
+    np.max(t5_V2),
+    np.max(t5_V3)))
+plt.grid(True)
+plt.show()
+
+j = dde.gradients.Jacobian(restored_preds, inp_tensor)
+dir(j)
+
+dde.grad.jacobian(restored_preds,inp_tensor)
+
+# library does not work for tf.v2
+
+j = dde.gradients.Jacobian(output_tensor, input_tensor)
+j()
+print(j.J)
+
+
+
+
+model._outputs_losses(
+    False,
+    model.train_state.X_test,
+    model.train_state.y_test,
+    model.train_state.test_aux_vars,
+)
+
+model.test_state
+
+print(model.outputs_losses_train)
+# with tf.GradientTape() as tape:
+#     outputs_ = model.net(input_tensor, training=False)
+
+
+x1 = torch.tensor(test_timesorted[:, 0], requires_grad = True)
+one=torch.ones((2000,1))
+psi = torch.tensor(torch.FloatTensor(one)*test_timesorted[:, 4])
+psi.backward()
+
+print(model.outputs)
+print(dir(model))
+print(model.print_model())
+
+a = tf.constant(0.)
+b = 2 * a
+g = tf.gradients(a + b, [a, b], stop_gradients=[a, b])
+print(g)
+
+x1 = test_timesorted[:, 0]
+psi = test_timesorted[:, 4]
+
+x1_tensor = tf.convert_to_tensor(x1)
+print(x1_tensor)
+
+inp = test_timesorted[:, 0:4]
+input_tensor = tf.convert_to_tensor(inp)
+
+output = model.predict(inp)
+output_tensor = tf.convert_to_tensor(output)
+
+tf.gradients(output_tensor, input_tensor)
+
+
+
+
+        #############################################################################
+
+        controlled_all_time_data = None
+        if t_e > 0:
+            '''
+            adding control
+            '''
+            controlled_all_time_data = np.empty(
+                (
+                    initial_sample.shape[0],
+                    initial_sample.shape[1],
+                    len(t_samples))
+                )
+
+            controlled_dynamics_with_args = lambda state, t: controlled_dynamics(state, t, -alpha2, alpha2)
+            for sample_i in range(initial_sample.shape[0]):
+                sample_states = integrate.odeint(
+                    controlled_dynamics_with_args,
+                    initial_sample[sample_i, :],
+                    t_samples)
+                controlled_all_time_data[sample_i, :, :] = sample_states.T
+
 #########################################################
+
+print(model.outputs_losses_train)
+# with tf.GradientTape() as tape:
+#     outputs_ = model.net(input_tensor, training=False)
+
 #########################################################
+
+def WASS(y_true, y_pred):
+
+    nSample=100
+
+    x_grid = np.transpose(np.linspace(0., 6., nSample))
+
+    y_grid = np.transpose(np.linspace(0., 6., nSample))
+
+
+
+#    xpdf=y_true.np()
+
+#    ypdf= y_pred.np()
+
+#    sess = tf.compat.v1.InteractiveSession()
+
+    xpdf= tf.make_ndarray(y_pred)
+
+    ypdf= tf.make_ndarray(y_true)
+
+    [X,Y] = np.meshgrid(x_grid,x_grid)
+
+    C = (X - Y)**2
+
+    cvector = C.flatten('F')
+
+
+
+
+
+    A = np.concatenate((np.kron(np.ones((1,nSample)), sparse.eye(nSample).toarray()), np.kron(sparse.eye(nSample).toarray(),np.ones((1,nSample)))), axis=0)
+
+    bvector = np.concatenate((xpdf,ypdf), axis=0)
+
+    res=linprog(cvector, A_eq=A, b_eq=bvector, options={"disp": True})
+
+    return res.fun
+
 #########################################################
 #########################################################
 #########################################################
