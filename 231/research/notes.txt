@@ -773,8 +773,137 @@ def WASS(y_true, y_pred):
     return res.fun
 
 #########################################################
+
+from scipy.interpolate import griddata as gd
+
+target_t = 0.0
+
+N = 50
+
+test_timesorted = test[test[:, 3].argsort()]
+timesorted = test_timesorted[:, 3]
+test_ti = test_timesorted[np.where(np.abs(timesorted - target_t) < 1e-8), :][0] # 2k
+
+ti_rho_opt = test_ti[:, 5]
+ti_x1_x2_x3 = test_ti[:, 0:3]
+
+####################################################################
+
+x1 = np.linspace(state_min, state_max, N)
+x2 = np.linspace(state_min, state_max, N)
+x3 = np.linspace(state_min, state_max, N)
+
+rho_opt = np.zeros((N,N,N))
+
+closest_1 = [(np.abs(x1 - ti_x1_x2_x3[i, 0])).argmin() for i in range(ti_x1_x2_x3.shape[0])]
+closest_2 = [(np.abs(x2 - ti_x1_x2_x3[i, 1])).argmin() for i in range(ti_x1_x2_x3.shape[0])]
+closest_3 = [(np.abs(x3 - ti_x1_x2_x3[i, 2])).argmin() for i in range(ti_x1_x2_x3.shape[0])]
+
+# some transposing going on in some reshape
+# swapping closest_1/2 works well
+rho_opt[closest_2, closest_1, closest_3] = ti_rho_opt
+
+####################################################################
+
+X1, X2, X3 = np.meshgrid(x1,x2,x3,copy=False) # each is NxNxN
+
+RHO_OPT = gd(
+  (ti_x1_x2_x3[:, 0], ti_x1_x2_x3[:, 1], ti_x1_x2_x3[:, 2]),
+  ti_rho_opt,
+  (X1, X2, X3),
+  method='nearest')
+
+####################################################################
+
+x1_marginal = np.array([
+    np.trapz(
+        np.array([
+            np.trapz(RHO_OPT[j, i, :], x=x3) # x3 slices for one x2 => R
+            for i in range(len(x2))]) # x3 slices across all x2 => Rn
+        , x=x2) # x2 slice for one x1 => R
+for j in range(len(x1))])
+
+x2_marginal = np.array([
+    np.trapz(
+        np.array([
+            np.trapz(RHO_OPT[i, j, :], x=x3) # x3 slices for one x1 => R
+            for i in range(len(x1))]) # x3 slices across all x1 => Rn
+        , x=x1) # x1 slice for one x2 => R
+for j in range(len(x2))])
+
+x3_marginal = np.array([
+    np.trapz(
+        np.array([
+            np.trapz(RHO_OPT[i, :, j], x=x2) # x2 slices for one x1 => R
+            for i in range(len(x1))]) # x2 slices across all x1 => Rn
+        , x=x1) # x1 slice for one x3 => R
+for j in range(len(x3))])
+
+####################################################################
+
+# normalize all the pdfs so area under curve ~= 1.0
+x1_pdf_area = np.trapz(x1_marginal, x=x1)
+x2_pdf_area = np.trapz(x2_marginal, x=x2)
+x3_pdf_area = np.trapz(x3_marginal, x=x3)
+print("prior to normalization: %.2f, %.2f, %.2f" % (
+    x1_pdf_area,
+    x2_pdf_area,
+    x3_pdf_area))
+
+x1_marginal /= x1_pdf_area
+x2_marginal /= x2_pdf_area
+x3_marginal /= x3_pdf_area
+
+x1_pdf_area = np.trapz(x1_marginal, x=x1)
+x2_pdf_area = np.trapz(x2_marginal, x=x2)
+x3_pdf_area = np.trapz(x3_marginal, x=x3)
+print("after to normalization: %.2f, %.2f, %.2f" % (
+    x1_pdf_area,
+    x2_pdf_area,
+    x3_pdf_area))
+
 #########################################################
+
+https://www.google.com/search?q=tensorflow+v1+symbolic+tensor+to+numpy+array&oq=tensorflow+v1+symbolic+tensor+to+numpy+array&aqs=chrome..69i57.11997j0j7&sourceid=chrome&ie=UTF-8
+https://stackoverflow.com/questions/58479556/notimplementederror-cannot-convert-a-symbolic-tensor-2nd-target0-to-a-numpy
+https://github.com/tensorflow/models/issues/9706
+https://www.google.com/search?q=tensorflow+v1+get+loss+function+session&sxsrf=ALiCzsbcKR1WCzKp0ESo8BpYAk1gzkgoHg%3A1662246352372&ei=0N0TY_m2Fti1qtsPjbqgoA4&ved=0ahUKEwj53vKa3vn5AhXYmmoFHQ0dCOQQ4dUDCA4&uact=5&oq=tensorflow+v1+get+loss+function+session&gs_lcp=Cgdnd3Mtd2l6EAMyBQgAEKIEMgUIABCiBDIFCAAQogQyBQgAEKIEOgoIABBHENYEELADOgQIIxAnOgUIABCRAjoLCAAQgAQQsQMQgwE6EQguEIAEELEDEIMBEMcBENEDOggILhCxAxCDAToECAAQQzoHCAAQsQMQQzoICAAQgAQQsQM6BQgAEIAEOgYIABAeEBY6CAgAEB4QFhAKOgUIABCGAzoFCCEQoAE6CAghEB4QFhAdOgUIIRCrAjoHCCEQoAEQCjoHCAAQHhCiBEoECEEYAEoECEYYAFCfB1i4qwVgyqwFaANwAXgAgAHXAYgBmzSSAQYwLjM1LjOYAQCgAQHIAQjAAQE&sclient=gws-wiz
+https://www.tensorflow.org/api_docs/python/tf/compat/v1/losses/compute_weighted_loss
+file:///media/cyan3/30E1-D3BC/data/tiffany_tyler/BSc_Thesis_E_Wasei.pdf
+https://www.arxiv-vanity.com/papers/1907.04502/
+https://epubs.siam.org/doi/pdf/10.1137/19M1274067
+https://stackoverflow.com/questions/64004445/how-to-convert-tensor-into-numpy-array
+https://stackoverflow.com/questions/38647353/tensorflow-convert-tensor-to-numpy-array-without-eval-or-sess-run
+https://pythonguides.com/tensorflow-tensor-to-numpy/
+https://stackoverflow.com/questions/63869134/converting-tensorflow-tensor-into-numpy-array
+https://blog.finxter.com/how-to-convert-a-tensor-to-a-numpy-array-in-tensorflow/
+https://stackoverflow.com/questions/41607155/you-must-feed-a-value-for-placeholder-tensor-placeholder-with-dtype-float
+https://www.google.com/search?q=deepxde+session&sxsrf=ALiCzsYSJxq7om1UPDowRRdvytsJYdwgIQ%3A1662245414633&ei=JtoTY-SYJrXFqtsPq4q46Ao&ved=0ahUKEwjkw9_b2vn5AhW1omoFHSsFDq0Q4dUDCA4&uact=5&oq=deepxde+session&gs_lcp=Cgdnd3Mtd2l6EAM6CggAEEcQ1gQQsAM6BAgjECc6BQgAEJECOhEILhCABBCxAxCDARDHARDRAzoLCAAQgAQQsQMQgwE6CwguELEDEIMBENQCOgQIABBDOg4ILhCABBCxAxDHARDRAzoHCC4Q1AIQQzoFCAAQgAQ6CwguEIAEEMcBEK8BOgcIABCABBAKOgYIABAeEBZKBAhBGABKBAhGGABQ5wVYuBtguhxoBHABeACAAcgBiAHsDZIBBTguNy4xmAEAoAEByAEIwAEB&sclient=gws-wiz
+https://www.tensorflow.org/api_docs/python/tf/compat/v1/keras/backend/get_session
+https://deepxde.readthedocs.io/en/latest/search.html?q=session&check_keywords=yes&area=default
+https://www.tensorflow.org/api_docs/python/tf/compat/v1/InteractiveSession
+https://danijar.com/what-is-a-tensorflow-session/
+https://www.tensorflow.org/api_docs/python/tf/compat/v1/get_default_session
+
 #########################################################
+
+https://colab.research.google.com/github/tensorflow/docs/blob/master/site/en/tutorials/quickstart/beginner.ipynb
+https://colab.research.google.com/drive/1Y3n-Et56ZXedGlWahJ4VTQHpFqMy2I2m#scrollTo=ArT4LfbxT7AC
+https://stackoverflow.com/questions/63869134/converting-tensorflow-tensor-into-numpy-array
+https://stackoverflow.com/questions/70767238/unable-to-convert-tensorflow-python-framework-ops-tensor-object-to-numpy-array-f
+https://www.tensorflow.org/api_docs/python/tf/py_function
+https://www.tensorflow.org/versions/r1.15/api_docs/python/tf/py_function
+https://www.google.com/search?q=scipy+linprog&oq=scipy+linprog&aqs=chrome..69i57.1693j0j7&sourceid=chrome&ie=UTF-8
+https://stackoverflow.com/questions/49127834/removing-conda-environment
+https://www.google.com/search?q=conda+list+environments&oq=conda+list+environments&aqs=chrome..69i57.2198j0j7&sourceid=chrome&ie=UTF-8
+https://numpy.org/doc/stable/reference/generated/numpy.savetxt.html
+https://numpy.org/doc/stable/reference/generated/numpy.genfromtxt.html
+http://localhost:8888/notebooks/wass.ipynb
+https://www.google.com/search?sxsrf=ALiCzsYR8IPv-XpexqqsdI3AYr2oxz08SQ:1662341520009&q=tensorflow.python.client.pywrap+tf_session+import+*+initialization+failed&spell=1&sa=X&ved=2ahUKEwj-ma7ewPz5AhWGlGoFHffTDZ8QBSgAegQIARA2&biw=960&bih=876&dpr=1
+https://www.google.com/search?q=sparse.eye&oq=sparse.eye&aqs=chrome..69i57.1993j0j7&sourceid=chrome&ie=UTF-8
+https://stackoverflow.com/questions/61903139/tf-py-function-not-able-to-return-a-list
+https://numpy.org/doc/stable/reference/generated/numpy.loadtxt.html
+
 #########################################################
 #########################################################
 #########################################################
