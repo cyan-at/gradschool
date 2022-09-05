@@ -3,6 +3,13 @@
 <<setup
 2022-08-16 14:00:55.274410: I tensorflow/compiler/mlir/mlir_graph_optimization_pass.cc:354] MLIR V1 optimization pass is not enabled
 
+# Install the script to ~/miniforge
+wget https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-Linux-x86_64.sh -O miniforge.sh
+bash miniforge.sh -b -p $HOME/miniforge
+
+# To activate and use Miniconda
+source $HOME/miniforge/bin/activate
+
 conda create --name tf python=3.9
 conda activate tf
 
