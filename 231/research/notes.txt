@@ -1153,6 +1153,80 @@ https://stackoverflow.com/questions/45735858/why-tensorflow-just-outputs-killed
 https://stackoverflow.com/questions/50740771/how-can-i-use-c-struct-pointers-in-python-using-swig
 
 #########################################################
+
+from scipy.stats import truncnorm
+N = nSample = 1000
+def pdf1d_0(x):
+    sigma = 1
+    mu=2
+    a, b = (0. - mu) / sigma, (6. - mu) / sigma
+    rho_0=truncnorm.pdf(x, a, b, loc = mu, scale = sigma)
+    return rho_0
+x_T = np.transpose(np.linspace(0., 6., N))
+rho_0=pdf1d_0(x_T).reshape(len(x_T),1)
+
+x_grid = np.transpose(np.linspace(0., 6., nSample))
+y_grid = np.transpose(np.linspace(0., 6., nSample))
+[X,Y] = np.meshgrid(x_grid,x_grid)
+C = (X - Y)**2
+cvector = C.flatten('F')
+
+A = np.concatenate(
+    (
+        np.kron(
+            np.ones((1,nSample)),
+            sparse.eye(nSample).toarray()
+        ),
+        np.kron(
+            sparse.eye(nSample).toarray(),
+            np.ones((1,nSample))
+        )
+    ), axis=0)
+# 2*nSample
+
+def WASS(y_true, y_pred):
+    xpdf = y_pred.numpy()
+    # ypdf = y_true.numpy()
+
+    xpdf = np.where(xpdf < 0, 0, xpdf)
+
+    ipdb.set_trace()
+
+    bvector = np.concatenate((xpdf, rho_0), axis=0)
+    bvector = bvector.reshape(-1)
+
+    print("start linprog")
+    # min cvector * x s.t. A * x = b. 
+
+    # res=linprog(
+    #     cvector,
+    #     A_eq=A,
+    #     b_eq=bvector,
+    #     options={"disp": True})
+    # print(res.fun)
+
+    # Define and solve the CVXPY problem.
+    x = cp.Variable(A.shape[1])
+    prob = cp.Problem(
+        cp.Minimize(cvector.T @ x),
+        [A @ x == bvector])
+    prob.solve()
+    res = prob.value
+
+    print("end")
+
+    # must use a 'reduce'
+    res = 1.0 + 0 * tf.math.reduce_min(y_true)
+    return res
+
+def WASS2(y_true, y_pred):
+    loss = tf.py_function(
+        func=WASS,
+        inp=[y_true, y_pred],
+        Tout=tf.float32
+    )
+    return loss
+
 #########################################################
 #########################################################
 #########################################################
