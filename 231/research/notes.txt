@@ -905,7 +905,253 @@ https://stackoverflow.com/questions/61903139/tf-py-function-not-able-to-return-a
 https://numpy.org/doc/stable/reference/generated/numpy.loadtxt.html
 
 #########################################################
+
+
+def WASS3(y_true, y_pred):
+    # xpdf=y_true.np()
+    # ypdf= y_pred.np()
+    # sess = tf.compat.v1.InteractiveSession()
+    # xpdf = tf.make_ndarray(y_pred)
+    # ypdf= tf.make_ndarray(y_true)
+
+    # ipdb.set_trace();
+
+    # xpdf = tf.make_ndarray(y_pred.op.get_attr('value'))
+    # ypdf = tf.make_ndarray(y_true.op.get_attr('value'))
+
+    # xpdf = y_pred.numpy()
+    # ypdf = y_true.numpy()
+
+    print("####")
+    print(y_pred)
+    print(type(y_pred))
+    print(y_true)
+    print(type(y_true))
+
+    # print("####")
+    # print(np.sum(xpdf))
+    # print(np.sum(ypdf))
+
+    # ipdb.set_trace();
+
+    # nSample=1000
+    # x_grid = np.transpose(np.linspace(0., 6., nSample))
+    # y_grid = np.transpose(np.linspace(0., 6., nSample))
+
+    # [X,Y] = np.meshgrid(x_grid,x_grid)
+    # C = (X - Y)**2
+
+    # cvector = C.flatten('F')
+
+    # A = np.concatenate((np.kron(np.ones((1,nSample)), sparse.eye(nSample).toarray()), np.kron(sparse.eye(nSample).toarray(),np.ones((1,nSample)))), axis=0)
+
+    # bvector = np.concatenate((xpdf,ypdf), axis=0)
+
+    # res=linprog(cvector, A_eq=A, b_eq=bvector, options={"disp": True})
+
+    # return res.fun
+
+    # return tf.constant(1.0, dtype=config.real(tf))
+
+    v = tf.Variable(1.)
+    v = tf.constant(1.)
+
+    # print("v: ", v.shape)
+
+    # loss = tf.py_function(
+    #     func=WASS,
+    #     inp=[y_true, y_pred],
+    #     Tout=tf.float32
+    # )
+    res = 1.0 + 0 * tf.math.reduce_min(y_true - y_pred)
+    return res
+
+    # res = tf.math.real(y_true)
+    # print(res.shape)
+
+    # print("####")
+    # print("v", v)
+    # print("type(res)", type(res))
+    # print("res", res)
+    # print("res.numpy()", res.numpy())
+
+    # res = tf.constant(1.0)
+    # dataset = tf.data.Dataset.from_tensor_slices(tensor1)
+
+    # ipdb.set_trace();
+
+    # return 3.0
+
+    # return v
+    # return v.ref().deref()
+    # return v.read_value()
+    # return res
+    # return dataset[0]
+    # return bkd.reduce_mean(bkd.square(y_true - y_pred))
+
+
+
+    loss = tf.numpy_function(
+        func=WASS,
+        inp=[y_true, y_pred],
+        Tout=tf.float32
+    )
+    # ipdb.set_trace();
+    # loss.set_shape(y_true.get_shape())
+
+(tf) cyan3@vipersim01:~/gradschool/231/research$ ./wass.py 
+Using backend: tensorflow.compat.v1
+
+WARNING:tensorflow:From /usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/tensorflow/python/compat/v2_compat.py:107: disable_resource_variables (from tensorflow.python.ops.variable_scope) is deprecated and will be removed in a future version.
+Instructions for updating:
+non-resource variables are not supported in the long term
+Enable just-in-time compilation with XLA.
+
+WARNING:tensorflow:From /usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/nn/initializers.py:118: The name tf.keras.initializers.he_normal is deprecated. Please use tf.compat.v1.keras.initializers.he_normal instead.
+
+PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')
+Compiling model...
+Building feed-forward neural network...
+/usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/nn/tensorflow_compat_v1/fnn.py:103: UserWarning: `tf.layers.dense` is deprecated and will be removed in a future version. Please use `tf.keras.layers.Dense` instead.
+  return tf.layers.dense(
+'build' took 0.031497 s
+
+2022-09-05 15:24:27.698345: I tensorflow/core/platform/cpu_feature_guard.cc:193] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 AVX512F FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2022-09-05 15:24:28.099728: W tensorflow/core/common_runtime/gpu/gpu_bfc_allocator.cc:42] Overriding orig_value setting because the TF_FORCE_GPU_ALLOW_GROWTH environment variable is set. Original config value was 0.
+2022-09-05 15:24:28.099770: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 6673 MB memory:  -> device: 0, name: Quadro RTX 4000, pci bus id: 0000:91:00.0, compute capability: 7.5
+Tensor("Sum:0", shape=(), dtype=float32)
+Tensor("Sum_1:0", shape=(), dtype=float32)
+Tensor("Sum_2:0", shape=(), dtype=float32)
+Tensor("Sum_3:0", shape=(), dtype=float32)
+Tensor("Sum_4:0", shape=(), dtype=float32)
+Tensor("Sum_5:0", shape=(), dtype=float32)
+'compile' took 2.642019 s
+
+Warning: epochs is deprecated and will be removed in a future version. Use iterations instead.
+Initializing variables...
+2022-09-05 15:24:30.348215: I tensorflow/compiler/mlir/mlir_graph_optimization_pass.cc:354] MLIR V1 optimization pass is not enabled
+Training model...
+
+2022-09-05 15:24:30.626271: I tensorflow/compiler/xla/service/service.cc:170] XLA service 0x7f434c008d80 initialized for platform CUDA (this does not guarantee that XLA will be used). Devices:
+2022-09-05 15:24:30.626345: I tensorflow/compiler/xla/service/service.cc:178]   StreamExecutor device (0): Quadro RTX 4000, Compute Capability 7.5
+2022-09-05 15:24:30.637792: I tensorflow/compiler/mlir/tensorflow/utils/dump_mlir_util.cc:263] disabling MLIR crash reproducer, set env var `MLIR_CRASH_REPRODUCER_DIRECTORY` to enable.
+2022-09-05 15:24:31.440390: I tensorflow/compiler/jit/xla_compilation_cache.cc:478] Compiled cluster using XLA!  This line is logged at most once for the lifetime of the process.
+2022-09-05 15:24:31.446530: I tensorflow/core/common_runtime/gpu/gpu_device.cc:1532] Created device /job:localhost/replica:0/task:0/device:GPU:0 with 6673 MB memory:  -> device: 0, name: Quadro RTX 4000, pci bus id: 0000:91:00.0, compute capability: 7.5
+start linprog
+start linprog
+Running HiGHS 1.2.2 [date: 2022-08-30, git hash: n/a]
+Copyright (c) 2022 ERGO-Code under MIT licence terms
+Presolving model
+Problem status detected on presolve: Infeasible
+Model   status      : Infeasible
+Objective value     :  0.0000000000e+00
+HiGHS run time      :          0.15
+WARNING: Method getModelStatus(const bool scaled_model) is deprecated: alternative method is getModelStatus()
+end
+None
+Running HiGHS 1.2.2 [date: 2022-08-30, git hash: n/a]
+Copyright (c) 2022 ERGO-Code under MIT licence terms
+Presolving model
+Problem status detected on presolve: Infeasible
+Model   status      : Infeasible
+Objective value     :  0.0000000000e+00
+HiGHS run time      :          0.30
+WARNING: Method getModelStatus(const bool scaled_model) is deprecated: alternative method is getModelStatus()
+end
+None
+start linprog
+start linprog
+Running HiGHS 1.2.2 [date: 2022-08-30, git hash: n/a]
+Copyright (c) 2022 ERGO-Code under MIT licence terms
+Presolving model
+Problem status detected on presolve: Infeasible
+Model   status      : Infeasible
+Objective value     :  0.0000000000e+00
+HiGHS run time      :          0.09
+WARNING: Method getModelStatus(const bool scaled_model) is deprecated: alternative method is getModelStatus()
+end
+None
+Running HiGHS 1.2.2 [date: 2022-08-30, git hash: n/a]
+Copyright (c) 2022 ERGO-Code under MIT licence terms
+Presolving model
+Problem status detected on presolve: Infeasible
+Model   status      : Infeasible
+Objective value     :  0.0000000000e+00
+HiGHS run time      :          0.30
+WARNING: Method getModelStatus(const bool scaled_model) is deprecated: alternative method is getModelStatus()
+end
+None
+Step      Train loss                                            Test loss                                             Test metric
+0         [2.92e-02, 4.04e-04, 1.87e-01, 1.00e+00, 1.00e+00]    [2.92e-02, 4.04e-04, 1.87e-01, 1.00e+00, 1.00e+00]    []  
+start linprog
+start linprog
+Running HiGHS 1.2.2 [date: 2022-08-30, git hash: n/a]
+Copyright (c) 2022 ERGO-Code under MIT licence terms
+Presolving model
+Problem status detected on presolve: Infeasible
+Model   status      : Infeasible
+Objective value     :  0.0000000000e+00
+HiGHS run time      :          0.25
+WARNING: Method getModelStatus(const bool scaled_model) is deprecated: alternative method is getModelStatus()
+end
+None
+Running HiGHS 1.2.2 [date: 2022-08-30, git hash: n/a]
+Copyright (c) 2022 ERGO-Code under MIT licence terms
+Presolving model
+Problem status detected on presolve: Infeasible
+Model   status      : Infeasible
+Objective value     :  0.0000000000e+00
+HiGHS run time      :          0.15
+WARNING: Method getModelStatus(const bool scaled_model) is deprecated: alternative method is getModelStatus()
+end
+None
+2022-09-05 15:25:37.725396: W tensorflow/core/framework/op_kernel.cc:1745] OP_REQUIRES failed at xla_ops.cc:462 : INVALID_ARGUMENT: Input to reshape is a tensor with 1 values, but the requested shape has 1000
+
+         [[{{node gradients_16/sub_21_grad/Reshape}}]]
+
 #########################################################
+
+https://stackoverflow.com/questions/70767238/unable-to-convert-tensorflow-python-framework-ops-tensor-object-to-numpy-array-f/70770060#70770060
+https://deepxde.readthedocs.io/en/latest/modules/deepxde.icbc.html
+https://deepxde.readthedocs.io/en/latest/modules/deepxde.html?highlight=compile#deepxde.model.Model.compile
+https://www.tensorflow.org/api_docs/python/tf/py_function
+https://stackoverflow.com/questions/35550451/tensorflow-py-func-or-custom-function
+https://www.anycodings.com/1questions/3781488/using-tfpyfunc-as-loss-function-to-implement-gradient-descent
+https://www.google.com/search?q=Shapes+of+all+inputs+must+match:+values%5B0%5D.shape+%3D+%5B%5D+!%3D+values%5B3%5D.shape+%3D+%5B1%5D+site:stackoverflow.com&sxsrf=ALiCzsa1Li5KOOhgmFxAp4Z3Nk_HFBzxWA:1662399748251&sa=X&ved=2ahUKEwi9h-DTmf75AhUClmoFHVF_AtcQrQIoBHoECAQQBQ&biw=960&bih=939&dpr=1
+https://stackoverflow.com/questions/61553510/tensorflow-2-lstm-invalidargumenterror-shapes-of-all-inputs-must-match
+https://stackoverflow.com/questions/69193435/fixing-error-invalidargumenterror-shapes-of-all-inputs-must-match-values0
+https://www.google.com/search?q=tensorflow+v1+reduce_mean&oq=tensorflow+v1+reduce_mean&aqs=chrome..69i57.3459j0j7&sourceid=chrome&ie=UTF-8
+https://www.google.com/search?q=tf+shape+%5B%5D&sxsrf=ALiCzsYAXxZLNy-fjv5Un9z60O1zLBK7qA%3A1662399973702&ei=5TUWY4i-KteuqtsPkYKl0Ak&ved=0ahUKEwjIxKC_mv75AhVXl2oFHRFBCZoQ4dUDCA8&uact=5&oq=tf+shape+%5B%5D&gs_lcp=Cgdnd3Mtd2l6EAMyBQgAEIAEMgUIABCABDIGCAAQHhAWMgYIABAeEBYyBggAEB4QFjIGCAAQHhAWMgYIABAeEBYyBggAEB4QFjIGCAAQHhAWMgYIABAeEBY6CAgAEIAEELADOggIABCwAxCRAjoHCAAQHhCwAzoECCMQJzoICC4QgAQQsQM6CwgAEIAEELEDEIMBOggIABCABBCxAzoECAAQQzoKCAAQsQMQgwEQQzoKCAAQgAQQhwIQFDoFCAAQkQJKBAhBGAFKBAhGGABQighY_hZgvRpoAnAAeAGAAe8BiAGfD5IBBjAuMTAuMZgBAKABAcgBCsABAQ&sclient=gws-wiz
+https://www.google.com/search?q=py_function+loss+function&sxsrf=ALiCzsY3Svl2RHHvb_BSTKVDfo_YKLb1rQ%3A1662400367213&ei=bzcWY-u7DNa6qtsPsJ63mA4&ved=0ahUKEwirr_L6m_75AhVWnWoFHTDPDeMQ4dUDCA8&uact=5&oq=py_function+loss+function&gs_lcp=Cgdnd3Mtd2l6EAMyBQghEKABMgUIIRCrAjIFCCEQqwI6CggAEEcQ1gQQsAM6BQgAEJECOgUIABCABDoECAAQHjoGCAAQHhAWOgkIABAeEMkDEBY6CAgAEB4QDxAWOggIABAeEBYQCjoFCAAQhgM6CAghEB4QFhAdSgQIQRgASgQIRhgAUP8DWLUQYP0QaAFwAHgAgAHSAYgBkw2SAQYwLjExLjGYAQCgAQHIAQjAAQE&sclient=gws-wiz
+https://scikit-learn.org/stable/modules/generated/sklearn.metrics.cohen_kappa_score.html
+https://www.google.com/search?q=tf+%22py_func%22+loss+output&sxsrf=ALiCzsYC70ZkIXseIpdiLRrN7nDlsEW8Hg%3A1662400865893&ei=YTkWY9aFNvC4qtsPnZKl0Ak&ved=0ahUKEwiWutfonf75AhVwnGoFHR1JCZoQ4dUDCA8&uact=5&oq=tf+%22py_func%22+loss+output&gs_lcp=Cgdnd3Mtd2l6EAMyBQghEKABMggIIRAeEBYQHToHCCMQsAMQJzoKCAAQRxDWBBCwAzoGCAAQHhAWOgUIABCGAzoFCCEQqwJKBAhBGABKBAhGGABQqUpYm1Vgo1ZoAnAAeACAAfcBiAHIDZIBBjAuMTAuMZgBAKABAcgBCcABAQ&sclient=gws-wiz
+https://stackoverflow.com/questions/46273364/tensorflow-valueerror-shapes-must-be-equal-rank-but-are-0-and-2
+https://stackoverflow.com/questions/50187667/using-python-code-with-tf-py-func-in-custom-keras-layer
+https://www.tensorflow.org/api_docs/python/tf/compat/v1/py_func
+https://stackoverflow.com/questions/45061344/gradient-update-with-a-custom-loss-function
+https://stackoverflow.com/questions/68275702/pass-inputs-to-loss-function-in-eager-mode
+https://stackoverflow.com/questions/66287603/how-can-i-implement-this-custom-loss-function-in-keras
+https://keras.io/api/layers/core_layers/#lambda
+https://stackoverflow.com/questions/69352679/attributeerror-tensor-object-has-no-attribute-numpy-while-using-tf-disable
+https://stackoverflow.com/questions/50109996/whats-the-difference-between-tf-constant-and-tf-convert-to-tensor
+https://www.tensorflow.org/api_docs/python/tf/math/reduce_mean
+https://www.google.com/search?q=tf+create+tensor+from+number&oq=tf+create+tensor+from+number&aqs=chrome..69i57.3366j0j7&sourceid=chrome&ie=UTF-8
+https://www.guru99.com/tensor-tensorflow.html
+https://www.tensorflow.org/api_docs/python/tf/Tensor
+https://stackoverflow.com/questions/37071788/tensorflow-how-to-modify-the-value-in-tensor
+https://www.google.com/search?q=tensorflow.python.framework.ops.EagerTensor&oq=tensorflow.python.framework.ops.EagerTensor&aqs=chrome..69i57.440j0j7&sourceid=chrome&ie=UTF-8
+https://discuss.tensorflow.org/t/attributeerror-tensorflow-python-framework-ops-eagertensor-object-has-no-attribute-to-tensor/5044
+https://stackoverflow.com/questions/49568041/tensorflow-how-do-i-convert-a-eagertensor-into-a-numpy-array
+https://www.tensorflow.org/api_docs/python/tf/math/reduce_sum
+https://stackoverflow.com/questions/64403061/how-to-convert-a-tensor-to-eager-tensor-in-tensorflow-2-1-0
+https://www.tensorflow.org/api_docs/python/tf/math/reduce_min
+https://www.tensorflow.org/api_docs/python/tf/py_function
+https://www.tensorflow.org/api_docs/python/tf/numpy_function
+https://stackoverflow.com/questions/9757642/wrapping-specialised-c-template-class-with-swig
+https://stackoverflow.com/questions/45735858/why-tensorflow-just-outputs-killed
+https://stackoverflow.com/questions/50740771/how-can-i-use-c-struct-pointers-in-python-using-swig
+
 #########################################################
 #########################################################
 #########################################################
