@@ -3,6 +3,8 @@ from scipy import sparse
 import numpy as np
 from scipy.stats import truncnorm
 
+from scipy.stats import multivariate_normal
+
 N = nSample = 100
 
 x_grid = np.transpose(np.linspace(0., 6., nSample))
@@ -25,6 +27,11 @@ A = np.concatenate(
         )
     ), axis=0)
 # 2*nSample
+
+mu_0 = 5.0
+mu_T = 1.0
+rv0 = multivariate_normal([mu_0, mu_0, mu_0], sigma_0 * np.eye(3))
+rvT = multivariate_normal([mu_T, mu_T, mu_T], sigma_T * np.eye(3))
 
 def pdf1d_T(x):
     mu = 5.
