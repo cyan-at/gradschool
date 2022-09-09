@@ -1231,6 +1231,83 @@ def WASS2(y_true, y_pred):
 #########################################################
 #########################################################
 #########################################################
+
+Tried with custom z function z2 + z
+z is all about getting the trapz to be 1
+30k iterations
+does not really converge, minimum is 3
+t=0 pred2 is a gaussian but trapz is 45
+
+#########################################################
+
+scratch0
+
+try again using loss function written only with tf
+
+cand = tf.abs(1.0 - tf.reduce_sum(y_pred))
+loss function converges, but sum of 12
+
+#########################################################
+
+scratch1
+
+cand = tf.abs(0.5 - tf.reduce_sum(y_pred))
+loss function converges, but sum of 9
+
+does not converge super well
+
+#########################################################
+
+scratch2
+
+cand = tf.abs(0 - tf.reduce_sum(y_pred))
+loss function converges, but sum of 6
+
+converges well
+
+#########################################################
+
+goal actual
+0    6
+0.5  9
+1    12
+
+actual=state_max + state_max*goal
+
+so to get it to actual=0
+
+0=6+6*goal
+-6 = 6*goal
+-1 = goal
+
+#########################################################
+
+scratch3
+
+cand = tf.abs(-1 - tf.reduce_sum(y_pred))
+loss function converges, but sum of 0 (as hypothesized)
+except it cheats because there are negative terms
+so we need to add penalty for that
+
+converges well
+
+#########################################################
+
+scratch 5
+
+if we want actual=1
+
+1 = 6+6*goal
+-5 / 6 = goal
+
+adding a penalty for negative terms with a gain of 50
+
+output is as desired!
+
+#########################################################
+
+trying this for another rho_0 at another mu_0
+
 #########################################################
 #########################################################
 #########################################################
@@ -1239,13 +1316,7 @@ def WASS2(y_true, y_pred):
 #########################################################
 #########################################################
 #########################################################
-#########################################################
-#########################################################
-#########################################################
-#########################################################
-#########################################################
-#########################################################
-#########################################################
+
 #########################################################
 #########################################################
 #########################################################
