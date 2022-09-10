@@ -1348,7 +1348,89 @@ https://calendar.google.com/calendar/u/0/r/week?pli=1
 http://localhost:8888/notebooks/wass_1d-scratch0.ipynb
 
 #########################################################
+
+integral notion of distance, not analytical like other ideas of distance, implicit differentiation
+but implementation in tensorflow is a different idea
+
+autodiff finds 'implicit derivatives'
+
+"analytical vs integral notions of distance and differentiability"
+"all research happens after midnight"
+"this is definitely the right direction"
+"every neural network is sneaky"
+
+----------------------------------------------------
+
+theory / analytically / the geometry:
+	wasserstein distance in the lp means that
+	wasserstein distance is a function of neural network parameters
+
+	for us, our y_pred pinn output for the rho_0 boundary condition
+	goes into th bvector of Ax == b constraint, the RHS
+	this couples the linear program for wasserstein distance
+	to the PINN neural network parameters
+the implementation:
+	tensorflow does auto-diff, so it finds derivatives in functions that cannot be found in any other way / gradients in losses
+	it does auto-diff by watching computation forward and backwards in an epoch maybe, and a graph of tensors
+	
+	when we use tf.py_func, we evaluate a tensor OUTSIDE THE GRAPH
+		for example, using scipy.linprog we use this to convert the tensor to a numpy array
+	which means that whatever happens inside the eager / non-graph function is a black box to the gradient / auto-diff
+	so because there is no gradient, this cost / loss will NOT CONVERGE, so there is no learning, no training actually
+
+	and empirically, we see that
+		when we use scipy.linprog, the cost function for rho_0 trunnorm never converges
+		it goes, fail to solve, solve with loss=3, solve with loss=4, solve with loss=3, fail, 3, 4, 3, 4
+		it doesn't converge, will never succeed
+
+		when we define a loss function that uses tf functions (mse), it does converge
+hypothesis:
+	we need to compute both the wasserstein LP loss AND have a gradient for tf
+	to compute the LP we need to solve the cvx LP problem with differentiation, a differentiable CVX
+	https://github.com/cvxgrp/cvxpylayers
+	https://web.stanford.edu/~boyd/papers/pdf/diff_cvxpy.pdf
+
+----------------------------------------------------
+
+normalization
+every forward prop:
+normalize by trapze
+
+in loss function
+normalize by element sum (reduce_sum)
+
+truncated gaussian != gaussian
+user supplied pdf (rho_0 / rho_T)
+gaussian integral is only 1 from -inf to inf
+truncated gaussian is 1 in finite domain
+	multivariable truncated gaussian
+be consistent with same type of gaussian
+
+pinn does not know everything should be pdf, must be enforced
+"non-negotiable constraints (pdf, non-negative) should not be in cost"
+
+normalize by correct trapze: enforce it is a pdf
+normalize by element sum: enforce what is fed to lp is sum(1)
+
 #########################################################
+
+1. 
+run 1d example, with wass
+
+1.
+add to linprog:
+x >= 0
+x < inf
+
+2.
+return np.sqrt(res.fun)
+
+3.
+rho_0
+rho_T
+how do we enforce network prediction is pdf?
+in wass loss function, penalize each element being less than 0, sum of y_pred diff vs 1
+
 #########################################################
 #########################################################
 #########################################################
