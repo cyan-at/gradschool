@@ -317,51 +317,64 @@ rho_0_tensor = rho_0_tensor.to(cuda0)
 cvector_tensor = cvector_tensor.to(cuda0)
 
 # first train on mse, then train on wass?
-def rho0_WASS_cuda0(y_true, y_pred):
-    total = torch.mean(torch.square(y_true - y_pred))
+class LossSeq(object):
+    def __init__(self):
+        self.mode = 0
 
-    # first train for mse
-    if total > 1e-3:
-        return total
+    def rho0_WASS_cuda0(self, y_true, y_pred):
+        if self.mode == 0:
+            # import ipdb; ipdb.set_trace();
+            total = torch.mean(torch.square(y_true - y_pred))
+            print("mse'ing")
+            if total > 1e-4:
+                # first train for mse
+                print("mse'ing")
+            else:
+                self.mode += 1
+            return total
 
-    # penalize negative values lt 0
-    p1 = 10 * torch.sum(torch.lt(y_pred, 0.))
+        elif self.mode == 1:
+            print("wass'ing")
 
-    # penalize sum != 1 (PMF)
-    p2 = 10 * torch.abs(
-        # torch.trapz(y_pred, dim=0)[0] - 1
-        torch.sum(y_pred) - 1
-    )
-    # return p1 + p2
-    total = p1 + p2
+            # penalize negative values lt 0
+            p1 = 10 * torch.sum(torch.lt(y_pred, 0.))
 
-    # avoid moving to speed up
-    # y_pred = y_pred.to(cuda0)
-    # y_pred.retain_grad()
+            # penalize sum != 1 (PMF)
+            p2 = 10 * torch.abs(
+                # torch.trapz(y_pred, dim=0)[0] - 1
+                torch.sum(y_pred) - 1
+            )
+            # return p1 + p2
+            total = p1 + p2
 
-    y_pred = torch.where(y_pred < 0, 0, y_pred)
-    y_pred = y_pred / torch.sum(torch.abs(y_pred))
+            # avoid moving to speed up
+            # y_pred = y_pred.to(cuda0)
+            # y_pred.retain_grad()
 
-    param = torch.cat((rho_0_tensor, y_pred), 0)
-    param = torch.reshape(param, (2*N,))
-    # print(type(param))
-    try:
-        x_sol, = cvxpylayer(param, solver_args={
-            'max_iters': 10000,
-            'eps' : 1e-5,
-            'solve_method' : 'SCS'}) # or ECOS
-        wass_dist = torch.matmul(cvector_tensor, x_sol)
-        wass_dist = torch.sqrt(wass_dist)
-    
-        # ECOS might return nan
-        # SCS is slower, and you need 'luck'?
-        wass_dist = torch.nan_to_num(wass_dist, 10.0)
-        
-        total += wass_dist
-    except:
-        pass
+            y_pred = torch.where(y_pred < 0, 0, y_pred)
+            y_pred = y_pred / torch.sum(torch.abs(y_pred))
 
-    return total
+            param = torch.cat((rho_0_tensor, y_pred), 0)
+            param = torch.reshape(param, (2*N,))
+            # print(type(param))
+            try:
+                x_sol, = cvxpylayer(param, solver_args={
+                    'max_iters': 10000,
+                    'eps' : 1e-5,
+                    'solve_method' : 'SCS'}) # or ECOS
+                wass_dist = torch.matmul(cvector_tensor, x_sol)
+                wass_dist = torch.sqrt(wass_dist)
+            
+                # ECOS might return nan
+                # SCS is slower, and you need 'luck'?
+                wass_dist = torch.nan_to_num(wass_dist, 10.0)
+                
+                total += wass_dist
+                print("solved", wass_dist)
+            except:
+                pass
+
+            return total
 
 print(time.time())
 
@@ -386,10 +399,10 @@ print(time.time())
 
 
 time_0=np.hstack((x_T,T_0*np.ones((len(x_T), 1))))
-rho_0=pdf1d(x_T, mu_0, sigma_0).reshape(len(x_T),1)
+rho_0=pdf1d(x_T, 3.0, 3.0).reshape(len(x_T),1)
 rho_0 = np.where(rho_0 < 0, 0, rho_0)
 rho_0 = rho_0 / np.sum(np.abs(rho_0))
-print(np.trapz(rho_0, axis=0)[0])
+
 print(np.sum(rho_0))
 rho_0_BC = dde.icbc.PointSetBC(time_0, rho_0, component=1)
 
@@ -486,7 +499,8 @@ print(time.time())
 # In[27]:
 
 
-loss_func=["MSE","MSE","MSE",rho0_WASS_cuda0,"MSE"]
+loss_seq = LossSeq()
+loss_func=["MSE","MSE","MSE", loss_seq.rho0_WASS_cuda0,"MSE"]
 # loss functions are based on PDE + BC: 3 eq outputs, 2 BCs
 
 model.compile("adam", lr=1e-3,loss=loss_func)
