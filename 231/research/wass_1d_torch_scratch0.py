@@ -38,7 +38,10 @@ print(torch.cuda.current_device())
 torch.cuda.set_device(0)
 
 # https://pytorch.org/tutorials/recipes/recipes/tuning_guide.html
-torch.jit.enable_onednn_fusion(True)
+try:
+    torch.jit.enable_onednn_fusion(True)
+except:
+    print("no onednn")
 
 cuda0 = torch.device('cuda:0')
 cpu = torch.device('cpu')
@@ -97,10 +100,10 @@ N = nSample = 50
 state_min = 0.0
 state_max = 6.0
 
-mu_0 = 5.0
+mu_0 = 2.0
 sigma_0 = 1.0
 
-mu_T = 3.0
+mu_T = 4.0
 sigma_T = 1.0
 
 j1, j2, j3 =1,1,2 # axis-symmetric case
@@ -178,20 +181,21 @@ print(time.time())
 # In[31]:
 
 
-rho_0_1d=pdf1d(x_T, 5.0, 1.0).reshape(len(x_T),1)
-rho_0_1d = np.where(rho_0_1d < 0, 0, rho_0_1d)
-rho_0_1d = rho_0_1d / np.sum(np.abs(rho_0_1d))
-# rho_0_1d  /= np.trapz(rho_0_1d, x=x_T, axis=0)[0]
+time_0=np.hstack((x_T,T_0*np.ones((len(x_T), 1))))
+rho_0=pdf1d(x_T, mu_0, sigma_0).reshape(len(x_T),1)
+rho_0 = np.where(rho_0 < 0, 0, rho_0)
+rho_0 = rho_0 / np.sum(np.abs(rho_0))
 
-rho_T_1d=pdf1d(x_T, 4.0, 1.0).reshape(len(x_T),1)
-rho_T_1d = np.where(rho_T_1d < 0, 0, rho_T_1d)
-rho_T_1d = rho_T_1d / np.sum(np.abs(rho_T_1d))
-# rho_T_1d  /= np.trapz(rho_T_1d, x=x_T, axis=0)[0]
+print(np.sum(rho_0))
+rho_0_BC = dde.icbc.PointSetBC(time_0, rho_0, component=1)
 
-# normalizing by l1-norm works, by trapz does not
-
-rho_0 = rho_0_1d
-rho_T = rho_T_1d
+time_t=np.hstack((x_T,T_t*np.ones((len(x_T), 1))))
+rho_T=pdf1d(x_T, mu_T, sigma_T).reshape(len(x_T),1)
+rho_T = np.where(rho_T < 0, 0, rho_T)
+rho_T = rho_T / np.sum(np.abs(rho_T))
+print(np.trapz(rho_T, axis=0)[0])
+print(np.sum(rho_T))
+rho_T_BC = dde.icbc.PointSetBC(time_t, rho_T, component=1)
 
 print(time.time())
 
@@ -320,22 +324,23 @@ cvector_tensor = cvector_tensor.to(cuda0)
 class LossSeq(object):
     def __init__(self):
         self.mode = 0
+        self.print_mode = 0
+
+    def rho0_WASS_cuda1(self, y_true, y_pred):
+        total = torch.mean(torch.square(y_true - y_pred))
+        return total
 
     def rho0_WASS_cuda0(self, y_true, y_pred):
         if self.mode == 0:
             # import ipdb; ipdb.set_trace();
             total = torch.mean(torch.square(y_true - y_pred))
             print("mse'ing")
-            if total > 1e-4:
+            if total < 1e-4:
                 # first train for mse
-                print("mse'ing")
-            else:
                 self.mode += 1
             return total
 
         elif self.mode == 1:
-            print("wass'ing")
-
             # penalize negative values lt 0
             p1 = 10 * torch.sum(torch.lt(y_pred, 0.))
 
@@ -351,7 +356,9 @@ class LossSeq(object):
             # y_pred = y_pred.to(cuda0)
             # y_pred.retain_grad()
 
-            y_pred = torch.where(y_pred < 0, 0, y_pred)
+            # import ipdb; ipdb.set_trace()
+
+            y_pred = torch.where(y_pred < 0.0, torch.tensor(0, dtype=y_pred.dtype), y_pred)
             y_pred = y_pred / torch.sum(torch.abs(y_pred))
 
             param = torch.cat((rho_0_tensor, y_pred), 0)
@@ -368,9 +375,13 @@ class LossSeq(object):
                 # ECOS might return nan
                 # SCS is slower, and you need 'luck'?
                 wass_dist = torch.nan_to_num(wass_dist, 10.0)
-                
+
+                if (self.print_mode < 100):
+                    print("wass: ", total)
+                    self.print_mode += 1
+                    print("solved", wass_dist)
+
                 total += wass_dist
-                print("solved", wass_dist)
             except:
                 pass
 
@@ -398,23 +409,7 @@ print(time.time())
 # In[24]:
 
 
-time_0=np.hstack((x_T,T_0*np.ones((len(x_T), 1))))
-rho_0=pdf1d(x_T, 3.0, 3.0).reshape(len(x_T),1)
-rho_0 = np.where(rho_0 < 0, 0, rho_0)
-rho_0 = rho_0 / np.sum(np.abs(rho_0))
 
-print(np.sum(rho_0))
-rho_0_BC = dde.icbc.PointSetBC(time_0, rho_0, component=1)
-
-time_t=np.hstack((x_T,T_t*np.ones((len(x_T), 1))))
-rho_T=pdf1d(x_T, mu_T, sigma_T).reshape(len(x_T),1)
-rho_T = np.where(rho_T < 0, 0, rho_T)
-rho_T = rho_T / np.sum(np.abs(rho_T))
-print(np.trapz(rho_T, axis=0)[0])
-print(np.sum(rho_T))
-rho_T_BC = dde.icbc.PointSetBC(time_t, rho_T, component=1)
-
-print(time.time())
 
 
 # In[25]:
@@ -505,7 +500,7 @@ loss_func=["MSE","MSE","MSE", loss_seq.rho0_WASS_cuda0,"MSE"]
 
 model.compile("adam", lr=1e-3,loss=loss_func)
 losshistory, train_state = model.train(
-    iterations=20000,
+    iterations=80000,
     display_every=1000,
     callbacks=[earlystop_cb, modelcheckpt_cb])
 
@@ -513,7 +508,7 @@ import ipdb; ipdb.set_trace();
 # In[30]:
 
 
-dde.saveplot(losshistory, train_state, issave=True, isplot=True)
+dde.saveplot(losshistory, train_state, issave=True, isplot=False)
 model_path = model.save(ck_path)
 print(model_path)
 
@@ -580,7 +575,7 @@ plot_fname = "%s/loss.png" % (os.path.abspath("./"))
 plt.savefig(plot_fname, dpi=300)
 print("saved plot")
 
-plt.show()
+# plt.show()
 
 
 # In[34]:
@@ -589,7 +584,6 @@ plt.show()
 X_IDX = 0
 T_IDX = 1
 EQ_IDX = 3
-
 
 test_ti = np.loadtxt('./test.dat')
 test_ti = test_ti[0:N, :] # first BC test data
@@ -612,7 +606,9 @@ ax1.plot(
     label='rho_0')
 ax1.legend(loc='lower right')
 
-test_rho0=pdf1d(test_ti[:, 0], 4.0, 4.0).reshape(test_ti.shape[0],1)
+test_rho0=pdf1d(test_ti[:, 0], mu_0, sigma_0).reshape(test_ti.shape[0],1)
+test_rho0 = test_rho0 / np.sum(np.abs(test_rho0))
+
 ax1.plot(
     test_ti[:, 0],
     test_rho0,
@@ -620,5 +616,9 @@ ax1.plot(
     linewidth=1,
     label='rho_0')
 
-plt.show()
+
+plot_fname = "%s/pinn_vs_rho0.png" % (os.path.abspath("./"))
+plt.savefig(plot_fname, dpi=300)
+
+# plt.show()
 
