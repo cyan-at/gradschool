@@ -316,7 +316,14 @@ def rho0_WASS_cpu(y_true, y_pred):
 rho_0_tensor = rho_0_tensor.to(cuda0)
 cvector_tensor = cvector_tensor.to(cuda0)
 
+# first train on mse, then train on wass?
 def rho0_WASS_cuda0(y_true, y_pred):
+    total = torch.mean(torch.square(y_true - y_pred))
+
+    # first train for mse
+    if total > 1e-3:
+        return total
+
     # penalize negative values lt 0
     p1 = 10 * torch.sum(torch.lt(y_pred, 0.))
 
@@ -327,9 +334,6 @@ def rho0_WASS_cuda0(y_true, y_pred):
     )
     # return p1 + p2
     total = p1 + p2
-
-    if total > 10:
-        return total
 
     # avoid moving to speed up
     # y_pred = y_pred.to(cuda0)
@@ -343,7 +347,7 @@ def rho0_WASS_cuda0(y_true, y_pred):
     # print(type(param))
     try:
         x_sol, = cvxpylayer(param, solver_args={
-            'max_iters': 5000,
+            'max_iters': 10000,
             'eps' : 1e-5,
             'solve_method' : 'SCS'}) # or ECOS
         wass_dist = torch.matmul(cvector_tensor, x_sol)
@@ -482,16 +486,16 @@ print(time.time())
 # In[27]:
 
 
-loss_func=["MSE","MSE","MSE", rho0_WASS_cuda0,"MSE"]
+loss_func=["MSE","MSE","MSE",rho0_WASS_cuda0,"MSE"]
 # loss functions are based on PDE + BC: 3 eq outputs, 2 BCs
 
 model.compile("adam", lr=1e-3,loss=loss_func)
 losshistory, train_state = model.train(
-    iterations=40000,
+    iterations=20000,
     display_every=1000,
     callbacks=[earlystop_cb, modelcheckpt_cb])
 
-
+import ipdb; ipdb.set_trace();
 # In[30]:
 
 
