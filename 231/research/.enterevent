@@ -42,6 +42,21 @@ tf.Tensor(697.80804, shape=(), dtype=float32)
 2022-08-16 18:28:44.780290: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:975] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
 2022-08-16 18:28:44.780529: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:975] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
 [PhysicalDevice(name='/physical_device:GPU:0', device_type='GPU')]
+
+-------------------
+
+for vipersim01
+
+conda remove pytorch
+locate libdevice.10.bc
+conda install cudatoolkit=11.6
+locate libdevice.10.bc
+mv /usr/local/home/cyan3/miniforge/envs/tf/nvvm/libdevice/libdevice.10.bc /usr/local/home/cyan3/miniforge/envs/tf/nvvm/libdevice/libdevice.10.bc.backup
+cd /usr/local/home/cyan3/miniforge/envs/tf/nvvm/libdevice/
+ln -s ~/miniforge/pkgs/cudatoolkit-11.6.0-hecad31d_10/lib/libdevice.10.bc .
+ls
+pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu116
+
 setup
 
 echo "hello, starting tf conda"
