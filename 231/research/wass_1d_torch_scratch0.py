@@ -101,7 +101,7 @@ state_min = 0.0
 state_max = 6.0
 
 mu_0 = 2.0
-sigma_0 = 1.0
+sigma_0 = 1.5
 
 mu_T = 4.0
 sigma_T = 1.0
@@ -180,21 +180,27 @@ print(time.time())
 
 # In[31]:
 
-
 time_0=np.hstack((x_T,T_0*np.ones((len(x_T), 1))))
-rho_0=pdf1d(x_T, mu_0, sigma_0).reshape(len(x_T),1)
-rho_0 = np.where(rho_0 < 0, 0, rho_0)
-rho_0 = rho_0 / np.sum(np.abs(rho_0))
 
+rho_0=pdf1d(x_T, mu_0, sigma_0).reshape(len(x_T),1)
+
+rho_0 = np.where(rho_0 < 0, 0, rho_0)
+rho_0 /= np.trapz(rho_0, x=x_T, axis=0)[0] # pdf
+rho_0 = rho_0 / np.sum(np.abs(rho_0)) # pmf
 print(np.sum(rho_0))
+
 rho_0_BC = dde.icbc.PointSetBC(time_0, rho_0, component=1)
 
+
 time_t=np.hstack((x_T,T_t*np.ones((len(x_T), 1))))
+
 rho_T=pdf1d(x_T, mu_T, sigma_T).reshape(len(x_T),1)
+
 rho_T = np.where(rho_T < 0, 0, rho_T)
-rho_T = rho_T / np.sum(np.abs(rho_T))
-print(np.trapz(rho_T, axis=0)[0])
+rho_T /= np.trapz(rho_T, x=x_T, axis=0)[0] # pdf
+rho_T = rho_T / np.sum(np.abs(rho_T)) # pmf
 print(np.sum(rho_T))
+
 rho_T_BC = dde.icbc.PointSetBC(time_t, rho_T, component=1)
 
 print(time.time())
@@ -289,8 +295,17 @@ cvxpylayer = CvxpyLayer(
     parameters=[pred],
     variables=[x])
 
+xT_tensor = torch.from_numpy(
+    x_T
+).requires_grad_(False)
+
 rho_0_tensor = torch.from_numpy(
     rho_0
+).requires_grad_(False)
+
+
+rho_T_tensor = torch.from_numpy(
+    rho_T
 ).requires_grad_(False)
 
 cvector_tensor = torch.from_numpy(
@@ -317,7 +332,9 @@ def rho0_WASS_cpu(y_true, y_pred):
     return wass_dist
 '''
 
+xT_tensor = xT_tensor.to(cuda0)
 rho_0_tensor = rho_0_tensor.to(cuda0)
+rho_T_tensor = rho_T_tensor.to(cuda0)
 cvector_tensor = cvector_tensor.to(cuda0)
 
 # first train on mse, then train on wass?
@@ -330,62 +347,79 @@ class LossSeq(object):
         total = torch.mean(torch.square(y_true - y_pred))
         return total
 
-    def rho0_WASS_cuda0(self, y_true, y_pred):
-        if self.mode == 0:
-            # import ipdb; ipdb.set_trace();
-            total = torch.mean(torch.square(y_true - y_pred))
-            print("mse'ing")
-            if total < 1e-4:
-                # first train for mse
-                self.mode += 1
-            return total
+# fail_cost = torch.Tensor(1e3, dtype=torch.float32)
 
-        elif self.mode == 1:
-            # penalize negative values lt 0
-            p1 = 10 * torch.sum(torch.lt(y_pred, 0.))
+def rho0_WASS_cuda0(y_true, y_pred):
+    # avoid moving to speed up
+    # y_pred = y_pred.to(cuda0)
+    # y_pred.retain_grad()
+    # total = fail_cost
 
-            # penalize sum != 1 (PMF)
-            p2 = 10 * torch.abs(
-                # torch.trapz(y_pred, dim=0)[0] - 1
-                torch.sum(y_pred) - 1
-            )
-            # return p1 + p2
-            total = p1 + p2
+    # # normalize to pdf
+    y_pred = torch.where(y_pred < 0, 0, y_pred)
+    y_pred /= torch.trapz(y_pred, x=xT_tensor, dim=0)[0]
 
-            # avoid moving to speed up
-            # y_pred = y_pred.to(cuda0)
-            # y_pred.retain_grad()
+    # normalize to PMF
+    y_pred = y_pred / torch.sum(torch.abs(y_pred))
 
-            # import ipdb; ipdb.set_trace()
+    param = torch.cat((rho_0_tensor, y_pred), 0)
+    param = torch.reshape(param, (2*N,))
+    # print(type(param))
+    # try:
+    x_sol, = cvxpylayer(param, solver_args={
+        'max_iters': 500000,
+        # 'eps' : 1e-5,
+        'solve_method' : 'ECOS'
+    }) # or ECOS, ECOS is faster
+    wass_dist = torch.matmul(cvector_tensor, x_sol)
+    wass_dist = torch.sqrt(wass_dist)
 
-            y_pred = torch.where(y_pred < 0.0, torch.tensor(0, dtype=y_pred.dtype), y_pred)
-            y_pred = y_pred / torch.sum(torch.abs(y_pred))
+    # ECOS might return nan
+    # SCS is slower, and you need 'luck'?
+    wass_dist = torch.nan_to_num(wass_dist, 1e3)
 
-            param = torch.cat((rho_0_tensor, y_pred), 0)
-            param = torch.reshape(param, (2*N,))
-            # print(type(param))
-            try:
-                x_sol, = cvxpylayer(param, solver_args={
-                    'max_iters': 10000,
-                    'eps' : 1e-5,
-                    'solve_method' : 'SCS'}) # or ECOS
-                wass_dist = torch.matmul(cvector_tensor, x_sol)
-                wass_dist = torch.sqrt(wass_dist)
-            
-                # ECOS might return nan
-                # SCS is slower, and you need 'luck'?
-                wass_dist = torch.nan_to_num(wass_dist, 10.0)
+    return wass_dist
+    # total = wass_dist
+    # except:
+    #     pass
 
-                if (self.print_mode < 100):
-                    # print("wass: ", total)
-                    self.print_mode += 1
-                    # print("solved", wass_dist)
+    # return total
 
-                total += wass_dist
-            except:
-                pass
+def rhoT_WASS_cuda0(y_true, y_pred):
+    # avoid moving to speed up
+    # y_pred = y_pred.to(cuda0)
+    # y_pred.retain_grad()
+    # total = fail_cost
 
-            return total
+    # # normalize to pdf
+    y_pred = torch.where(y_pred < 0, 0, y_pred)
+    y_pred /= torch.trapz(y_pred, x=xT_tensor, dim=0)[0]
+
+    # normalize to PMF
+    y_pred = y_pred / torch.sum(torch.abs(y_pred))
+
+    param = torch.cat((rho_T_tensor, y_pred), 0)
+    param = torch.reshape(param, (2*N,))
+    # print(type(param))
+    # try:
+    x_sol, = cvxpylayer(param, solver_args={
+        'max_iters': 10000,
+        # 'eps' : 1e-5,
+        'solve_method' : 'ECOS'
+    }) # or ECOS, ECOS is faster
+    wass_dist = torch.matmul(cvector_tensor, x_sol)
+    wass_dist = torch.sqrt(wass_dist)
+
+    # ECOS might return nan
+    # SCS is slower, and you need 'luck'?
+    wass_dist = torch.nan_to_num(wass_dist, 1e3)
+
+    return wass_dist
+    # total = wass_dist
+    # except:
+    #     pass
+
+    # return total
 
 print(time.time())
 
@@ -457,14 +491,18 @@ class EarlyStoppingFixed(dde.callbacks.EarlyStopping):
         self.model.save(ck_path, verbose=True)
 
     def get_monitor_value(self):
-        if self.monitor == "loss_train":
-            # result = sum(self.model.train_state.loss_train)
-            result = max(self.model.train_state.loss_train)
-        elif self.monitor == "loss_test":
-            # result = sum(self.model.train_state.loss_test)
-            result = max(self.model.train_state.loss_test)
+        if self.monitor == "train loss" or self.monitor == "loss_train":
+            data = self.model.train_state.loss_train
+        elif self.monitor == "test loss" or self.monitor == "loss_test":
+            data = self.model.train_state.loss_test
         else:
-            raise ValueError("The specified monitor function is incorrect.")
+            raise ValueError("The specified monitor function is incorrect.", self.monitor)
+
+        result = max(data)
+        if min(data) < 1e-50:
+            print("likely a numerical error")
+            # numerical error
+            return 1.0
 
         return result
 
@@ -473,7 +511,7 @@ earlystop_cb = EarlyStoppingFixed(baseline=1e-3, patience=0)
 class ModelCheckpoint2(dde.callbacks.ModelCheckpoint):
     def on_epoch_end(self):
         current = self.get_monitor_value()
-        if self.monitor_op(current, self.best) and current < 1e-3:
+        if self.monitor_op(current, self.best) and current < 1e-1:
             save_path = self.model.save(self.filepath, verbose=0)
             print(
                 "Epoch {}: {} improved from {:.2e} to {:.2e}, saving model to {} ...\n".format(
@@ -485,6 +523,22 @@ class ModelCheckpoint2(dde.callbacks.ModelCheckpoint):
                 ))
             self.best = current
 
+    def get_monitor_value(self):
+        if self.monitor == "train loss" or self.monitor == "loss_train":
+            data = self.model.train_state.loss_train
+        elif self.monitor == "test loss" or self.monitor == "loss_test":
+            data = self.model.train_state.loss_test
+        else:
+            raise ValueError("The specified monitor function is incorrect.", self.monitor)
+
+        result = max(data)
+        if min(data) < 1e-50:
+            print("likely a numerical error")
+            # numerical error
+            return 1.0
+
+        return result
+
 modelcheckpt_cb = ModelCheckpoint2(
     ck_path, verbose=True, save_better_only=True, period=1)
 
@@ -495,18 +549,18 @@ print(time.time())
 
 
 loss_seq = LossSeq()
-loss_func=["MSE","MSE","MSE", loss_seq.rho0_WASS_cuda0,"MSE"]
+loss_func=["MSE","MSE","MSE", rho0_WASS_cuda0, rhoT_WASS_cuda0]
 # loss functions are based on PDE + BC: 3 eq outputs, 2 BCs
 
 model.compile("adam", lr=1e-3,loss=loss_func)
+de = 1
 losshistory, train_state = model.train(
-    iterations=120000,
-    display_every=1000,
+    iterations=100000,
+    display_every=de,
     callbacks=[earlystop_cb, modelcheckpt_cb])
 
 # import ipdb; ipdb.set_trace();
 # In[30]:
-
 
 dde.saveplot(losshistory, train_state, issave=True, isplot=False)
 model_path = model.save(ck_path)
@@ -567,7 +621,7 @@ line4, = ax.plot(epoch, rhoT_terminal, color='purple', lw=1, label='pT boundary 
 
 ax.grid()
 ax.legend(loc="lower left")
-ax.set_title('training error/residual plots: %d epochs' % (len(epoch)))
+ax.set_title('training error/residual plots: %d epochs' % (len(epoch)*de))
 ax.set_yscale('log')
 ax.set_xscale('log')
 
@@ -583,42 +637,76 @@ print("saved plot")
 
 X_IDX = 0
 T_IDX = 1
-EQ_IDX = 3
+RHO0_IDX = 3
+RHOT_IDX = 4
 
 test_ti = np.loadtxt('./test.dat')
 test_ti = test_ti[0:N, :] # first BC test data
 ind = np.lexsort((test_ti[:,X_IDX],test_ti[:,T_IDX]))
 test_ti = test_ti[ind]
 
-s1 = np.trapz(test_ti[:,EQ_IDX], axis=0, x=test_ti[:,X_IDX])
-s2 = np.sum(test_ti[:,EQ_IDX])
+# post process
+test_ti[:,RHO0_IDX] = np.where(test_ti[:,RHO0_IDX] < 0, 0, test_ti[:,RHO0_IDX])
+s1 = np.trapz(test_ti[:,RHO0_IDX], axis=0, x=test_ti[:,X_IDX])
+test_ti[:, RHO0_IDX] /= s1 # to pdf
+s2 = np.sum(test_ti[:,RHO0_IDX])
+test_ti[:, RHO0_IDX] /= s2 # to pmf
+
+s1 = np.trapz(test_ti[:,RHO0_IDX], axis=0, x=test_ti[:,X_IDX])
+s2 = np.sum(test_ti[:,RHO0_IDX])
+
+test_ti[:,RHOT_IDX] = np.where(test_ti[:,RHOT_IDX] < 0, 0, test_ti[:,RHOT_IDX])
+s1 = np.trapz(test_ti[:,RHOT_IDX], axis=0, x=test_ti[:,X_IDX])
+test_ti[:, RHOT_IDX] /= s1 # to pdf
+s2 = np.sum(test_ti[:,RHOT_IDX])
+test_ti[:, RHOT_IDX] /= s2 # to pmf
+
+s3 = np.trapz(test_ti[:,RHOT_IDX], axis=0, x=test_ti[:,X_IDX])
+s4 = np.sum(test_ti[:,RHOT_IDX])
 
 fig = plt.figure(1)
 ax1 = plt.subplot(111, frameon=False)
 # ax1.set_aspect('equal')
 ax1.grid()
-ax1.set_title('trapz=%.3f, sum=%.3f' % (s1, s2))
+ax1.set_title(
+    'rho0: trapz=%.3f, sum=%.3f, rhoT: trapz=%.3f, sum=%.3f' % (s1, s2, s3, s4))
 
 ax1.plot(
-    test_ti[:, 0],
-    test_ti[:, EQ_IDX],
+    test_ti[:, X_IDX],
+    test_ti[:, RHO0_IDX],
     linewidth=1,
-    label='rho_0')
-ax1.legend(loc='lower right')
+    label='test rho_0')
 
-test_rho0=pdf1d(test_ti[:, 0], mu_0, sigma_0).reshape(test_ti.shape[0],1)
+test_rho0=pdf1d(test_ti[:, X_IDX], mu_0, sigma_0).reshape(test_ti.shape[0],1)
+test_rho0 /= np.trapz(test_rho0, axis=0, x=test_ti[:,X_IDX])
 test_rho0 = test_rho0 / np.sum(np.abs(test_rho0))
-
 ax1.plot(
-    test_ti[:, 0],
+    test_ti[:, X_IDX],
     test_rho0,
     c='r',
     linewidth=1,
     label='rho_0')
 
+ax1.plot(
+    test_ti[:, X_IDX],
+    test_ti[:, RHOT_IDX],
+    c='g',
+    linewidth=1,
+    label='test rho_T')
 
-plot_fname = "%s/pinn_vs_rho0.png" % (os.path.abspath("./"))
+test_rhoT=pdf1d(test_ti[:, X_IDX], mu_T, sigma_T).reshape(test_ti.shape[0],1)
+test_rhoT /= np.trapz(test_rhoT, axis=0, x=test_ti[:,X_IDX])
+test_rhoT = test_rhoT / np.sum(np.abs(test_rhoT))
+ax1.plot(
+    test_ti[:, X_IDX],
+    test_rhoT,
+    c='c',
+    linewidth=1,
+    label='rho_T')
+
+ax1.legend(loc='lower right')
+
+plot_fname = "%s/pinn_vs_rho.png" % (os.path.abspath("./"))
 plt.savefig(plot_fname, dpi=300)
-
 # plt.show()
 

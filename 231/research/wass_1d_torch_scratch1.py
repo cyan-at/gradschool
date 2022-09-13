@@ -139,11 +139,22 @@ X_IDX = 0
 T_IDX = 1
 EQ_IDX = 3
 
-
 test_ti = np.loadtxt('./test.dat')
 test_ti = test_ti[0:N, :] # first BC test data
 ind = np.lexsort((test_ti[:,X_IDX],test_ti[:,T_IDX]))
 test_ti = test_ti[ind]
+
+# post process
+test_ti[:,EQ_IDX] = np.where(test_ti[:,EQ_IDX] < 0, 0, test_ti[:,EQ_IDX])
+print("test_ti[:,EQ_IDX]", test_ti[:,EQ_IDX])
+s1 = np.trapz(test_ti[:,EQ_IDX], axis=0, x=test_ti[:,X_IDX])
+print(s1)
+
+test_ti[:, EQ_IDX] /= s1 # to pdf
+test_ti[:, EQ_IDX] = np.nan_to_num(test_ti[:, EQ_IDX], 0.0)
+
+# s2 = np.sum(test_ti[:,EQ_IDX])
+# test_ti[:, EQ_IDX] /= s2 # to pmf
 
 s1 = np.trapz(test_ti[:,EQ_IDX], axis=0, x=test_ti[:,X_IDX])
 s2 = np.sum(test_ti[:,EQ_IDX])
@@ -158,18 +169,19 @@ ax1.plot(
     test_ti[:, 0],
     test_ti[:, EQ_IDX],
     linewidth=1,
-    label='rho_0')
-ax1.legend(loc='lower right')
+    label='test rho_0')
 
-test_rho0=pdf1d(test_ti[:, 0], 2.0, 3.0).reshape(test_ti.shape[0],1)
-test_rho0 = test_rho0 / np.sum(np.abs(test_rho0))
-
+test_rho0=pdf1d(test_ti[:, 0], 2.0, 1.5).reshape(test_ti.shape[0],1)
+test_rho0 /= np.trapz(test_rho0, axis=0, x=test_ti[:,X_IDX])
+# test_rho0 = test_rho0 / np.sum(np.abs(test_rho0))
 ax1.plot(
     test_ti[:, 0],
     test_rho0,
     c='r',
     linewidth=1,
     label='rho_0')
+
+ax1.legend(loc='lower right')
 
 plt.show()
 
