@@ -377,9 +377,9 @@ class LossSeq(object):
                 wass_dist = torch.nan_to_num(wass_dist, 10.0)
 
                 if (self.print_mode < 100):
-                    print("wass: ", total)
+                    # print("wass: ", total)
                     self.print_mode += 1
-                    print("solved", wass_dist)
+                    # print("solved", wass_dist)
 
                 total += wass_dist
             except:
@@ -500,11 +500,11 @@ loss_func=["MSE","MSE","MSE", loss_seq.rho0_WASS_cuda0,"MSE"]
 
 model.compile("adam", lr=1e-3,loss=loss_func)
 losshistory, train_state = model.train(
-    iterations=80000,
+    iterations=120000,
     display_every=1000,
     callbacks=[earlystop_cb, modelcheckpt_cb])
 
-import ipdb; ipdb.set_trace();
+# import ipdb; ipdb.set_trace();
 # In[30]:
 
 
