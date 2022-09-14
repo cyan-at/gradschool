@@ -604,7 +604,7 @@ earlystop_cb = EarlyStoppingFixed(baseline=1e-3, patience=0)
 class ModelCheckpoint2(dde.callbacks.ModelCheckpoint):
     def on_epoch_end(self):
         current = self.get_monitor_value()
-        if self.monitor_op(current, self.best) and current < 5e-2:
+        if self.monitor_op(current, self.best) and current < 6e-2:
             save_path = self.model.save(self.filepath, verbose=0)
             print(
                 "Epoch {}: {} improved from {:.2e} to {:.2e}, saving model to {} ...\n".format(
