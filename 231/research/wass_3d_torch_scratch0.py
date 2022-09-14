@@ -621,7 +621,7 @@ class ModelCheckpoint2(dde.callbacks.ModelCheckpoint):
                 self.model.train_state.epoch))
             test = np.hstack((
                 self.model.train_state.X_test,
-                self.model.train_state.y_test))
+                self.model.train_state.y_pred_test))
             np.savetxt(test_path, test, header="x, y_pred")
             print("saved test data to ", test_path)
 
