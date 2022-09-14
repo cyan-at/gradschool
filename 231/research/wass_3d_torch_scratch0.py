@@ -94,7 +94,7 @@ nb_name = "none"
 # In[28]:
 
 
-N = nSample = 1500
+N = nSample = 800
 
 # must be floats
 state_min = -3.5
