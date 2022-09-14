@@ -482,25 +482,23 @@ def rho0_WASS_cuda0(y_true, y_pred):
     param = torch.cat((rho_0_tensor, y_pred), 0)
     param = torch.reshape(param, (2*N,))
     # print(type(param))
-    # try:
-    x_sol, = cvxpylayer(param, solver_args={
-        'max_iters': 10000,
-        # 'eps' : 1e-5,
-        'solve_method' : 'ECOS'
-    }) # or ECOS, ECOS is faster
-    wass_dist = torch.matmul(cvector_tensor, x_sol)
-    wass_dist = torch.sqrt(wass_dist)
+    try:
+        x_sol, = cvxpylayer(param, solver_args={
+            'max_iters': 10000,
+            # 'eps' : 1e-5,
+            'solve_method' : 'ECOS'
+        }) # or ECOS, ECOS is faster
+        wass_dist = torch.matmul(cvector_tensor, x_sol)
+        wass_dist = torch.sqrt(wass_dist)
 
-    # ECOS might return nan
-    # SCS is slower, and you need 'luck'?
-    wass_dist = torch.nan_to_num(wass_dist, 1e3)
+        # ECOS might return nan
+        # SCS is slower, and you need 'luck'?
+        wass_dist = torch.nan_to_num(wass_dist, 1e3)
 
-    return wass_dist
-    # total = wass_dist
-    # except:
-    #     pass
-
-    # return total
+        return wass_dist
+    except:
+        print("cvx failed, returning mse")
+        return torch.mean(torch.square(y_true - y_pred))
 
 def rhoT_WASS_cuda0(y_true, y_pred):
     # avoid moving to speed up
@@ -518,25 +516,23 @@ def rhoT_WASS_cuda0(y_true, y_pred):
     param = torch.cat((rho_T_tensor, y_pred), 0)
     param = torch.reshape(param, (2*N,))
     # print(type(param))
-    # try:
-    x_sol, = cvxpylayer(param, solver_args={
-        'max_iters': 10000,
-        # 'eps' : 1e-5,
-        'solve_method' : 'ECOS'
-    }) # or ECOS, ECOS is faster
-    wass_dist = torch.matmul(cvector_tensor, x_sol)
-    wass_dist = torch.sqrt(wass_dist)
+    try:
+        x_sol, = cvxpylayer(param, solver_args={
+            'max_iters': 10000,
+            # 'eps' : 1e-5,
+            'solve_method' : 'ECOS'
+        }) # or ECOS, ECOS is faster
+        wass_dist = torch.matmul(cvector_tensor, x_sol)
+        wass_dist = torch.sqrt(wass_dist)
 
-    # ECOS might return nan
-    # SCS is slower, and you need 'luck'?
-    wass_dist = torch.nan_to_num(wass_dist, 1e3)
+        # ECOS might return nan
+        # SCS is slower, and you need 'luck'?
+        wass_dist = torch.nan_to_num(wass_dist, 1e3)
 
-    return wass_dist
-    # total = wass_dist
-    # except:
-    #     pass
-
-    # return total
+        return wass_dist
+    except:
+        print("cvx failed, returning mse")
+        return torch.mean(torch.square(y_true - y_pred))
 
 print(time.time())
 
