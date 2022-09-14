@@ -124,6 +124,10 @@ initial_and_final_samples = 1000 # some 10^3 order
 
 num_epochs = 100000
 
+print("N: ", N)
+print("js: ", j1, j2, j3)
+print("q: ", q_statepenalty_gain)
+
 ######################################
 
 x_grid = np.transpose(np.linspace(state_min, state_max, nSample))
