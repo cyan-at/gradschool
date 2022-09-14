@@ -110,7 +110,16 @@ j1, j2, j3 =1,1,2 # axis-symmetric case
 q_statepenalty_gain = 0 # 0.5
 
 T_0=0. #initial time
-T_t=200. #Terminal time
+T_t=100. #Terminal time
+
+epsilon=.001
+
+samples_between_initial_and_final = 12000 # 10^4 order, 20k = out of memory
+initial_and_final_samples = 1000 # some 10^3 order
+
+######################################
+
+num_epochs = 20000
 
 x_grid = np.transpose(np.linspace(state_min, state_max, nSample))
 y_grid = np.transpose(np.linspace(state_min, state_max, nSample))
