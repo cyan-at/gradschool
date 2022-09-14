@@ -94,11 +94,11 @@ nb_name = "none"
 # In[28]:
 
 
-N = nSample = 2000
+N = nSample = 1500
 
 # must be floats
-state_min = -4.0
-state_max = 4.0
+state_min = -3.5
+state_max = 3.5
 
 mu_0 = 2.0
 sigma_0 = 1.5
