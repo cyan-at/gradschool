@@ -639,16 +639,6 @@ class ModelCheckpoint2(dde.callbacks.ModelCheckpoint):
         if min(data) < 1e-50:
             print("likely a numerical error")
             # numerical error
-
-            if self.save_numerical_error:
-                save_path = self.model.save(low_rho_t_error_path, verbose=0)
-                print(
-                    "saving numerical model to {} ...\n".format(
-                        save_path,
-                    ))
-                self.save_numerical_error = False
-            else:
-                pass
             return 1.0
 
         return result
