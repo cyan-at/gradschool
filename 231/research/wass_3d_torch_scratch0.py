@@ -507,8 +507,9 @@ print(time.time())
 
 # In[23]:
 
-
-geom = dde.geometry.Interval(state_min, state_max)
+geom=dde.geometry.geometry_3d.Cuboid(
+    [state_min, state_min, state_min],
+    [state_max, state_max, state_max])
 timedomain = dde.geometry.TimeDomain(0., T_t)
 geomtime = dde.geometry.GeometryXTime(geom, timedomain)
 
@@ -526,7 +527,7 @@ print(time.time())
 
 data = dde.data.TimePDE(
     geomtime,
-    pde,
+    euler_pde,
     [rho_0_BC,rho_T_BC],
     num_domain=5000,
     num_initial=500)
