@@ -185,7 +185,12 @@ print(time.time())
 
 # In[31]:
 
-time_0=np.hstack((x_T,T_0*np.ones((len(x_T), 1))))
+time_0=np.hstack((
+    x_T,
+    y_T,
+    z_T,
+    T_0*np.ones((len(x_T), 1))
+))
 
 # rho_0=pdf1d(x_T, mu_0, sigma_0).reshape(len(x_T),1)
 rho_0=pdf3d(x_T,y_T,z_T, rv0).reshape(len(x_T),1)
@@ -198,7 +203,12 @@ print(np.sum(rho_0))
 rho_0_BC = dde.icbc.PointSetBC(time_0, rho_0, component=1)
 
 
-time_t=np.hstack((x_T,T_t*np.ones((len(x_T), 1))))
+time_t=np.hstack((
+    x_T,
+    y_T,
+    z_T,
+    T_t*np.ones((len(x_T), 1))
+))
 
 # rho_T=pdf1d(x_T, mu_T, sigma_T).reshape(len(x_T),1)
 rho_T=pdf3d(x_T,y_T,z_T, rvT).reshape(len(x_T),1)
