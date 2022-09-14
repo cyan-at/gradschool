@@ -79,7 +79,12 @@ from scipy.linalg import sqrtm
 # from cvxpylayers.tensorflow.cvxpylayer import CvxpyLayer
 from cvxpylayers.torch import CvxpyLayer
 
-
+import argparse
+parser = argparse.ArgumentParser(description="")
+parser.add_argument('--N', type=int, default=50, help='')
+parser.add_argument('--js', type=str, default="1,1,2", help='')
+parser.add_argument('--q', type=float, default=0.0, help='')
+args = parser.parse_args()
 
 print(time.time())
 
@@ -94,7 +99,7 @@ nb_name = "none"
 # In[28]:
 
 
-N = nSample = 800
+N = nSample = args.N
 
 # must be floats
 state_min = -3.5
@@ -106,8 +111,8 @@ sigma_0 = 1.5
 mu_T = 0.0
 sigma_T = 1.0
 
-j1, j2, j3 =1,1,2 # axis-symmetric case
-q_statepenalty_gain = 0 # 0.5
+j1, j2, j3 = [float(x) for x in args.js.split(",")] # axis-symmetric case
+q_statepenalty_gain = args.q # 0.5
 
 T_0=0. #initial time
 T_t=50. #Terminal time
@@ -296,13 +301,17 @@ def pde(x, y):
 #         neg_loss_y2,
     ]
 
+U1 = dde.Variable(1.0)
+U2 = dde.Variable(1.0)
+U3 = dde.Variable(1.0)
+
 def euler_pde(x, y):
     """Euler system.
     dy1_t = g(x)-1/2||Dy1_x||^2-<Dy1_x,f>-epsilon*Dy1_xx
     dy2_t = -D.(y2*(f)+Dy1_x)+epsilon*Dy2_xx
     All collocation-based residuals are defined here
     """
-    y1, y2 = y[:, 0:1], y[:, 1:]
+    y1, y2 = y[:, 0:1], y[:, 1:2]
 
     dy1_x = dde.grad.jacobian(y1, x, j=0)
     dy1_y = dde.grad.jacobian(y1, x, j=1)
@@ -316,6 +325,7 @@ def euler_pde(x, y):
     dy2_y = dde.grad.jacobian(y2, x, j=1)
     dy2_z = dde.grad.jacobian(y2, x, j=2)
     dy2_t = dde.grad.jacobian(y2, x, j=3)
+
     dy2_xx = dde.grad.hessian(y2, x, i=0, j=0)
     dy2_yy = dde.grad.hessian(y2, x, i=1, j=1)
     dy2_zz = dde.grad.hessian(y2, x, i=2, j=2)
@@ -357,11 +367,20 @@ def euler_pde(x, y):
         + x[:, 2:3] * x[:, 2:3])
     # also try
     # q = 0 # minimum effort control
-    
+
+    psi = -dy1_t + q - .5*(dy1_x*dy1_x+dy1_y*dy1_y+dy1_z*dy1_z) - (dy1_x*f1 + dy1_y*f2 + dy1_z*f3) - epsilon*(dy1_xx+dy1_yy+dy1_zz)
+
+    dpsi_x = dde.grad.jacobian(psi, x, j=0)
+    dpsi_y = dde.grad.jacobian(psi, x, j=1)
+    dpsi_z = dde.grad.jacobian(psi, x, j=2)
+
     # TODO: verify this expression
     return [
-        -dy1_t+q-.5*(dy1_x*dy1_x+dy1_y*dy1_y+dy1_z*dy1_z)-dy1_x*f1-dy1_y*f2-dy1_z*f3-epsilon*(dy1_xx+dy1_yy+dy1_zz),
+        psi,
         -dy2_t-(d_f1dy1_y2_x+d_f2dy1_y2_y+d_f3dy1_y2_z)+epsilon*(dy2_xx+dy2_yy+dy2_zz),
+        U1 - dpsi_x,
+        U2 - dpsi_y,
+        U3 - dpsi_z,
     ]
 
 
@@ -517,15 +536,6 @@ def rhoT_WASS_cuda0(y_true, y_pred):
 
 print(time.time())
 
-
-# In[ ]:
-
-
-
-
-
-# In[23]:
-
 geom=dde.geometry.geometry_3d.Cuboid(
     [state_min, state_min, state_min],
     [state_max, state_max, state_max])
@@ -534,16 +544,6 @@ geomtime = dde.geometry.GeometryXTime(geom, timedomain)
 
 print(time.time())
 
-
-# In[24]:
-
-
-
-
-
-# In[25]:
-
-
 data = dde.data.TimePDE(
     geomtime,
     euler_pde,
@@ -551,18 +551,12 @@ data = dde.data.TimePDE(
     num_domain=samples_between_initial_and_final,
     num_initial=initial_and_final_samples)
 
-# 2 inputs: x + t
-# 3 outputs: 3 eqs
-net = dde.nn.FNN([4] + [70] *3  + [2], "tanh", "Glorot normal")
-# net.apply_output_transform(modify_output)
-# net.apply_output_transform(modify_output)
+# 4 inputs: x,y,z,t
+# 5 outputs: 2 eq + 3 control vars
+net = dde.nn.FNN([4] + [70] *3  + [5], "tanh", "Glorot normal")
 model = dde.Model(data, net)
 
 print(time.time())
-
-
-# In[26]:
-
 
 ck_path = "%s/%s_model" % (os.path.abspath("./"), id_prefix)
 
@@ -651,9 +645,10 @@ print(time.time())
 
 # In[27]:
 
-
-loss_seq = LossSeq()
-loss_func=["MSE","MSE", rho0_WASS_cuda0, rhoT_WASS_cuda0]
+loss_func=[
+    "MSE","MSE",
+    "MSE", "MSE", "MSE",
+    rho0_WASS_cuda0, rhoT_WASS_cuda0]
 # loss functions are based on PDE + BC: 3 eq outputs, 2 BCs
 
 model.compile("adam", lr=1e-3,loss=loss_func)
