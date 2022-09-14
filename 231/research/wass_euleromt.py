@@ -260,12 +260,14 @@ def pde(x, y):
     All collocation-based residuals are defined here
     """
     y1, y2 = y[:, 0:1], y[:, 1:]
-    dy1_x = tf.gradients(y1, x)[0]
+    # dy1_x = tf.gradients(y1, x)[0]
+    dy1_x = dde.grad.jacobian(y1, x, j=0)
+
     dy1_x, dy1_y, dy1_z, dy1_t = dy1_x[:,0:1], dy1_x[:,1:2], dy1_x[:,2:3], dy1_x[:,3:]
     
     dy1_xx = tf.gradients(dy1_x, x)[0][:, 0:1]
     dy1_yy = tf.gradients(dy1_y, x)[0][:, 1:2]
-    dy1_zz = tf.gradients(dy1_z, x)[0][:, 2:3] 
+    dy1_zz = tf.gradients(dy1_z, x)[0][:, 2:3]
     
     dy2_x = tf.gradients(y2, x)[0]
     dy2_x, dy2_y, dy2_z, dy2_t = dy2_x[:,0:1], dy2_x[:,1:2], dy2_x[:,2:3], dy2_x[:,3:]    

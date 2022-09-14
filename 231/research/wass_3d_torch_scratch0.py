@@ -544,7 +544,7 @@ data = dde.data.TimePDE(
 
 # 2 inputs: x + t
 # 3 outputs: 3 eqs
-net = dde.nn.FNN([2] + [70] *3  + [3], "tanh", "Glorot normal")
+net = dde.nn.FNN([4] + [70] *3  + [2], "tanh", "Glorot normal")
 # net.apply_output_transform(modify_output)
 # net.apply_output_transform(modify_output)
 model = dde.Model(data, net)

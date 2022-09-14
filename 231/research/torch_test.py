@@ -267,7 +267,9 @@ model = dde.Model(data, net)
 loss_func=["MSE","MSE","MSE", "MSE","MSE"]
 # loss functions are based on PDE + BC: 3 eq outputs, 2 BCs
 model.compile("adam", lr=1e-3,loss=loss_func)
-model.restore('./empty_model-40000.pt')
+model.restore('/usr/local/home/cyan3/Desktop/gradschool/231/research/empty_model-6723.pt')
+
+
 
 X_IDX = 0
 T_IDX = 1
@@ -276,56 +278,47 @@ EQ_IDX = 3
 fig = plt.figure(1)
 ax1 = plt.subplot(111, frameon=False)
 
-inputs = np.loadtxt('./inputs.dat')
-y_pred = np.loadtxt('./y_pred_np.dat')
-y_true = np.loadtxt('./y_true_np.dat')
+inputs = time_0
 output = model.predict(inputs)
-
 test_ti = np.hstack((inputs, output))
-ind = np.lexsort((test_ti[:,X_IDX],test_ti[:,T_IDX]))
-# sorts by [1] (t) then by [3] (rho_0)
-test_ti = test_ti[ind]
+
+# post process
+test_ti[:,EQ_IDX] = np.where(test_ti[:,EQ_IDX] < 0, 0, test_ti[:,EQ_IDX])
+print("test_ti[:,EQ_IDX]", test_ti[:,EQ_IDX])
+s1 = np.trapz(test_ti[:,EQ_IDX], axis=0, x=test_ti[:,X_IDX])
+print(s1)
+
+test_ti[:, EQ_IDX] /= s1 # to pdf
+test_ti[:, EQ_IDX] = np.nan_to_num(test_ti[:, EQ_IDX], 0.0)
+
+# s2 = np.sum(test_ti[:,EQ_IDX])
+# test_ti[:, EQ_IDX] /= s2 # to pmf
+
+s1 = np.trapz(test_ti[:,EQ_IDX], axis=0, x=test_ti[:,X_IDX])
+s2 = np.sum(test_ti[:,EQ_IDX])
+
+fig = plt.figure(1)
+ax1 = plt.subplot(111, frameon=False)
+# ax1.set_aspect('equal')
+ax1.grid()
+ax1.set_title('trapz=%.3f, sum=%.3f' % (s1, s2))
+
 ax1.plot(
     test_ti[:, 0],
     test_ti[:, EQ_IDX],
     linewidth=1,
-    label='rho_0')
-ax1.legend(loc='lower right')
+    label='test rho_0')
 
-test_ti2 = np.loadtxt('./test.dat')
-# test_ti2 = test_ti2[test_ti2[:, T_IDX].argsort()]
-# test_ti2 = test_ti2[np.where(np.abs(test_ti2[:, T_IDX]) < 1e-8), :][0] # 2k
-# import ipdb; ipdb.set_trace();
-test_ti2 = test_ti2[0:N, :]
-ind = np.lexsort((test_ti2[:,X_IDX],test_ti2[:,T_IDX]))
-test_ti2 = test_ti2[ind]
+test_rho0=pdf1d(test_ti[:, 0], 2.0, 1.5).reshape(test_ti.shape[0],1)
+test_rho0 /= np.trapz(test_rho0, axis=0, x=test_ti[:,X_IDX])
+# test_rho0 = test_rho0 / np.sum(np.abs(test_rho0))
 ax1.plot(
-    test_ti2[:, X_IDX],
-    test_ti2[:, EQ_IDX],
-    linewidth=1,
-    c='g',
-    label='rho_0')
-ax1.legend(loc='lower right')
-
-test_rho0=pdf1d(
-    test_ti[:, X_IDX], 4.0, 4.0).reshape(test_ti.shape[0],1)
-print(np.sum(test_rho0))
-test_rho0 /= np.sum(test_rho0)
-ax1.plot(
-    test_ti[:, X_IDX],
+    test_ti[:, 0],
     test_rho0,
     c='r',
     linewidth=1,
     label='rho_0')
 
-s1 = np.trapz(test_ti[:,EQ_IDX], axis=0, x=test_ti[:,X_IDX])
-s2 = np.sum(test_ti[:,EQ_IDX])
-s3 = np.sum(test_ti2[:, EQ_IDX])
-
-# ax1.set_aspect('equal')
-ax1.grid()
-ax1.set_title('trapz=%.3f, sum=%.3f, sum2=%.3f' % (s1, s2, s3))
+ax1.legend(loc='lower right')
 
 plt.show()
-
-
