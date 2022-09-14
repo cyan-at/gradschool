@@ -531,6 +531,15 @@ class ModelCheckpoint2(dde.callbacks.ModelCheckpoint):
                     current,
                     save_path,
                 ))
+
+            test_path = save_path.replace(".pt", "-%d.dat" % (
+                self.model.train_state.epoch))
+            test = np.hstack((
+                self.model.train_state.X_test,
+                self.model.train_state.y_test))
+            np.savetxt(test_path, test, header="x, y_pred")
+            print("saved test data to ", test_path)
+
             self.best = current
 
     def get_monitor_value(self):
