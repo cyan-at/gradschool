@@ -624,7 +624,7 @@ print(time.time())
 
 
 loss_seq = LossSeq()
-loss_func=["MSE","MSE","MSE", rho0_WASS_cuda0, rhoT_WASS_cuda0]
+loss_func=["MSE","MSE", rho0_WASS_cuda0, rhoT_WASS_cuda0]
 # loss functions are based on PDE + BC: 3 eq outputs, 2 BCs
 
 model.compile("adam", lr=1e-3,loss=loss_func)
