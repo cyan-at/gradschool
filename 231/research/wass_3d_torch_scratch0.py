@@ -79,7 +79,7 @@ from scipy.linalg import sqrtm
 # from cvxpylayers.tensorflow.cvxpylayer import CvxpyLayer
 from cvxpylayers.torch import CvxpyLayer
 
-import os, glob
+
 
 print(time.time())
 
@@ -136,7 +136,7 @@ A = np.concatenate(
 # nb_name = __file__
 # id_prefix = nb_name.replace(".ipynb", "").replace("-", "_")
 
-id_prefix = "empty"
+id_prefix = "3d"
 
 print(id_prefix)
 print(time.time())
@@ -160,6 +160,11 @@ def pdf1d(x, mu, sigma):
     # rho_x = norm.pdf(x, mu, sigma)
     return rho_x
 
+rv0 = multivariate_normal([mu_0, mu_0, mu_0], sigma_0 * np.eye(3))
+rvT = multivariate_normal([mu_T, mu_T, mu_T], sigma_T * np.eye(3))
+def pdf3d(x,y,z,rv):
+    return rv.pdf(np.hstack((x, y, z)))
+
 def boundary(_, on_initial):
     return on_initial
 
@@ -182,7 +187,8 @@ print(time.time())
 
 time_0=np.hstack((x_T,T_0*np.ones((len(x_T), 1))))
 
-rho_0=pdf1d(x_T, mu_0, sigma_0).reshape(len(x_T),1)
+# rho_0=pdf1d(x_T, mu_0, sigma_0).reshape(len(x_T),1)
+rho_0=pdf3d(x_T,y_T,z_T, rv0).reshape(len(x_T),1)
 
 rho_0 = np.where(rho_0 < 0, 0, rho_0)
 rho_0 /= np.trapz(rho_0, x=x_T, axis=0)[0] # pdf
@@ -194,7 +200,8 @@ rho_0_BC = dde.icbc.PointSetBC(time_0, rho_0, component=1)
 
 time_t=np.hstack((x_T,T_t*np.ones((len(x_T), 1))))
 
-rho_T=pdf1d(x_T, mu_T, sigma_T).reshape(len(x_T),1)
+# rho_T=pdf1d(x_T, mu_T, sigma_T).reshape(len(x_T),1)
+rho_T=pdf3d(x_T,y_T,z_T, rvT).reshape(len(x_T),1)
 
 rho_T = np.where(rho_T < 0, 0, rho_T)
 rho_T /= np.trapz(rho_T, x=x_T, axis=0)[0] # pdf
@@ -268,6 +275,74 @@ def pde(x, y):
         S3*y3-dy1_x*dD1_y3-dy1_xx*dD2_y3,
 #         neg_loss,
 #         neg_loss_y2,
+    ]
+
+def euler_pde(x, y):
+    """Euler system.
+    dy1_t = g(x)-1/2||Dy1_x||^2-<Dy1_x,f>-epsilon*Dy1_xx
+    dy2_t = -D.(y2*(f)+Dy1_x)+epsilon*Dy2_xx
+    All collocation-based residuals are defined here
+    """
+    y1, y2 = y[:, 0:1], y[:, 1:]
+
+    dy1_x = dde.grad.jacobian(y1, x, j=0)
+    dy1_y = dde.grad.jacobian(y1, x, j=1)
+    dy1_z = dde.grad.jacobian(y1, x, j=2)
+    dy1_t = dde.grad.jacobian(y1, x, j=3)
+    dy1_xx = dde.grad.hessian(y1, x, i=0, j=0)
+    dy1_yy = dde.grad.hessian(y1, x, i=1, j=1)
+    dy1_zz = dde.grad.hessian(y1, x, i=2, j=2)
+
+    dy2_x = dde.grad.jacobian(y2, x, j=0)
+    dy2_y = dde.grad.jacobian(y2, x, j=1)
+    dy2_z = dde.grad.jacobian(y2, x, j=2)
+    dy2_t = dde.grad.jacobian(y2, x, j=3)
+    dy2_xx = dde.grad.hessian(y2, x, i=0, j=0)
+    dy2_yy = dde.grad.hessian(y2, x, i=1, j=1)
+    dy2_zz = dde.grad.hessian(y2, x, i=2, j=2)
+
+    """Compute Jacobian matrix J: J[i][j] = dy_i / dx_j, where i = 0, ..., dim_y - 1 and
+    j = 0, ..., dim_x - 1.
+    Use this function to compute first-order derivatives instead of ``tf.gradients()``
+    or ``torch.autograd.grad()``, because
+
+    - It is lazy evaluation, i.e., it only computes J[i][j] when needed.
+    - It will remember the gradients that have already been computed to avoid duplicate
+      computation.
+    """
+
+    """Compute Hessian matrix H: H[i][j] = d^2y / dx_i dx_j, where i,j=0,...,dim_x-1.
+
+    Use this function to compute second-order derivatives instead of ``tf.gradients()``
+    or ``torch.autograd.grad()``, because
+
+    - It is lazy evaluation, i.e., it only computes H[i][j] when needed.
+    - It will remember the gradients that have already been computed to avoid duplicate
+      computation."""
+
+    f1=x[:, 1:2]*x[:, 2:3]*(j2-j3)/j1
+    f2=x[:, 0:1]*x[:, 2:3]*(j3-j1)/j2
+    f3=x[:, 0:1]*x[:, 1:2]*(j1-j2)/j3
+    
+    # d_f1dy1_y2_x=tf.gradients((f1+dy1_x)*y2, x)[0][:, 0:1]
+    # d_f2dy1_y2_y=tf.gradients((f2+dy1_y)*y2, x)[0][:, 1:2]
+    # d_f3dy1_y2_z=tf.gradients((f3+dy1_z)*y2, x)[0][:, 2:3]
+    d_f1dy1_y2_x = dde.grad.jacobian((f1+dy1_x)*y2, x, j=0)
+    d_f2dy1_y2_y = dde.grad.jacobian((f2+dy1_y)*y2, x, j=1)
+    d_f3dy1_y2_z = dde.grad.jacobian((f3+dy1_z)*y2, x, j=2)
+
+    # stay close to origin while searching, penalizes large state distance solutions
+    q = q_statepenalty_gain*(
+        x[:, 0:1] * x[:, 0:1]\
+        + x[:, 1:2] * x[:, 1:2]\
+        + x[:, 2:3] * x[:, 2:3])
+    # also try
+    # q = 0 # minimum effort control
+    
+    # TODO: verify this expression
+    return [
+        -dy1_t+q-.5*(dy1_x*dy1_x+dy1_y*dy1_y+dy1_z*dy1_z)-dy1_x*f1-dy1_y*f2-dy1_z*f3-epsilon*(dy1_xx+dy1_yy+dy1_zz),
+        -dy2_t-(d_f1dy1_y2_x+d_f2dy1_y2_y+d_f3dy1_y2_z)+epsilon*(dy2_xx+dy2_yy+dy2_zz),
     ]
 
 
@@ -367,7 +442,7 @@ def rho0_WASS_cuda0(y_true, y_pred):
     # print(type(param))
     # try:
     x_sol, = cvxpylayer(param, solver_args={
-        'max_iters': 500000,
+        'max_iters': 10000,
         # 'eps' : 1e-5,
         'solve_method' : 'ECOS'
     }) # or ECOS, ECOS is faster
@@ -471,16 +546,6 @@ print(time.time())
 
 ck_path = "%s/%s_model" % (os.path.abspath("./"), id_prefix)
 
-low_rho_t_error_path = "%s/low_rho_t/" % (os.path.abspath("./"))
-try:
-    os.mkdir(low_rho_t_error_path)
-except:
-    print("dir exists")
-    files = glob.glob(low_rho_t_error_path+'*')
-    for f in files:
-        os.remove(f)
-low_rho_t_error_path = "%s/low_rho_t/%s_model" % (os.path.abspath("./"), id_prefix)
-
 class EarlyStoppingFixed(dde.callbacks.EarlyStopping):
     def on_epoch_end(self):
         current = self.get_monitor_value()
@@ -501,18 +566,14 @@ class EarlyStoppingFixed(dde.callbacks.EarlyStopping):
         self.model.save(ck_path, verbose=True)
 
     def get_monitor_value(self):
-        if self.monitor == "train loss" or self.monitor == "loss_train":
-            data = self.model.train_state.loss_train
-        elif self.monitor == "test loss" or self.monitor == "loss_test":
-            data = self.model.train_state.loss_test
+        if self.monitor == "loss_train":
+            # result = sum(self.model.train_state.loss_train)
+            result = max(self.model.train_state.loss_train)
+        elif self.monitor == "loss_test":
+            # result = sum(self.model.train_state.loss_test)
+            result = max(self.model.train_state.loss_test)
         else:
-            raise ValueError("The specified monitor function is incorrect.", self.monitor)
-
-        result = max(data)
-        if min(data) < 1e-50:
-            print("likely a numerical error")
-            # numerical error
-            return 1.0
+            raise ValueError("The specified monitor function is incorrect.")
 
         return result
 
@@ -521,7 +582,7 @@ earlystop_cb = EarlyStoppingFixed(baseline=1e-3, patience=0)
 class ModelCheckpoint2(dde.callbacks.ModelCheckpoint):
     def on_epoch_end(self):
         current = self.get_monitor_value()
-        if self.monitor_op(current, self.best) and current < 1e-1:
+        if self.monitor_op(current, self.best) and current < 1e-3:
             save_path = self.model.save(self.filepath, verbose=0)
             print(
                 "Epoch {}: {} improved from {:.2e} to {:.2e}, saving model to {} ...\n".format(
@@ -532,32 +593,6 @@ class ModelCheckpoint2(dde.callbacks.ModelCheckpoint):
                     save_path,
                 ))
             self.best = current
-
-    def get_monitor_value(self):
-        if self.monitor == "train loss" or self.monitor == "loss_train":
-            data = self.model.train_state.loss_train
-        elif self.monitor == "test loss" or self.monitor == "loss_test":
-            data = self.model.train_state.loss_test
-        else:
-            raise ValueError("The specified monitor function is incorrect.", self.monitor)
-
-        result = max(data)
-        if min(data) < 1e-50:
-            print("likely a numerical error")
-            # numerical error
-
-            if self.save_numerical_error:
-                save_path = self.model.save(low_rho_t_error_path, verbose=0)
-                print(
-                    "saving numerical model to {} ...\n".format(
-                        save_path,
-                    ))
-                self.save_numerical_error = False
-            else:
-                pass
-            return 1.0
-
-        return result
 
 modelcheckpt_cb = ModelCheckpoint2(
     ck_path, verbose=True, save_better_only=True, period=1)
@@ -575,7 +610,7 @@ loss_func=["MSE","MSE","MSE", rho0_WASS_cuda0, rhoT_WASS_cuda0]
 model.compile("adam", lr=1e-3,loss=loss_func)
 de = 1
 losshistory, train_state = model.train(
-    iterations=10000,
+    iterations=50000,
     display_every=de,
     callbacks=[earlystop_cb, modelcheckpt_cb])
 
