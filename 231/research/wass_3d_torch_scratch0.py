@@ -532,7 +532,7 @@ def rhoT_WASS_cuda0(y_true, y_pred):
         return wass_dist
     except:
         print("cvx failed, returning mse")
-        return torch.mean(torch.square(y_true - y_pred))
+        return torch.nan_to_num(torch.mean(torch.square(y_true - y_pred)), 1e3)
 
 print(time.time())
 
