@@ -94,32 +94,32 @@ nb_name = "none"
 # In[28]:
 
 
-N = nSample = 50
+N = nSample = 2000
 
 # must be floats
-state_min = 0.0
-state_max = 6.0
+state_min = -4.0
+state_max = 4.0
 
 mu_0 = 2.0
 sigma_0 = 1.5
 
-mu_T = 4.0
+mu_T = 0.0
 sigma_T = 1.0
 
 j1, j2, j3 =1,1,2 # axis-symmetric case
 q_statepenalty_gain = 0 # 0.5
 
 T_0=0. #initial time
-T_t=100. #Terminal time
+T_t=50. #Terminal time
 
 epsilon=.001
 
 samples_between_initial_and_final = 12000 # 10^4 order, 20k = out of memory
 initial_and_final_samples = 1000 # some 10^3 order
 
-######################################
+num_epochs = 100000
 
-num_epochs = 20000
+######################################
 
 x_grid = np.transpose(np.linspace(state_min, state_max, nSample))
 y_grid = np.transpose(np.linspace(state_min, state_max, nSample))
@@ -145,7 +145,7 @@ A = np.concatenate(
 # nb_name = __file__
 # id_prefix = nb_name.replace(".ipynb", "").replace("-", "_")
 
-id_prefix = "3d"
+id_prefix = "wass_3d"
 
 print(id_prefix)
 print(time.time())
@@ -548,8 +548,8 @@ data = dde.data.TimePDE(
     geomtime,
     euler_pde,
     [rho_0_BC,rho_T_BC],
-    num_domain=5000,
-    num_initial=500)
+    num_domain=samples_between_initial_and_final,
+    num_initial=initial_and_final_samples)
 
 # 2 inputs: x + t
 # 3 outputs: 3 eqs
@@ -586,14 +586,18 @@ class EarlyStoppingFixed(dde.callbacks.EarlyStopping):
         self.model.save(ck_path, verbose=True)
 
     def get_monitor_value(self):
-        if self.monitor == "loss_train":
-            # result = sum(self.model.train_state.loss_train)
-            result = max(self.model.train_state.loss_train)
-        elif self.monitor == "loss_test":
-            # result = sum(self.model.train_state.loss_test)
-            result = max(self.model.train_state.loss_test)
+        if self.monitor == "train loss" or self.monitor == "loss_train":
+            data = self.model.train_state.loss_train
+        elif self.monitor == "test loss" or self.monitor == "loss_test":
+            data = self.model.train_state.loss_test
         else:
-            raise ValueError("The specified monitor function is incorrect.")
+            raise ValueError("The specified monitor function is incorrect.", self.monitor)
+
+        result = max(data)
+        if min(data) < 1e-50:
+            print("likely a numerical error")
+            # numerical error
+            return 1.0
 
         return result
 
@@ -602,7 +606,7 @@ earlystop_cb = EarlyStoppingFixed(baseline=1e-3, patience=0)
 class ModelCheckpoint2(dde.callbacks.ModelCheckpoint):
     def on_epoch_end(self):
         current = self.get_monitor_value()
-        if self.monitor_op(current, self.best) and current < 1e-3:
+        if self.monitor_op(current, self.best) and current < 5e-2:
             save_path = self.model.save(self.filepath, verbose=0)
             print(
                 "Epoch {}: {} improved from {:.2e} to {:.2e}, saving model to {} ...\n".format(
@@ -612,7 +616,42 @@ class ModelCheckpoint2(dde.callbacks.ModelCheckpoint):
                     current,
                     save_path,
                 ))
+
+            test_path = save_path.replace(".pt", "-%d.dat" % (
+                self.model.train_state.epoch))
+            test = np.hstack((
+                self.model.train_state.X_test,
+                self.model.train_state.y_test))
+            np.savetxt(test_path, test, header="x, y_pred")
+            print("saved test data to ", test_path)
+
             self.best = current
+
+    def get_monitor_value(self):
+        if self.monitor == "train loss" or self.monitor == "loss_train":
+            data = self.model.train_state.loss_train
+        elif self.monitor == "test loss" or self.monitor == "loss_test":
+            data = self.model.train_state.loss_test
+        else:
+            raise ValueError("The specified monitor function is incorrect.", self.monitor)
+
+        result = max(data)
+        if min(data) < 1e-50:
+            print("likely a numerical error")
+            # numerical error
+
+            if self.save_numerical_error:
+                save_path = self.model.save(low_rho_t_error_path, verbose=0)
+                print(
+                    "saving numerical model to {} ...\n".format(
+                        save_path,
+                    ))
+                self.save_numerical_error = False
+            else:
+                pass
+            return 1.0
+
+        return result
 
 modelcheckpt_cb = ModelCheckpoint2(
     ck_path, verbose=True, save_better_only=True, period=1)
@@ -630,7 +669,7 @@ loss_func=["MSE","MSE", rho0_WASS_cuda0, rhoT_WASS_cuda0]
 model.compile("adam", lr=1e-3,loss=loss_func)
 de = 1
 losshistory, train_state = model.train(
-    iterations=50000,
+    iterations=num_epochs,
     display_every=de,
     callbacks=[earlystop_cb, modelcheckpt_cb])
 
