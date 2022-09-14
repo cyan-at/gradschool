@@ -1347,6 +1347,19 @@ https://outlook.office365.com/mail/
 https://calendar.google.com/calendar/u/0/r/week?pli=1
 http://localhost:8888/notebooks/wass_1d-scratch0.ipynb
 
+https://pytorch.org/tutorials/recipes/recipes/tuning_guide.html
+https://open.spotify.com/collection/tracks
+https://www.google.com/search?q=pytorch+speeding+up&oq=pytorch+speeding+up&aqs=chrome..69i57j69i59.5916j0j7&sourceid=chrome&ie=UTF-8
+https://stackoverflow.com/questions/56223799/speeding-up-cvxpy-processing-speed
+https://www.cvxpy.org/tutorial/advanced/index.html
+https://github.com/cvxgrp/cvxpylayers/blob/master/cvxpylayers/torch/cvxpylayer.py
+https://github.com/cvxgrp/diffcp
+https://github.com/embotech/ecos/wiki
+https://pytorch.org/docs/stable/generated/torch.nan_to_num.html
+https://github.com/cvxpy/cvxpy/issues/1046
+https://discuss.pytorch.org/t/how-to-try-catch-errors-during-training/108619
+
+
 #########################################################
 
 integral notion of distance, not analytical like other ideas of distance, implicit differentiation
@@ -1432,8 +1445,85 @@ how do we enforce network prediction is pdf?
 in wass loss function, penalize each element being less than 0, sum of y_pred diff vs 1
 
 #########################################################
+
+---------------
+
+got tfv2 example of wass distance + gradient
+wrote tfv2 rho0_wass loss function
+when training, tf.Tensor cvxpy Parameter not compatible (no .numpy() again)
+  ask on forum, consider different backend
+
+got torch example of computing wass distance + gradient
+when trying to train torch, get CUDA error
+  so upgrade torch version to use CUDA 11.3, so that it can use my GPU device
+    https://pytorch.org/get-started/locally/
+    pip uninstall torch -y
+    pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu113
+  set CUDA_HOME, and make sure that CUDA_HOME has a libdevice.10.bc symlinked in /bin/nvvm/libdevice/
+  have to add some type and device explicit code to get example code to run and converge
+
+works after the above fixes, can use cvxpylayer and get gradient with cpu or cuda:0!!!
+
+---------------
+
+started training with wass loss function! very slow, but does seem to be converging for 5.0,1.0-0.0,1.0
+4 hours for 100 epochs
+but the solver starts to fail for 1.0 to 3.0
+
+found that for TimePDE, the loss functions are called with loss(diff, zero), so y_pred is the DIFF, and y_true is a 0-vector, this explains what we saw earlier
+
+so computing a wasserstein distance on this is not the semantics / distance we really want
+
+so i fixed it in the source code to pass y_pred and y_true so i can compute wasserstein in loss function
+
+i also want to train for a pmf first, and then switch to training for wasserstein
+
+and i want to sanity check that the pmf training is working, test output does not seem right
+but then i save the model and this seems right? it's not saving the right model?
+
+it is saving the last model (not intermediate ones?)
+
+but the test data parsing code is wrong because it gets more than N
+samples for the rho_0 test data because it was thresholding by t=0
+but num_initial test data also has data at t=0, so this means more net output
+than there is for t=0 really
+so instead sample how the pde samples it, by bc indices
+
+test_ti2 = np.loadtxt('./test.dat')
+# test_ti2 = test_ti2[test_ti2[:, T_IDX].argsort()]
+# test_ti2 = test_ti2[np.where(np.abs(test_ti2[:, T_IDX]) < 1e-8), :][0] # 2k
+# import ipdb; ipdb.set_trace();
+test_ti2 = test_ti2[0:N, :]
+ind = np.lexsort((test_ti2[:,X_IDX],test_ti2[:,T_IDX]))
+test_ti2 = test_ti2[ind]
+# use beg:end 0:N N:2N to sample 0_BC, T_BC
+# instead of thresholding by time
+# because num_initial will also have samples at t=0, etc.
+
+
+
+
 #########################################################
+
+
 #########################################################
+
+cvxpy: ECOS is faster than SCS most of the time
+
+the boundary condition loss values are VERY important:
+
+10000     [4.66e-06, 3.85e-03, 9.55e-05, 4.18e-02, 1.04e-01]    [4.66e-06, 3.85e-03, 9.55e-05, 4.18e-02, 1.04e-01]    []
+
+e-01 is NOT good enough, was not a PDF / PMF
+
+but the better model:
+
+8824      [2.73e-06, 3.84e-03, 1.02e-04, 2.49e-02, 4.77e-02]    [2.73e-06, 3.84e-03, 1.02e-04, 2.49e-02, 4.77e-02]    []
+
+has a VERY close match on the boundary conditions
+
+so this metric you need to be careful, small differences in metric mean different outcomes
+
 #########################################################
 #########################################################
 
@@ -1519,3 +1609,101 @@ in wass loss function, penalize each element being less than 0, sum of y_pred di
 #########################################################
 #########################################################
 #########################################################
+
+import cvxpy as cp
+import tensorflow as tf
+from cvxpylayers.tensorflow import CvxpyLayer
+
+print(cvector.shape)
+
+c_shape_half = int(cvector.shape[0]/2)
+
+# Define and solve the CVXPY problem.
+x1 = cp.Variable(
+    c_shape_half,
+    nonneg=True
+)
+x2 = cp.Variable(
+    c_shape_half,
+    nonneg=True
+)
+
+
+cvector1 = cvector[:c_shape_half, 0]
+cvector2 = cvector[c_shape_half:, 0]
+
+
+A1 = A[:N, :]
+A2 = A[N:, :]
+
+
+pred = cp.Parameter((A1.shape[0],))
+
+
+
+problem = cp.Problem(
+    cp.Minimize(cvector1.T @ x1 + cvector2.T @ x2),
+    [
+        A1 @ x1 == pred,
+        A2 @ x2 == rho_0,
+    ],
+)
+assert problem.is_dpp()
+print(problem.parameters())
+
+'''
+
+cvxpylayer = CvxpyLayer(
+    problem,
+    parameters=[pred],
+    variables=[x])
+
+rho_I=pdf1d(x_T, 4.0, 1.0).reshape(len(x_T),1)
+rho_I = np.where(rho_I < 0, 0, rho_I)
+rho_I = rho_I / np.sum(np.abs(rho_I))
+
+y_pred = tf.Variable(tf.zeros((100,), tf.double))
+y_pred = tf.constant(rho_I, shape=(100,))
+rho_0_tf = tf.constant(rho_0, shape=(100,))
+
+with tf.GradientTape() as tape:
+  # solve the problem, setting the values of A, b to A_tf, b_tf
+  x_sol, = cvxpylayer(y_pred)
+# compute the gradient of the summed solution with respect to A, b
+grad_ypred = tape.gradient(x_sol, [y_pred])
+
+print("x_sol")
+print(x_sol)
+
+print(cvector.T @ x_sol.numpy())
+
+print("grad_ypred")
+print(grad_ypred)
+
+print("problem.value", problem.value)
+'''
+
+
+its a discontinuous partition:
+  the people who are most like you exist, just not near you
+
+the truth blinking in and out
+  it is true only to you, and you glimpse it, and you can't speak to it because it falls out of scope right away
+
+
+
+
+what you are doing when you 'machine-learn'
+
+you compile a graph (net + loss functions) that supports auto-diff (symbolic gradients)
+this is loss = f(theta)(x) where f(theta) is the graph mapping input to loss
+where analytical differentiation is not possible and numerical diff is meaningless
+
+then you forward propagate the input to an output and further out into losses
+all of this while the machine is 'watching' the symoblic forward prop
+then the machine auto-diff's out the d(loss)/d(theta)
+and then the optimizer steps along the gradient to find some minimum global / local
+
+a Tensor is an interesting entity
+it is a matrix of some shape that is also a node in a graph
+it is a matrix whose elements are symbolic functions
