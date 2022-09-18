@@ -149,28 +149,6 @@ y_T=Y.reshape(N**3,1)
 z_T=Z.reshape(N**3,1)
 print(time.time())
 
-
-xyzs=np.hstack((
-    x_T,
-    y_T,
-    z_T,
-))
-C = cdist(xyzs, xyzs, 'sqeuclidean')
-cvector = C.reshape((N**3)**2,1)
-
-A = np.concatenate(
-    (
-        np.kron(
-            np.ones((1,N**3)),
-            sparse.eye(N**3).toarray()
-        ),
-        np.kron(
-            sparse.eye(N**3).toarray(),
-            np.ones((1,N**3))
-        )
-    ), axis=0)
-# 2*N**3
-
 id_prefix = "wass_3d"
 
 print(id_prefix)
@@ -184,48 +162,9 @@ def pdf3d(x,y,z,rv):
 def boundary(_, on_initial):
     return on_initial
 
-print(time.time())
-
-time_0=np.hstack((
-    x_T,
-    y_T,
-    z_T,
-    T_0*np.ones((len(x_T), 1))
-))
-
-# rho_0=pdf1d(x_T, mu_0, sigma_0).reshape(len(x_T),1)
-rho_0=pdf3d(x_T,y_T,z_T, rv0).reshape(len(x_T),1)
-
-rho_0 = np.where(rho_0 < 0, 0, rho_0)
-rho_0 /= np.trapz(rho_0, x=x_T, axis=0)[0] # pdf
-rho_0 = rho_0 / np.sum(np.abs(rho_0)) # pmf
-print(np.sum(rho_0))
-
-rho_0_BC = dde.icbc.PointSetBC(time_0, rho_0, component=1)
-
-time_t=np.hstack((
-    x_T,
-    y_T,
-    z_T,
-    T_t*np.ones((len(x_T), 1))
-))
-
-# rho_T=pdf1d(x_T, mu_T, sigma_T).reshape(len(x_T),1)
-rho_T=pdf3d(x_T,y_T,z_T, rvT).reshape(len(x_T),1)
-
-rho_T = np.where(rho_T < 0, 0, rho_T)
-rho_T /= np.trapz(rho_T, x=x_T, axis=0)[0] # pdf
-rho_T = rho_T / np.sum(np.abs(rho_T)) # pmf
-print(np.sum(rho_T))
-
-rho_T_BC = dde.icbc.PointSetBC(time_t, rho_T, component=1)
-
-print(time.time())
-
 U1 = dde.Variable(1.0)
 U2 = dde.Variable(1.0)
 U3 = dde.Variable(1.0)
-
 def euler_pde(x, y):
     """Euler system.
     dy1_t = g(x)-1/2||Dy1_x||^2-<Dy1_x,f>-epsilon*Dy1_xx
@@ -304,13 +243,64 @@ def euler_pde(x, y):
         #U3 - dpsi_z,
     ]
 
+time_0=np.hstack((
+    x_T,
+    y_T,
+    z_T,
+    T_0*np.ones((len(x_T), 1))
+))
+
+# rho_0=pdf1d(x_T, mu_0, sigma_0).reshape(len(x_T),1)
+rho_0=pdf3d(x_T,y_T,z_T, rv0).reshape(len(x_T),1)
+
+rho_0 = np.where(rho_0 < 0, 0, rho_0)
+rho_0 /= np.trapz(rho_0, x=x_T, axis=0)[0] # pdf
+rho_0 = rho_0 / np.sum(np.abs(rho_0)) # pmf
+print(np.sum(rho_0))
+
+rho_0_BC = dde.icbc.PointSetBC(time_0, rho_0, component=1)
+
+time_t=np.hstack((
+    x_T,
+    y_T,
+    z_T,
+    T_t*np.ones((len(x_T), 1))
+))
+
+# rho_T=pdf1d(x_T, mu_T, sigma_T).reshape(len(x_T),1)
+rho_T=pdf3d(x_T,y_T,z_T, rvT).reshape(len(x_T),1)
+
+rho_T = np.where(rho_T < 0, 0, rho_T)
+rho_T /= np.trapz(rho_T, x=x_T, axis=0)[0] # pdf
+rho_T = rho_T / np.sum(np.abs(rho_T)) # pmf
+print(np.sum(rho_T))
+
+rho_T_BC = dde.icbc.PointSetBC(time_t, rho_T, component=1)
 
 print(time.time())
 
-
 # In[22]:
 
-
+'''
+xyzs=np.hstack((
+    x_T,
+    y_T,
+    z_T,
+))
+C = cdist(xyzs, xyzs, 'sqeuclidean')
+cvector = C.reshape((N**3)**2,1)
+A = np.concatenate(
+    (
+        np.kron(
+            np.ones((1,N**3)),
+            sparse.eye(N**3).toarray()
+        ),
+        np.kron(
+            sparse.eye(N**3).toarray(),
+            np.ones((1,N**3))
+        )
+    ), axis=0)
+# 2*N**3
 # Define and solve the CVXPY problem.
 x = cp.Variable(
     cvector.shape[0],
@@ -337,7 +327,6 @@ rho_0_tensor = torch.from_numpy(
     rho_0
 ).requires_grad_(False)
 
-
 rho_T_tensor = torch.from_numpy(
     rho_T
 ).requires_grad_(False)
@@ -346,7 +335,6 @@ cvector_tensor = torch.from_numpy(
     cvector.reshape(-1)
 ).requires_grad_(False)
 
-'''
 rho_0_tensor = rho_0_tensor.to(cpu)
 cvector_tensor = cvector_tensor.to(cpu)
 print(type(rho_0_tensor))
@@ -364,7 +352,6 @@ def rho0_WASS_cpu(y_true, y_pred):
     # TODO(handle infeasible)
     wass_dist = torch.matmul(cvector_tensor, x_sol)
     return wass_dist
-'''
 
 xT_tensor = xT_tensor.to(cuda0)
 rho_0_tensor = rho_0_tensor.to(cuda0)
@@ -450,6 +437,7 @@ def rhoT_WASS_cuda0(y_true, y_pred):
     except:
         print("cvx failed, returning mse")
         return torch.nan_to_num(torch.mean(torch.square(y_true - y_pred)), 1e3)
+'''
 
 print(time.time())
 
@@ -565,7 +553,9 @@ print(time.time())
 loss_func=[
     "MSE","MSE",
     # "MSE", "MSE", "MSE",
-    rho0_WASS_cuda0, rhoT_WASS_cuda0]
+    "MSE", "MSE", # try mse because meshgrid + cvxpy / wass too expensive
+    # rho0_WASS_cuda0, rhoT_WASS_cuda0
+]
 # loss functions are based on PDE + BC: 3 eq outputs, 2 BCs
 
 model.compile("adam", lr=1e-3,loss=loss_func)
