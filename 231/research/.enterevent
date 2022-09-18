@@ -47,15 +47,26 @@ tf.Tensor(697.80804, shape=(), dtype=float32)
 
 for vipersim01
 
+# clean up any prior
 conda remove pytorch
+
+# get a libdevice for some 11.6 version
 locate libdevice.10.bc
-conda install cudatoolkit=11.6
+conda install cudatoolkit=11.6 
 locate libdevice.10.bc
-mv /usr/local/home/cyan3/miniforge/envs/tf/nvvm/libdevice/libdevice.10.bc /usr/local/home/cyan3/miniforge/envs/tf/nvvm/libdevice/libdevice.10.bc.backup
-cd /usr/local/home/cyan3/miniforge/envs/tf/nvvm/libdevice/
-ln -s ~/miniforge/pkgs/cudatoolkit-11.6.0-hecad31d_10/lib/libdevice.10.bc .
-ls
+
+# link /usr/local/home/cyan3/miniforge/envs/tf/nvvm/libdevice/libdevice.10.bc to 11.6
+
+  mv /usr/local/home/cyan3/miniforge/envs/tf/nvvm/libdevice/libdevice.10.bc /usr/local/home/cyan3/miniforge/envs/tf/nvvm/libdevice/libdevice.10.bc.backup
+  cd /usr/local/home/cyan3/miniforge/envs/tf/nvvm/libdevice/
+  ln -s ~/miniforge/pkgs/cudatoolkit-11.6.0-hecad31d_10/lib/libdevice.10.bc .
+
+# now install onednn
+conda install -c conda-forge onednn (2.6.1)
+
+torch for 11.6
 pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu116
+conda install pytorch torchvision torchaudio cudatoolkit=11.6 -c pytorch -c conda-forge
 
 setup
 

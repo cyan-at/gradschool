@@ -62,6 +62,7 @@ from scipy.stats import truncnorm, norm
 from scipy.optimize import linprog
 from scipy import sparse
 from scipy.stats import multivariate_normal
+from scipy.spatial.distance import cdist
 
 if dde.backend.backend_name == "pytorch":
     exp = dde.backend.torch.exp
@@ -130,53 +131,50 @@ print("q: ", q_statepenalty_gain)
 
 ######################################
 
-x_grid = np.transpose(np.linspace(state_min, state_max, nSample))
-y_grid = np.transpose(np.linspace(state_min, state_max, nSample))
-[X,Y] = np.meshgrid(x_grid,x_grid)
-C = (X - Y)**2
+'''
+x_T = np.transpose(np.linspace(state_min, state_max, N))
+y_T = np.transpose(np.linspace(state_min, state_max, N))
+z_T = np.transpose(np.linspace(state_min, state_max, N))
+x_T=x_T.reshape(len(x_T),1)
+y_T=y_T.reshape(len(y_T),1)
+z_T=z_T.reshape(len(z_T),1)
+'''
+# a 3d grid, not the sparse diagonal elements as above
+x_grid = np.transpose(np.linspace(state_min, state_max, N))
+y_grid = np.transpose(np.linspace(state_min, state_max, N))
+z_grid = np.transpose(np.linspace(state_min, state_max, N))
+[X,Y,Z] = np.meshgrid(x_grid,x_grid,z_grid)
+x_T=X.reshape(N**3,1)
+y_T=Y.reshape(N**3,1)
+z_T=Z.reshape(N**3,1)
+print(time.time())
 
-# cvector = C.flatten('F')
-cvector = C.reshape(nSample**2,1)
+
+xyzs=np.hstack((
+    x_T,
+    y_T,
+    z_T,
+))
+C = cdist(xyzs, xyzs, 'sqeuclidean')
+cvector = C.reshape((N**3)**2,1)
 
 A = np.concatenate(
     (
         np.kron(
-            np.ones((1,nSample)),
-            sparse.eye(nSample).toarray()
+            np.ones((1,N**3)),
+            sparse.eye(N**3).toarray()
         ),
         np.kron(
-            sparse.eye(nSample).toarray(),
-            np.ones((1,nSample))
+            sparse.eye(N**3).toarray(),
+            np.ones((1,N**3))
         )
     ), axis=0)
-# 2*nSample
-
-# nb_name = __file__
-# id_prefix = nb_name.replace(".ipynb", "").replace("-", "_")
+# 2*N**3
 
 id_prefix = "wass_3d"
 
 print(id_prefix)
 print(time.time())
-
-
-# In[ ]:
-
-
-
-
-
-# In[29]:
-
-
-def pdf1d(x, mu, sigma):
-    a, b = (state_min - mu) / sigma, (state_max - mu) / sigma
-    rho_x=truncnorm.pdf(x, a, b, loc = mu, scale = sigma)
-
-    # do NOT use gaussian norm, because it is only area=1
-    # from -inf, inf, will not be for finite state/grid
-    # rho_x = norm.pdf(x, mu, sigma)
-    return rho_x
 
 rv0 = multivariate_normal([mu_0, mu_0, mu_0], sigma_0 * np.eye(3))
 rvT = multivariate_normal([mu_T, mu_T, mu_T], sigma_T * np.eye(3))
@@ -187,29 +185,6 @@ def boundary(_, on_initial):
     return on_initial
 
 print(time.time())
-
-'''
-x_T = np.transpose(np.linspace(state_min, state_max, N))
-y_T = np.transpose(np.linspace(state_min, state_max, N))
-z_T = np.transpose(np.linspace(state_min, state_max, N))
-x_T=x_T.reshape(len(x_T),1)
-y_T=y_T.reshape(len(y_T),1)
-z_T=z_T.reshape(len(z_T),1)
-'''
-
-# a 3d grid
-x_grid = np.transpose(np.linspace(state_min, state_max, N))
-y_grid = np.transpose(np.linspace(state_min, state_max, N))
-z_grid = np.transpose(np.linspace(state_min, state_max, N))
-[X,Y,Z] = np.meshgrid(x_grid,x_grid,z_grid)
-
-x_T=X.reshape(N**3,1)
-y_T=Y.reshape(N**3,1)
-z_T=Z.reshape(N**3,1)
-print(time.time())
-
-
-# In[31]:
 
 time_0=np.hstack((
     x_T,
@@ -246,71 +221,6 @@ print(np.sum(rho_T))
 rho_T_BC = dde.icbc.PointSetBC(time_t, rho_T, component=1)
 
 print(time.time())
-
-
-# In[9]:
-
-
-# # 1d linprog example
-# res = linprog(
-#     cvector,
-#     A_eq=A,
-#     b_eq=np.concatenate((rho_0, rho_T), axis=0),
-#     bounds=[(0, np.inf)],
-#     options={"disp": True}
-# )
-# print(res.fun)
-
-# print(time.time())
-
-
-# In[ ]:
-
-
-
-
-
-# In[17]:
-
-
-S3 = dde.Variable(1.0)
-a, b, c, d, f= 10., 2.1, 0.75, .0045, 0.0005
-K, T=1.38066*10**-23, 293.
-
-def pde(x, y):
-    
-    """Self assembly system.
-    dy1_t = 1/2*(y3^2)-dy1_x*D1-dy1_xx*D2
-    dy2_t = -dD1y2_x +dD2y2_xx
-    y3=dy1_x*dD1_y3+dy1_xx*dD2_y3
-    All collocation-based residuals are defined here
-    Including a penalty function for negative solutions
-    """
-    y1, y2, y3 = y[:, 0:1], y[:, 1:2], y[:, 2:]
-    dy1_t = dde.grad.jacobian(y1, x, j=1)
-    dy1_x = dde.grad.jacobian(y1, x, j=0)
-    dy1_xx = dde.grad.hessian(y1, x, j=0)
-
-    D2=d*torch.exp(-(x[:, 0:1]-b-c*y3)*(x[:, 0:1]-b-c*y3))+f
-    F=a*K*T*(x[:, 0:1]-b-c*y3)*(x[:, 0:1]-b-c*y3)
-#     dD2_x=dde.grad.jacobian(D2, x, j=0)
-#     dF_x=dde.grad.jacobian(F, x, j=0)
-#     D1=dD2_x-dF_x*(D2/(K*T))
-    D1=-2*(x[:, 0:1]-b-c*y3)*((d*torch.exp(-(x[:, 0:1]-b-c*y3)*(x[:, 0:1]-b-c*y3)))+a*D2)
-    dy2_t = dde.grad.jacobian(y2, x, j=1)
-    dD1y2_x=dde.grad.jacobian(D1*y2, x, j=0)
-    dD2y2_xx = dde.grad.hessian(D2*y2, x,  j=0)
-    dD1_y3=dde.grad.jacobian(D1, y3)
-    dD2_y3=dde.grad.jacobian(D2, y3)
-    tt=100
-
-    return [
-        dy1_t-.5*(S3*y3*S3*y3)+D1*dy1_x+D2*dy1_xx,
-        dy2_t+dD1y2_x-dD2y2_xx,
-        S3*y3-dy1_x*dD1_y3-dy1_xx*dD2_y3,
-#         neg_loss,
-#         neg_loss_y2,
-    ]
 
 U1 = dde.Variable(1.0)
 U2 = dde.Variable(1.0)
@@ -487,7 +397,7 @@ def rho0_WASS_cuda0(y_true, y_pred):
     y_pred = y_pred / torch.sum(torch.abs(y_pred))
 
     param = torch.cat((rho_0_tensor, y_pred), 0)
-    param = torch.reshape(param, (2*N,))
+    param = torch.reshape(param, (2*N**3,))
     # print(type(param))
     try:
         x_sol, = cvxpylayer(param, solver_args={
@@ -521,7 +431,7 @@ def rhoT_WASS_cuda0(y_true, y_pred):
     y_pred = y_pred / torch.sum(torch.abs(y_pred))
 
     param = torch.cat((rho_T_tensor, y_pred), 0)
-    param = torch.reshape(param, (2*N,))
+    param = torch.reshape(param, (2*N**3,))
     # print(type(param))
     try:
         x_sol, = cvxpylayer(param, solver_args={
