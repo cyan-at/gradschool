@@ -188,16 +188,24 @@ def boundary(_, on_initial):
 
 print(time.time())
 
-
-# In[30]:
-
-
+'''
 x_T = np.transpose(np.linspace(state_min, state_max, N))
 y_T = np.transpose(np.linspace(state_min, state_max, N))
 z_T = np.transpose(np.linspace(state_min, state_max, N))
 x_T=x_T.reshape(len(x_T),1)
 y_T=y_T.reshape(len(y_T),1)
 z_T=z_T.reshape(len(z_T),1)
+'''
+
+# a 3d grid
+x_grid = np.transpose(np.linspace(state_min, state_max, N))
+y_grid = np.transpose(np.linspace(state_min, state_max, N))
+z_grid = np.transpose(np.linspace(state_min, state_max, N))
+[X,Y,Z] = np.meshgrid(x_grid,x_grid,z_grid)
+
+x_T=X.reshape(N**3,1)
+y_T=Y.reshape(N**3,1)
+z_T=Z.reshape(N**3,1)
 print(time.time())
 
 
@@ -219,7 +227,6 @@ rho_0 = rho_0 / np.sum(np.abs(rho_0)) # pmf
 print(np.sum(rho_0))
 
 rho_0_BC = dde.icbc.PointSetBC(time_0, rho_0, component=1)
-
 
 time_t=np.hstack((
     x_T,
