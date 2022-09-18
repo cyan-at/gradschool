@@ -69,6 +69,8 @@ if __name__ == '__main__':
 
   test = np.loadtxt(args.testdat)
 
+  ####################################################################
+
   test_rho0 = test[:N**3, :]
 
   test_rho0_rhoopt = test_rho0[:, 5]
@@ -91,50 +93,47 @@ if __name__ == '__main__':
 
   ####################################################################
 
-  x1_marginal = get_trapznormd_marginal(
+  rho0_x1_marginal = get_trapznormd_marginal(
     rho_opt, [x1, x2, x3], 0)
 
-  x2_marginal = get_trapznormd_marginal(
+  rho0_x2_marginal = get_trapznormd_marginal(
     rho_opt, [x2, x1, x3], 1)
 
-  x3_marginal = get_trapznormd_marginal(
+  rho0_x3_marginal = get_trapznormd_marginal(
     rho_opt, [x3, x1, x2], 2)
 
   ####################################################################
 
-  '''
-  x1_marginal = np.array([
-      np.trapz(
-          np.array([
-              np.trapz(rho_opt[j, i, :], x=x3) # x3 slices for one x2 => R
-              for i in range(len(x2))]) # x3 slices across all x2 => Rn
-          , x=x2) # x2 slice for one x1 => R
-  for j in range(len(x1))])
+  test_rhoT = test[N**3:2*N**3, :]
 
-  x2_marginal = np.array([
-      np.trapz(
-          np.array([
-              np.trapz(rho_opt[i, j, :], x=x3) # x3 slices for one x1 => R
-              for i in range(len(x1))]) # x3 slices across all x1 => Rn
-          , x=x1) # x1 slice for one x2 => R
-  for j in range(len(x2))])
+  test_rhoT_rhoopt = test_rhoT[:, 5]
 
-  x3_marginal = np.array([
-      np.trapz(
-          np.array([
-              np.trapz(rho_opt[i, :, j], x=x2) # x2 slices for one x1 => R
-              for i in range(len(x1))]) # x2 slices across all x1 => Rn
-          , x=x1) # x1 slice for one x3 => R
-  for j in range(len(x3))])
+  test_rhoT_rhoopt = np.where(test_rhoT_rhoopt<0, 0, test_rhoT_rhoopt)
+  test_rhoT_rhoopt /= np.trapz(
+    test_rhoT_rhoopt,
+    axis=0,
+    x=test_rhoT[:,0])
 
-  x1_pdf_area = np.trapz(x1_marginal, x=x1)
-  x2_pdf_area = np.trapz(x2_marginal, x=x2)
-  x3_pdf_area = np.trapz(x3_marginal, x=x3)
+  ####################################################################
 
-  x1_marginal /= x1_pdf_area
-  x2_marginal /= x2_pdf_area
-  x3_marginal /= x3_pdf_area
-  '''
+  rho_opt = np.zeros((N,N,N))
+
+  closest_1 = [(np.abs(x1 - test_rhoT[i, 0])).argmin() for i in range(test_rhoT.shape[0])]
+  closest_2 = [(np.abs(x2 - test_rhoT[i, 1])).argmin() for i in range(test_rhoT.shape[0])]
+  closest_3 = [(np.abs(x3 - test_rhoT[i, 2])).argmin() for i in range(test_rhoT.shape[0])]
+
+  rho_opt[closest_1, closest_2, closest_3] = test_rhoT_rhoopt
+
+  ####################################################################
+
+  rhoT_x1_marginal = get_trapznormd_marginal(
+    rho_opt, [x1, x2, x3], 0)
+
+  rhoT_x2_marginal = get_trapznormd_marginal(
+    rho_opt, [x2, x1, x3], 1)
+
+  rhoT_x3_marginal = get_trapznormd_marginal(
+    rho_opt, [x3, x1, x2], 2)
 
   ####################################################################
 
@@ -143,44 +142,68 @@ if __name__ == '__main__':
   # ax1.set_aspect('equal')
   ax1.grid()
   ax1.set_title('x1 marginal')
-
   ax2 = plt.subplot(132, frameon=False)
   # ax2.set_aspect('equal')
   ax2.grid()
   ax2.set_title('x2 marginal')
-
-  # ax3 = plt.subplot(133, frameon=False)
-
   ax3 = plt.subplot(133, frameon=False)
   # ax3.set_aspect('equal')
   ax3.grid()
   ax3.set_title('x3 marginal')
 
+  ####################################################################
+
   colors="rgbymkc"
 
   i = 0
-  t_e = 0
   ax1.plot(x1,
-      x1_marginal,
+      rho0_x1_marginal,
       colors[i % len(colors)],
       linewidth=1,
-      label=t_e)
+      label=T_0)
   ax1.legend(loc='lower right')
 
   ax2.plot(x2,
-      x2_marginal,
+      rho0_x2_marginal,
       colors[i % len(colors)],
       linewidth=1,
-      label=t_e)
+      label=T_0)
   ax2.legend(loc='lower right')
 
   ax3.plot(x3,
-      x3_marginal,
+      rho0_x3_marginal,
       colors[i % len(colors)],
       linewidth=1,
-      label=t_e)
+      label=T_0)
   ax3.legend(loc='lower right')
 
-  fig.suptitle('t=%.2f' % (0.0), fontsize=16)
+  ###################################################################
+
+  i = 1
+  ax1.plot(x1,
+      rhoT_x1_marginal,
+      colors[i % len(colors)],
+      linewidth=1,
+      label=T_t)
+  ax1.legend(loc='lower right')
+
+  ax2.plot(x2,
+      rhoT_x2_marginal,
+      colors[i % len(colors)],
+      linewidth=1,
+      label=T_t)
+  ax2.legend(loc='lower right')
+
+  ax3.plot(x3,
+      rhoT_x3_marginal,
+      colors[i % len(colors)],
+      linewidth=1,
+      label=T_t)
+  ax3.legend(loc='lower right')
+
+
+  ###################################################################
+
+  fig.suptitle('rho0 / rhoT', fontsize=16)
 
   plt.show()
