@@ -206,4 +206,12 @@ if __name__ == '__main__':
 
   fig.suptitle('rho0 / rhoT', fontsize=16)
 
-  plt.show()
+  plot_fname = "%s/wass_3d_rho0_rhoT.png" % (os.path.abspath("./"))
+  plt.savefig(plot_fname, dpi=300)
+  print("saved plot")
+
+  try:
+    plt.show()
+  except:
+    print("cannot show")
+    pass
