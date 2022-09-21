@@ -1525,7 +1525,208 @@ has a VERY close match on the boundary conditions
 so this metric you need to be careful, small differences in metric mean different outcomes
 
 #########################################################
+
+use cdist to define C matrix for wasserstein distance so C table entries are pairwise distances between 3d points, not 1d points
+https://docs.scipy.org/doc/scipy-0.14.0/reference/generated/scipy.spatial.distance.cdist.html#scipy.spatial.distance.cdist
+
+N=10, use meshgrid so N**3 is the BC size and inputs to wasserstein (C = (N**3)**2, still a 2d grid but now pairwise distance between 3d points, A = 2*(N**3), B = 2*(N**3))
+
+vs01:
+run ./wass_3d_torch_scratch1.py --N 10 --js 3,2,1 --q 0.0
+
+vs08:
+run ./wass_3d_torch_scratch1.py --N 8 --js 1,1,2 --q 0.0
+
+vs04:
+run ./wass_3d_torch_scratch1.py --N 8 --js 1,1,2 --q 0.5
+
+vs05:
+run ./wass_3d_torch_scratch1.py --N 8 --js 3,2,1 --q 0.5
+
+vs03:?
+
+
+vs08:
+cvx failed, returning mse
+31        [3.50e-03, 3.87e-03, 4.17e-05, 5.63e-05]    [3.50e-03, 3.87e-03, 4.17e-05, 5.63e-05]    []
+Epoch 31: train loss improved from 4.97e-03 to 3.87e-03, saving model to /usr/local/home/cyan3/gradschool/231/r
+esearch/wass_3d_model-31.pt ...
+
+File /usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/scipy/sparse/_coo.py:400, in coo_matrix.tocsr(self, copy)
+    397 row = self.row.astype(idx_dtype, copy=False)
+    398 col = self.col.astype(idx_dtype, copy=False)
+--> 400 indptr = np.empty(M + 1, dtype=idx_dtype)
+    401 indices = np.empty_like(col, dtype=idx_dtype)
+    402 data = np.empty_like(self.data, dtype=upcast(self.dtype))
+
+MemoryError: Unable to allocate 514. GiB for an array with shape (68988175361,) and data type int64
+
+
+File /usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/scipy/sparse/_coo.py:400, in coo_matri
+x.tocsr(self, copy)
+    397 row = self.row.astype(idx_dtype, copy=False)
+    398 col = self.col.astype(idx_dtype, copy=False)
+--> 400 indptr = np.empty(M + 1, dtype=idx_dtype)
+    401 indices = np.empty_like(col, dtype=idx_dtype)
+    402 data = np.empty_like(self.data, dtype=upcast(self.dtype))
+
+MemoryError: Unable to allocate 7.29 TiB for an array with shape (1002001002001,) and data type int64
+
+In [2]: 
+
 #########################################################
+
+so because of above, i need to compute the wasserstein-2 distance differently because this linprog way requires A matrix of size (N**3)**2 x 2*(N**3) => N**9
+
+and constructing the Cvxpylayers object and standing up the underlying problem solvers requires even more memory
+
+it is computationally infeasible
+
+#########################################################
+
+several options are available for a faster wasserstein+gradient (must be diffentiable in pytorch to learn)
+https://gist.github.com/Flunzmas/6e359b118b0730ab403753dcc2a447df
+https://gist.github.com/jcowles/1de8b12c38603ce932b0154bc6d59d60
+https://gist.github.com/sethaxen/6408d7f104ba44abfbb74981f8a8deb8
+https://gist.github.com/Flunzmas/6e359b118b0730ab403753dcc2a447df
+https://gist.github.com/pratheeksh/32fa493676222252cc9774b947280397
+https://github.com/dfdazac/wassdistance/blob/master/sinkhorn.ipynb
+
+these require statistical metrics on the 3d pdf grid: mu / sigma
+
+so the question is how to find the mu / sigma artifacts given an arbitrary pinn output / 3d pdf?
+
+#########################################################
+
+https://stats.stackexchange.com/questions/297141/finding-mean-and-covariance-of-an-arbitrary-joint-pdf
+
+however, as we empirically see, for a multivariate non-truncated pf, we need to have a sufficiently large state-space to recover the mu accurately:
+
+N:  10
+js:  1.0 1.0 2.0
+q:  0.0
+0.9999999999999999
+r=3.500 recovered mu: [2.332, 2.332, 2.332], err=0.668
+1.0
+r=8.579 recovered mu: [2.999, 2.999, 2.999], err=0.001
+1.0000000000000002
+r=13.658 recovered mu: [2.980, 2.980, 2.980], err=0.020
+1.0
+r=18.737 recovered mu: [2.239, 2.239, 2.239], err=0.761
+1.0
+r=23.816 recovered mu: [2.648, 2.648, 2.648], err=0.352
+1.0
+r=28.895 recovered mu: [3.211, 3.211, 3.211], err=0.211
+1.0
+r=33.974 recovered mu: [3.775, 3.775, 3.775], err=0.775
+1.0000000000000002
+r=39.053 recovered mu: [4.339, 4.339, 4.339], err=1.339
+1.0
+r=44.132 recovered mu: [4.904, 4.904, 4.904], err=1.904
+0.9999999999999998
+r=49.211 recovered mu: [5.468, 5.468, 5.468], err=2.468
+0.9999999999999998
+r=54.289 recovered mu: [6.032, 6.032, 6.032], err=3.032
+1.0000000000000002
+r=59.368 recovered mu: [6.596, 6.596, 6.596], err=3.596
+1.0
+r=64.447 recovered mu: [7.161, 7.161, 7.161], err=4.161
+1.0
+r=69.526 recovered mu: [7.725, 7.725, 7.725], err=4.725
+1.0
+r=74.605 recovered mu: [8.289, 8.289, 8.289], err=5.289
+1.0
+r=79.684 recovered mu: [8.854, 8.854, 8.854], err=5.854
+1.0
+r=84.763 recovered mu: [9.418, 9.418, 9.418], err=6.418
+1.0
+r=89.842 recovered mu: [9.982, 9.982, 9.982], err=6.982
+1.0
+r=94.921 recovered mu: [10.547, 10.547, 10.547], err=7.547
+1.0
+r=100.000 recovered mu: [11.111, 11.111, 11.111], err=8.111
+
+https://math.stackexchange.com/questions/445164/is-the-mean-of-the-truncated-normal-distribution-monotone-in-mu
+
+#########################################################
+
+r=3.500, N=13 recovered mu: [1.737, 1.737, 1.737], err=0.263
+r=8.579, N=18 recovered mu: [2.000, 2.000, 2.000], err=0.000
+r=13.658, N=23 recovered mu: [2.000, 2.000, 2.000], err=0.000
+r=18.737, N=28 recovered mu: [2.000, 2.000, 2.000], err=0.000
+r=23.816, N=33 recovered mu: [2.000, 2.000, 2.000], err=0.000
+r=28.895, N=38 recovered mu: [2.000, 2.000, 2.000], err=0.000
+r=33.974, N=43 recovered mu: [2.000, 2.000, 2.000], err=0.000
+r=39.053, N=49 recovered mu: [2.000, 2.000, 2.000], err=0.000
+r=44.132, N=54 recovered mu: [2.000, 2.000, 2.000], err=0.000
+r=49.211, N=59 recovered mu: [2.000, 2.000, 2.000], err=0.000
+r=54.289, N=64 recovered mu: [2.000, 2.000, 2.000], err=0.000
+r=59.368, N=69 recovered mu: [1.999, 1.999, 1.999], err=0.001
+r=64.447, N=74 recovered mu: [2.001, 2.001, 2.001], err=0.001
+r=69.526, N=79 recovered mu: [1.999, 1.999, 1.999], err=0.001
+r=74.605, N=84 recovered mu: [2.001, 2.001, 2.001], err=0.001
+r=79.684, N=89 recovered mu: [1.999, 1.999, 1.999], err=0.001
+r=84.763, N=94 recovered mu: [2.001, 2.001, 2.001], err=0.001
+r=89.842, N=99 recovered mu: [1.999, 1.999, 1.999], err=0.001
+r=94.921, N=104 recovered mu: [2.001, 2.001, 2.001], err=0.001
+r=100.000, N=110 recovered mu: [2.001, 2.001, 2.001], err=0.001
+
+
+r=3.500, N=13 recovered mu: [1.737, 1.737, 1.737], err=0.263
+r=3.500, N=18 recovered mu: [1.739, 1.739, 1.739], err=0.261
+r=3.500, N=23 recovered mu: [1.739, 1.739, 1.739], err=0.261
+r=3.500, N=28 recovered mu: [1.740, 1.740, 1.740], err=0.260
+r=3.500, N=33 recovered mu: [1.740, 1.740, 1.740], err=0.260
+r=3.500, N=38 recovered mu: [1.740, 1.740, 1.740], err=0.260
+r=3.500, N=43 recovered mu: [1.740, 1.740, 1.740], err=0.260
+r=3.500, N=49 recovered mu: [1.740, 1.740, 1.740], err=0.260
+r=3.500, N=54 recovered mu: [1.740, 1.740, 1.740], err=0.260
+r=3.500, N=59 recovered mu: [1.740, 1.740, 1.740], err=0.260
+r=3.500, N=64 recovered mu: [1.740, 1.740, 1.740], err=0.260
+r=3.500, N=69 recovered mu: [1.740, 1.740, 1.740], err=0.260
+r=3.500, N=74 recovered mu: [1.740, 1.740, 1.740], err=0.260
+r=3.500, N=79 recovered mu: [1.741, 1.741, 1.741], err=0.259
+r=3.500, N=84 recovered mu: [1.741, 1.741, 1.741], err=0.259
+r=3.500, N=89 recovered mu: [1.741, 1.741, 1.741], err=0.259
+r=3.500, N=94 recovered mu: [1.741, 1.741, 1.741], err=0.259
+r=3.500, N=99 recovered mu: [1.741, 1.741, 1.741], err=0.259
+r=3.500, N=104 recovered mu: [1.741, 1.741, 1.741], err=0.259
+r=3.500, N=110 recovered mu: [1.741, 1.741, 1.741], err=0.259
+
+as you seen, you can change N, but the correct estimation of mu is related to the numerical RANGE, state_min / state_max, because it is a norm, not a truncnorm, so the equation for mu is integral from -inf to inf
+
+if you had a trunnorm pdf, then it would be integral from a to b, and the state bounds would not matter for mu estimation
+
+#########################################################
+
+
+
+import Pkg; Pkg.add("Distributions")
+import Pkg; Pkg.add("Primes")
+import Pkg; Pkg.add("Parameters")
+include("./TMvNormals.jl/src/TMvNormals.jl")
+using .TMvNormals
+using LinearAlgebra
+
+d = TMvNormal(
+ zeros(3),
+ ones((3,3)) + 5*I(3),
+ [-1, -1, -Inf],
+ [1, 2, 5]
+)
+
+
+import julia
+from julia.api import Julia
+jl = Julia(compiled_modules=False)
+jl.eval('import Pkg; Pkg.add("Primes")')
+jl.eval('import Pkg; Pkg.add("Parameters"); Pkg.add("Distributions");')
+jl.eval('include("/home/cyan3/Dev/jim/TMvNormals.jl/src/TMvNormals.jl")')
+jl.eval('using .TMvNormals')
+jl.eval('using LinearAlgebra')
+jl.eval('d = TMvNormal(zeros(3),ones((3,3)) + 5*I(3),[-1, -1, -Inf],[1, 2, 5])')
+jl.eval('pdf(d, zeros(3))')
+
 
 #########################################################
 #########################################################
@@ -1604,10 +1805,16 @@ so this metric you need to be careful, small differences in metric mean differen
 #########################################################
 #########################################################
 #########################################################
-#########################################################
-#########################################################
-#########################################################
-#########################################################
+
+abhishek questions:
+
+math for kids vs math for adults? is everything math?
+
+how useful is math to reality? or is the math dept the best place to find 'useful' math?  and how do you feel when math is or is not 'useful'?
+pagerank, k-space, etc. gradient descent, iterative methods, computational geometery
+
+how do you shape your curiosity? do you have any direction you want to go in, and what shaped that direction? was it related to your background at all?
+
 #########################################################
 
 import cvxpy as cp
@@ -1707,3 +1914,103 @@ and then the optimizer steps along the gradient to find some minimum global / lo
 a Tensor is an interesting entity
 it is a matrix of some shape that is also a node in a graph
 it is a matrix whose elements are symbolic functions
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+https://github.com/lululxvi/deepxde
+https://github.com/tensorly/tensorly
+https://github.com/davidshimjs/qrcodejs
+https://lifewithjazz.com/wp-content/uploads/2022/08/image-13.png
+https://lifewithjazz.com/wp-content/uploads/2022/08/image-10.png
+https://en.wikipedia.org/wiki/Automatic_differentiation
+https://www.google.com/search?q=laplace+matrix+exponential&oq=laplace+matrix+exponential&aqs=chrome..69i57.3571j0j7&sourceid=chrome&ie=UTF-8
+https://www.ebay.com/sch/i.html?_from=R40&_trksid=p2047675.m570.l1313&_nkw=camera+fpv+transmitter+receiver&_sacat=0
+https://www.ebay.com/sch/i.html?_from=R40&_trksid=p2047675.m570.l1313&_nkw=tvl+camera+usb&_sacat=0
+https://www.ebay.com/itm/323963747822?hash=item4b6dbe7dee:g:XkkAAOSw5VFWLlLh&amdata=enc%3AAQAHAAAA4NngUPFZftRc0mnyoHa9X13Ufso4a%2FRm2jY%2BPuA5DYOftmCpornMKJu8VddZ8bZz9FdwU84C5OvsjCEtHy6Yaa0YvRoUuOnAE43ZrPBm1UKuN5Te%2Bny8IAJ69cgMcl%2FaQDmrB%2FnnEmG%2FFGr8deFaBXuTFp0QSxEGOAqNE8d%2BhP8M7ijjwdsnDGkLQhP%2FfklSh0dgHVVR%2Bv4HL9YTqoQ3%2FD6ffqemOjbBqEbF%2B3nfM2%2F%2FmSA0AhblalV8OqxYzYqszIA244vz7rcpLNnimxzf2Cv6BJk1m02k2CHQL0nsu4pQ%7Ctkp%3ABk9SR472w5rpYA
+https://www.google.com/search?q=skydroid+linux+github&oq=skydroid+linux+github&aqs=chrome..69i57.5936j0j7&sourceid=chrome&ie=UTF-8
+https://forum.bitcraze.io/viewtopic.php?t=3966
+https://leetcode.com/
+https://www.youtube.com/watch?v=zQ_YG2HQe54
+https://www.youtube.com/watch?v=f4jUEEzjEJw
+https://www.youtube.com/watch?v=aPQY__2H3tE
+https://www.youtube.com/watch?v=H9bfqozjoqs
+https://www.youtube.com/watch?v=Y0lT9Fck7qI
+https://www.youtube.com/watch?v=kB9YyG2V-nA
+https://github.com/Jonas-Nicodemus/PINNs-based-MPC
+https://github.com/do-mpc/do-mpc
+https://github.com/AtsushiSakai/PyAdvancedControl
+https://github.com/locuslab/mpc.pytorch
+https://github.com/gasagna/mpc
+https://github.com/Shunichi09/PythonLinearNonlinearControl
+https://github.com/vkotaru/nonlinear_controls
+https://github.com/anassinator/ilqr
+https://github.com/mmmfarrell/nmpc_quadcopter
+https://github.com/TylerReimer13/6DOF_Quadcopter_MPC
+https://stackoverflow.com/questions/6939864/what-is-the-difference-between-section-and-div#:~:text=The%20tag%20defines%20sections,to%20format%20them%20with%20CSS.
+https://www.techrepublic.com/article/how-to-easily-add-an-ssh-fingerprint-to-your-knownhosts-file-in-linux/
+https://serverfault.com/questions/132970/can-i-automatically-add-a-new-host-to-known-hosts
+https://phoenixnap.com/kb/ssh-permission-denied-publickey
+https://github.com/tanersener/mobile-ffmpeg
+https://www.avrfreaks.net/forum/pcb-hole-size-254mm-pin-headers-soldering-purpose
+https://docs.google.com/spreadsheets/d/1MG4PqBMiFMIlG9CeMuyddmCjwkTpC23EEIAEkpXbL8A/edit#gid=2038720634
+https://web.whatsapp.com/
+https://www.google.com/search?q=8**3&oq=8**3&aqs=chrome..69i57.775j0j7&sourceid=chrome&ie=UTF-8
+https://www.google.com/search?q=np.eye+sparse&oq=np.eye+sparse&aqs=chrome..69i57.1975j0j7&sourceid=chrome&ie=UTF-8
+
+
+
+https://numpy.org/doc/stable/reference/generated/numpy.kron.html
+https://www.google.com/search?q=numpy+sparse+matrix&oq=numpy+sparse+matrix&aqs=chrome..69i57.4414j0j7&sourceid=chrome&ie=UTF-8
+https://www.google.com/search?q=sparse+wasserstein+distance&oq=sparse+wasserstein+distance&aqs=chrome..69i57.3494j0j7&sourceid=chrome&ie=UTF-8
+http://proceedings.mlr.press/v84/blondel18a/blondel18a.pdf
+https://kejing.me/publications/2021_AAAI_SWIFT_slides.pdf
+https://openaccess.thecvf.com/content/CVPR2022/papers/Chen_Computing_Wasserstein-p_Distance_Between_Images_With_Linear_Cost_CVPR_2022_paper.pdf
+https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.wasserstein_distance.html
+https://www.google.com/search?q=github+wasserstein+tensor&sxsrf=ALiCzsawploZpsBRJxEjnqSBtTz5K5QuvQ%3A1663543707221&ei=m6knY-qSDcTEkPIPo7-p2AQ&ved=0ahUKEwiqzPKdv5_6AhVEIkQIHaNfCksQ4dUDCA4&uact=5&oq=github+wasserstein+tensor&gs_lcp=Cgdnd3Mtd2l6EAMyBQghEKABMgUIIRCgAToKCAAQRxDWBBCwAzoECCMQJzoECAAQQzoKCC4QxwEQ0QMQQzoFCAAQkQI6CwgAEIAEELEDEIMBOhAILhCxAxCDARDHARDRAxBDOg0ILhCxAxDHARDRAxBDOg4ILhCABBCxAxCDARDUAjoNCAAQgAQQhwIQsQMQFDoKCAAQgAQQhwIQFDoHCAAQsQMQQzoOCC4QgAQQsQMQxwEQ0QM6CAgAEIAEELEDOgoIABCxAxCDARBDOggIABCxAxCRAjoFCAAQgAQ6BggAEB4QFjoICAAQHhAPEBY6BQgAEIYDOgUIIRCrAkoECEEYAEoECEYYAFDpCFieJmDWKGgEcAB4AIABgAGIAboTkgEEMTguOJgBAKABAcgBCMABAQ&sclient=gws-wiz
+https://github.com/zsteve/wtf
+https://github.com/t-vi/pytorch-tvmisc/blob/master/wasserstein-distance/Pytorch_Wasserstein.ipynb
+https://github.com/zsteve/wtf/blob/main/src/wtf.py
+https://github.com/google/wasserstein-dist
+https://github.com/topolearn/topo-clustering
+https://math.stackexchange.com/questions/3660192/algorithms-to-compute-the-wasserstein-distance-between-two-discrete-probability
+https://arxiv.org/pdf/1803.00567.pdf
+https://www.google.com/search?q=sliced+wasserstein+distance&oq=sliced+wasserstein+distance&aqs=chrome..69i57.3423j0j7&sourceid=chrome&ie=UTF-8
+https://proceedings.neurips.cc/paper/2019/file/f0935e4cd5920aa6c7c996a5ee53a70f-Paper.pdf
+https://openaccess.thecvf.com/content_cvpr_2018/papers/Kolouri_Sliced_Wasserstein_Distance_CVPR_2018_paper.pdf
+https://tel.archives-ouvertes.fr/tel-03533097/document
+https://www.google.com/search?q=sliced+wasserstein+distance+python+github&sxsrf=ALiCzsbvEQW6AhMPL44Y9hr6DFFXB-aGfw%3A1663553323497&ei=K88nY4P_HaOJ0PEPpuSgsAM&ved=0ahUKEwjDwKWH45_6AhWjBDQIHSYyCDYQ4dUDCA4&uact=5&oq=sliced+wasserstein+distance+python+github&gs_lcp=Cgdnd3Mtd2l6EAMyBQghEKsCMgUIIRCrAjoKCAAQRxDWBBCwAzoHCAAQsAMQQzoECCMQJzoFCAAQgAQ6BAgAEEM6BggAEB4QFjoFCAAQhgM6BQghEKABOggIIRAeEBYQHUoECEEYAEoECEYYAFCVC1jiGmDxG2gCcAF4AIABqAGIAd0LkgEDNi44mAEAoAEByAEKwAEB&sclient=gws-wiz
+https://github.com/koshian2/swd-pytorch
+https://github.com/FlorentinCDX/Fast-Approx-SW
+https://arxiv.org/pdf/2106.15427.pdf
+https://blog.shikoan.com/swd-pytorch/#SWD%E3%81%A8%E3%81%AF
+https://pythonot.github.io/auto_examples/sliced-wasserstein/plot_variance.html
+https://tel.archives-ouvertes.fr/tel-03533097/document
+https://github.com/krumo/swd_pytorch
+https://github.com/apple/ml-cvpr2019-swd
+https://arxiv.org/abs/1903.04064
+https://github.com/skolouri/swgmm/blob/master/SWM_GMM_RMSProp_Demo_GitHub.ipynb
+https://github.com/martinarjovsky/WassersteinGAN
+https://github.com/caogang/wgan-gp/tree/master/results/cifar10
+https://dfdazac.github.io/blog/
+https://github.com/vincentherrmann/wasserstein-notebook/blob/master/Wasserstein_Kantorovich.ipynb
+https://discuss.pytorch.org/t/what-does-the-backward-function-do/9944/2
+https://pytorch.org/docs/stable/generated/torch.Tensor.requires_grad.html
+https://www.tutorialspoint.com/how-to-compute-gradients-in-pytorch#:~:text=To%20compute%20the%20gradients%2C%20a,a%20tensor%20with%20requires_grad%20%3D%20True.
+https://pythonot.github.io/auto_examples/sliced-wasserstein/plot_variance.html
+https://link.springer.com/article/10.1007/s10851-014-0506-3
+
+
