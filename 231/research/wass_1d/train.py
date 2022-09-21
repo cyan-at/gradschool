@@ -53,39 +53,9 @@ else:
 import cvxpy as cp
 from cvxpylayers.torch import CvxpyLayer
 
-############################################################
-
-N = 50
-
-# must be floats
-state_min = 0.0
-state_max = 6.0
-
-mu_0 = 2.0
-sigma_0 = 1.5
-
-mu_T = 4.0
-sigma_T = 1.0
-
-j1, j2, j3 =1,1,2 # axis-symmetric case
-q_statepenalty_gain = 0 # 0.5
-
-T_0=0. #initial time
-T_t=200. #Terminal time
-
-id_prefix = "wass_1d"
-de = 1
+from common import *
 
 ############################################################
-
-def pdf1d(x, mu, sigma):
-    a, b = (state_min - mu) / sigma, (state_max - mu) / sigma
-    rho_x=truncnorm.pdf(x, a, b, loc = mu, scale = sigma)
-
-    # do NOT use gaussian norm, because it is only area=1
-    # from -inf, inf, will not be for finite state/grid
-    # rho_x = norm.pdf(x, mu, sigma)
-    return rho_x
 
 x_T = np.transpose(np.linspace(state_min, state_max, N))
 y_T = np.transpose(np.linspace(state_min, state_max, N))
@@ -429,59 +399,7 @@ print("saved plot")
 
 ############################################################
 
-X_IDX = 0
-T_IDX = 1
-Y3_IDX = 2
-RHO0_IDX = 3
-RHOT_IDX = 4
-
-test_ti = np.loadtxt('./test.dat')
-
-############################################################
-
-test_ti = test_ti[0:N, :] # first BC test data
-ind = np.lexsort((test_ti[:,X_IDX], test_ti[:,T_IDX]))
-test_ti = test_ti[ind]
-
-# post process
-test_ti[:,RHO0_IDX] = np.where(
-    test_ti[:,RHO0_IDX] < 0, 0, test_ti[:,RHO0_IDX])
-s1 = np.trapz(test_ti[:,RHO0_IDX],
-    axis=0,
-    x=test_ti[:,X_IDX])
-test_ti[:, RHO0_IDX] /= s1 # to pdf
-s2 = np.sum(test_ti[:,RHO0_IDX])
-test_ti[:, RHO0_IDX] /= s2 # to pmf
-
-s1 = np.trapz(test_ti[:,RHO0_IDX],
-    axis=0,
-    x=test_ti[:,X_IDX])
-s2 = np.sum(test_ti[:,RHO0_IDX])
-
-true_rho0=pdf1d(test_ti[:, X_IDX], mu_0, sigma_0).reshape(test_ti.shape[0],1)
-true_rho0 /= np.trapz(true_rho0, axis=0, x=test_ti[:,X_IDX])
-true_rho0 = true_rho0 / np.sum(np.abs(true_rho0))
-
-############################################################
-
-test_ti = test[N:2*N, :] # second BC test data
-ind = np.lexsort((test_ti[:,X_IDX],test_ti[:,T_IDX]))
-test_ti = test_ti[ind]
-
-test_ti[:,RHOT_IDX] = np.where(test_ti[:,RHOT_IDX] < 0, 0, test_ti[:,RHOT_IDX])
-s1 = np.trapz(test_ti[:,RHOT_IDX], axis=0, x=test_ti[:,X_IDX])
-test_ti[:, RHOT_IDX] /= s1 # to pdf
-s2 = np.sum(test_ti[:,RHOT_IDX])
-test_ti[:, RHOT_IDX] /= s2 # to pmf
-
-s3 = np.trapz(test_ti[:,RHOT_IDX],
-    axis=0,
-    x=test_ti[:,X_IDX])
-s4 = np.sum(test_ti[:,RHOT_IDX])
-
-true_rhoT=pdf1d(test_ti[:, X_IDX], mu_T, sigma_T).reshape(test_ti.shape[0],1)
-true_rhoT /= np.trapz(true_rhoT, axis=0, x=test_ti[:,X_IDX])
-true_rhoT = true_rhoT / np.sum(np.abs(true_rhoT))
+test = np.loadtxt('./test.dat')
 
 ############################################################
 
@@ -491,38 +409,16 @@ ax1.grid()
 
 ############################################################
 
-ax1.plot(
-    test_ti[:, X_IDX],
-    test_ti[:, RHO0_IDX],
-    linewidth=1,
-    label='test rho_0')
-ax1.plot(
-    test_ti[:, X_IDX],
-    true_rho0,
-    c='r',
-    linewidth=1,
-    label='true rho_0')
+s1, s2 = plot_rho_bc('rho_0', test[0:N, :], mu_0, sigma_0, ax1)
+
+test_tt = test[N:2*N, :]
+s3, s4 = plot_rho_bc('rho_T', test_tt, mu_T, sigma_T, ax1)
 
 ############################################################
 
 ax1.plot(
-    test_ti[:, X_IDX],
-    test_ti[:, RHOT_IDX],
-    c='g',
-    linewidth=1,
-    label='test rho_T')
-ax1.plot(
-    test_ti[:, X_IDX],
-    true_rhoT,
-    c='c',
-    linewidth=1,
-    label='true rho_T')
-
-############################################################
-
-ax1.plot(
-    test_ti[:, X_IDX],
-    test_ti[:, Y3_IDX],
+    test_tt[:, X_IDX],
+    test_tt[:, Y3_IDX],
     linewidth=1,
     c='m',
     label='y3')
