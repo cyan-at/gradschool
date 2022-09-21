@@ -503,3 +503,172 @@ ax1.legend(loc='lower right')
 
 plt.show()
 
+
+
+
+
+# first train on mse, then train on wass?
+class LossSeq(object):
+    def __init__(self):
+        self.mode = 0
+        self.print_mode = 0
+
+    def rho0_WASS_cuda1(self, y_true, y_pred):
+        total = torch.mean(torch.square(y_true - y_pred))
+        return total
+
+
+
+'''
+rho_0_tensor = rho_0_tensor.to(cpu)
+cvector_tensor = cvector_tensor.to(cpu)
+print(type(rho_0_tensor))
+def rho0_WASS_cpu(y_true, y_pred):
+#     y_pred = y_pred.to(cpu)
+#     y_pred = y_pred.cpu()
+    
+    y_pred = torch.where(y_pred < 0, 0, y_pred)
+    y_pred = y_pred / torch.sum(torch.abs(y_pred))
+
+    param = torch.cat((rho_0_tensor, y_pred), 0)
+    param = torch.reshape(param, (2*N,))
+    print(type(param))
+    x_sol, = cvxpylayer(param)
+    # TODO(handle infeasible)
+    wass_dist = torch.matmul(cvector_tensor, x_sol)
+    return wass_dist
+'''
+
+
+rho_0_tensor = torch.from_numpy(
+    rho_0,
+).requires_grad_(False)
+rho_0_cube_tensor = torch.reshape(rho_0_tensor, (N,N,N))
+rho_0_cube_tensor = rho_0_cube_tensor.to(device)
+rho_0_tensor_support = torch_get_pdf_support(rho_0_cube_tensor,
+    [x1_tensor, x2_tensor, x3_tensor],
+    0,
+    support_buffer0,
+    support_buffer1)
+print("rho_0_tensor_support", rho_0_tensor_support)
+
+get_marginal(rho_0_cube, [x1, x2, x3], 0)
+
+  get_marginal(
+    rho_0_cube, [x2, x1, x3], 1)
+
+  get_marginal(
+    rho_0_cube, [x3, x1, x2], 2)
+
+
+
+X_IDX = 0
+T_IDX = 1
+RHO0_IDX = 3
+RHOT_IDX = 4
+
+test_ti = np.loadtxt('./test.dat')
+test_ti = test_ti[0:N, :] # first BC test data
+ind = np.lexsort((test_ti[:,X_IDX],test_ti[:,T_IDX]))
+test_ti = test_ti[ind]
+
+
+
+# post process
+test_ti[:,RHO0_IDX] = np.where(test_ti[:,RHO0_IDX] < 0, 0, test_ti[:,RHO0_IDX])
+s1 = np.trapz(test_ti[:,RHO0_IDX], axis=0, x=test_ti[:,X_IDX])
+test_ti[:, RHO0_IDX] /= s1 # to pdf
+s2 = np.sum(test_ti[:,RHO0_IDX])
+test_ti[:, RHO0_IDX] /= s2 # to pmf
+
+s1 = np.trapz(test_ti[:,RHO0_IDX], axis=0, x=test_ti[:,X_IDX])
+s2 = np.sum(test_ti[:,RHO0_IDX])
+
+test_ti[:,RHOT_IDX] = np.where(test_ti[:,RHOT_IDX] < 0, 0, test_ti[:,RHOT_IDX])
+s1 = np.trapz(test_ti[:,RHOT_IDX], axis=0, x=test_ti[:,X_IDX])
+test_ti[:, RHOT_IDX] /= s1 # to pdf
+s2 = np.sum(test_ti[:,RHOT_IDX])
+test_ti[:, RHOT_IDX] /= s2 # to pmf
+
+s3 = np.trapz(test_ti[:,RHOT_IDX], axis=0, x=test_ti[:,X_IDX])
+s4 = np.sum(test_ti[:,RHOT_IDX])
+
+fig = plt.figure(1)
+ax1 = plt.subplot(111, frameon=False)
+# ax1.set_aspect('equal')
+ax1.grid()
+ax1.set_title(
+    'rho0: trapz=%.3f, sum=%.3f, rhoT: trapz=%.3f, sum=%.3f' % (s1, s2, s3, s4))
+
+ax1.plot(
+    test_ti[:, X_IDX],
+    test_ti[:, RHO0_IDX],
+    linewidth=1,
+    label='test rho_0')
+
+test_rho0=pdf1d(test_ti[:, X_IDX], mu_0, sigma_0).reshape(test_ti.shape[0],1)
+test_rho0 /= np.trapz(test_rho0, axis=0, x=test_ti[:,X_IDX])
+test_rho0 = test_rho0 / np.sum(np.abs(test_rho0))
+ax1.plot(
+    test_ti[:, X_IDX],
+    test_rho0,
+    c='r',
+    linewidth=1,
+    label='rho_0')
+
+ax1.plot(
+    test_ti[:, X_IDX],
+    test_ti[:, RHOT_IDX],
+    c='g',
+    linewidth=1,
+    label='test rho_T')
+
+test_rhoT=pdf1d(test_ti[:, X_IDX], mu_T, sigma_T).reshape(test_ti.shape[0],1)
+test_rhoT /= np.trapz(test_rhoT, axis=0, x=test_ti[:,X_IDX])
+test_rhoT = test_rhoT / np.sum(np.abs(test_rhoT))
+ax1.plot(
+    test_ti[:, X_IDX],
+    test_rhoT,
+    c='c',
+    linewidth=1,
+    label='rho_T')
+
+ax1.legend(loc='lower right')
+
+plot_fname = "%s/pinn_vs_rho.png" % (os.path.abspath("./"))
+plt.savefig(plot_fname, dpi=300)
+# plt.show()
+
+
+
+rho_0_tensor = rho_0_tensor.to(cpu)
+cvector_tensor = cvector_tensor.to(cpu)
+print(type(rho_0_tensor))
+def rho0_WASS_cpu(y_true, y_pred):
+#     y_pred = y_pred.to(cpu)
+#     y_pred = y_pred.cpu()
+    
+    y_pred = torch.where(y_pred < 0, 0, y_pred)
+    y_pred = y_pred / torch.sum(torch.abs(y_pred))
+
+    param = torch.cat((rho_0_tensor, y_pred), 0)
+    param = torch.reshape(param, (2*N,))
+    print(type(param))
+    x_sol, = cvxpylayer(param)
+    # TODO(handle infeasible)
+    wass_dist = torch.matmul(cvector_tensor, x_sol)
+    return wass_dist
+
+
+
+# first train on mse, then train on wass?
+class LossSeq(object):
+    def __init__(self):
+        self.mode = 0
+        self.print_mode = 0
+
+    def rho0_WASS_cuda1(self, y_true, y_pred):
+        total = torch.mean(torch.square(y_true - y_pred))
+        return total
+
+# fail_cost = torch.Tensor(1e3, dtype=torch.float32)
