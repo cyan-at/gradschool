@@ -89,7 +89,9 @@ np.savetxt('rhoT_%.3f_%.3f__%.3f_%.3f__%d' % (
 
 # trunc_rho0_cube = trunc_rho0.reshape(N, N, N)
 
+# as a trunnorm, trun_rho0 already has a pdf support of 1
 # # deserializing the trunc_rho0 as a PMF
+
 # pmf_support = np.sum(trunc_rho_0_cube)
 # trunc_rho0_cube_normed = trunc_rho_0_cube / pmf_support
 
@@ -106,8 +108,6 @@ np.savetxt('rhoT_%.3f_%.3f__%.3f_%.3f__%d' % (
 # x3_marginal_pmf = get_marginal_pmf(
 #     trunc_rho0_cube_normed, [x3, x1, x2], 2)
 # mu3 = np.dot(x3_marginal_pmf, x3)
-
-
 
 #################################################
 
