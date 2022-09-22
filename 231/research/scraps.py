@@ -672,3 +672,382 @@ class LossSeq(object):
         return total
 
 # fail_cost = torch.Tensor(1e3, dtype=torch.float32)
+
+
+#!/usr/bin/env python3
+
+import torch
+
+import numpy as np
+
+def slice(matrix_3d, i, j, mode):
+  if mode == 0:
+    return matrix_3d[j, i, :]
+  elif mode == 1:
+    return matrix_3d[i, j, :]
+  else:
+    return matrix_3d[i, :, j]
+
+def pdf3d(x,y,z,rv):
+  return rv.pdf(np.hstack((x, y, z)))
+
+def get_marginal(matrix_3d, xs, mode, normalize=True):
+  marginal = np.array([
+    np.trapz(
+      np.array([
+          np.trapz(
+            slice(matrix_3d, i, j, mode)
+            , x=xs[2]) # x3 slices for one x2 => R
+          for i in range(len(xs[1]))
+        ]) # x3 slices across all x2 => Rn
+      , x=xs[1]) # x2 slice for one x1 => R
+    for j in range(len(xs[0]))
+  ])
+  if normalize:
+    marginal /= np.trapz(marginal, x=xs[0])
+  return marginal
+
+def get_pdf_support(matrix_3d, xs, mode):
+  marginal = np.array([
+    np.trapz(
+      np.array([
+          np.trapz(
+            slice(matrix_3d, i, j, mode)
+            , x=xs[2]) # x3 slices for one x2 => R
+          for i in range(len(xs[1]))
+        ]) # x3 slices across all x2 => Rn
+      , x=xs[1]) # x2 slice for one x1 => R
+    for j in range(len(xs[0]))
+  ])
+  return np.trapz(marginal, x=xs[0])
+
+def torch_get_pdf_support(
+  tensor_3d,
+  xtensors,
+  mode,
+  buffer0,
+  buffer1):
+  for j in range(len(xtensors[0])):
+    # collapse 1 dimension away into buffer0
+    for i in range(len(xtensors[1])):
+      buffer0[i] = torch.trapz(
+        slice(tensor_3d, i, j, mode)
+        , x=xtensors[2])
+    # collapse 2 dimensions into 1 scalar
+    buffer1[j] = torch.trapz(
+      buffer0,
+      x=xtensors[1])
+  return torch.trapz(buffer1, x=xtensors[0])
+
+N = 10
+
+nb_name = "none"
+
+# must be floats
+# to recover mu from np.trapz(marginal, x)
+# this must be sufficient broad
+state_min = -3.5
+state_max = 3.5
+
+mu_0 = 2.0
+sigma_0 = 1.5
+
+mu_T = 0.0
+sigma_T = 1.0
+
+T_0=0. #initial time
+T_t=50. #Terminal time
+
+epsilon=.001
+
+samples_between_initial_and_final = 20000 # 10^4 order, 20k = out of memory
+initial_and_final_samples = 2000 # some 10^3 order
+
+num_epochs = 100000
+
+
+# plt.show()
+
+
+# In[34]:
+
+
+X_IDX = 0
+T_IDX = 1
+RHO0_IDX = 3
+RHOT_IDX = 4
+
+test_ti = np.loadtxt('./test.dat')
+test_ti = test_ti[0:N, :] # first BC test data
+ind = np.lexsort((test_ti[:,X_IDX],test_ti[:,T_IDX]))
+test_ti = test_ti[ind]
+
+# post process
+test_ti[:,RHO0_IDX] = np.where(test_ti[:,RHO0_IDX] < 0, 0, test_ti[:,RHO0_IDX])
+s1 = np.trapz(test_ti[:,RHO0_IDX], axis=0, x=test_ti[:,X_IDX])
+test_ti[:, RHO0_IDX] /= s1 # to pdf
+s2 = np.sum(test_ti[:,RHO0_IDX])
+test_ti[:, RHO0_IDX] /= s2 # to pmf
+
+s1 = np.trapz(test_ti[:,RHO0_IDX], axis=0, x=test_ti[:,X_IDX])
+s2 = np.sum(test_ti[:,RHO0_IDX])
+
+test_ti[:,RHOT_IDX] = np.where(test_ti[:,RHOT_IDX] < 0, 0, test_ti[:,RHOT_IDX])
+s1 = np.trapz(test_ti[:,RHOT_IDX], axis=0, x=test_ti[:,X_IDX])
+test_ti[:, RHOT_IDX] /= s1 # to pdf
+s2 = np.sum(test_ti[:,RHOT_IDX])
+test_ti[:, RHOT_IDX] /= s2 # to pmf
+
+s3 = np.trapz(test_ti[:,RHOT_IDX], axis=0, x=test_ti[:,X_IDX])
+s4 = np.sum(test_ti[:,RHOT_IDX])
+
+fig = plt.figure(1)
+ax1 = plt.subplot(111, frameon=False)
+# ax1.set_aspect('equal')
+ax1.grid()
+ax1.set_title(
+    'rho0: trapz=%.3f, sum=%.3f, rhoT: trapz=%.3f, sum=%.3f' % (s1, s2, s3, s4))
+
+ax1.plot(
+    test_ti[:, X_IDX],
+    test_ti[:, RHO0_IDX],
+    linewidth=1,
+    label='test rho_0')
+
+test_rho0=pdf1d(test_ti[:, X_IDX], mu_0, sigma_0).reshape(test_ti.shape[0],1)
+test_rho0 /= np.trapz(test_rho0, axis=0, x=test_ti[:,X_IDX])
+test_rho0 = test_rho0 / np.sum(np.abs(test_rho0))
+ax1.plot(
+    test_ti[:, X_IDX],
+    test_rho0,
+    c='r',
+    linewidth=1,
+    label='rho_0')
+
+ax1.plot(
+    test_ti[:, X_IDX],
+    test_ti[:, RHOT_IDX],
+    c='g',
+    linewidth=1,
+    label='test rho_T')
+
+test_rhoT=pdf1d(test_ti[:, X_IDX], mu_T, sigma_T).reshape(test_ti.shape[0],1)
+test_rhoT /= np.trapz(test_rhoT, axis=0, x=test_ti[:,X_IDX])
+test_rhoT = test_rhoT / np.sum(np.abs(test_rhoT))
+ax1.plot(
+    test_ti[:, X_IDX],
+    test_rhoT,
+    c='c',
+    linewidth=1,
+    label='rho_T')
+
+ax1.legend(loc='lower right')
+
+plot_fname = "%s/pinn_vs_rho.png" % (os.path.abspath("./"))
+plt.savefig(plot_fname, dpi=300)
+# plt.show()
+
+
+loss_loaded = np.genfromtxt('./loss.dat')
+
+print("loss_loaded", loss_loaded)
+
+# import ipdb; ipdb.set_trace();
+
+# [0] epoch
+# [1] y1, psi, hjb
+# [2] y2, rho, plank pde
+# [3] rho0, initial
+# [4] rhoT, terminal
+
+epoch = loss_loaded[:, 0]
+y1_psi_hjb = loss_loaded[:, 1]
+y2_rho_plankpde = loss_loaded[:, 2]
+loss3 = loss_loaded[:, 3]
+rho0_initial = loss_loaded[:, 4]
+rhoT_terminal = loss_loaded[:, 5]
+
+fig, ax = plt.subplots()
+
+
+line1, = ax.plot(epoch, y1_psi_hjb, color='orange', lw=1, label='eq1')
+line2, = ax.plot(epoch, y2_rho_plankpde, color='blue', lw=1, label='eq2')
+line2, = ax.plot(epoch, loss3, color='green', lw=1, label='eq3')
+line3, = ax.plot(epoch, rho0_initial, color='red', lw=1, label='p0 boundary condition')
+line4, = ax.plot(epoch, rhoT_terminal, color='purple', lw=1, label='pT boundary condition')
+
+ax.grid()
+ax.legend(loc="lower left")
+ax.set_title('training error/residual plots: %d epochs' % (len(epoch)*de))
+ax.set_yscale('log')
+ax.set_xscale('log')
+
+plot_fname = "%s/loss.png" % (os.path.abspath("./"))
+plt.savefig(plot_fname, dpi=300)
+print("saved plot")
+
+
+
+######################################
+
+rv0 = multivariate_normal([mu_0, mu_0, mu_0], sigma_0 * np.eye(3))
+rvT = multivariate_normal([mu_T, mu_T, mu_T], sigma_T * np.eye(3))
+
+
+'''
+xyzs=np.hstack((
+    x_T,
+    y_T,
+    z_T,
+))
+C = cdist(xyzs, xyzs, 'sqeuclidean')
+cvector = C.reshape((N**3)**2,1)
+A = np.concatenate(
+    (
+        np.kron(
+            np.ones((1,N**3)),
+            sparse.eye(N**3).toarray()
+        ),
+        np.kron(
+            sparse.eye(N**3).toarray(),
+            np.ones((1,N**3))
+        )
+    ), axis=0)
+# 2*N**3
+# Define and solve the CVXPY problem.
+x = cp.Variable(
+    cvector.shape[0],
+    nonneg=True
+)
+pred = cp.Parameter((A.shape[0],))
+problem = cp.Problem(
+    cp.Minimize(cvector.T @ x),
+    [
+        A @ x == pred,
+    ],
+)
+assert problem.is_dpp()
+cvxpylayer = CvxpyLayer(
+    problem,
+    parameters=[pred],
+    variables=[x])
+
+xT_tensor = torch.from_numpy(
+    x_T
+).requires_grad_(False)
+
+rho_0_tensor = torch.from_numpy(
+    rho_0
+).requires_grad_(False)
+
+rho_T_tensor = torch.from_numpy(
+    rho_T
+).requires_grad_(False)
+
+cvector_tensor = torch.from_numpy(
+    cvector.reshape(-1)
+).requires_grad_(False)
+
+rho_0_tensor = rho_0_tensor.to(cpu)
+cvector_tensor = cvector_tensor.to(cpu)
+print(type(rho_0_tensor))
+def rho0_WASS_cpu(y_true, y_pred):
+#     y_pred = y_pred.to(cpu)
+#     y_pred = y_pred.cpu()
+    
+    y_pred = torch.where(y_pred < 0, 0, y_pred)
+    y_pred = y_pred / torch.sum(torch.abs(y_pred))
+
+    param = torch.cat((rho_0_tensor, y_pred), 0)
+    param = torch.reshape(param, (2*N,))
+    print(type(param))
+    x_sol, = cvxpylayer(param)
+    # TODO(handle infeasible)
+    wass_dist = torch.matmul(cvector_tensor, x_sol)
+    return wass_dist
+
+xT_tensor = xT_tensor.to(cuda0)
+rho_0_tensor = rho_0_tensor.to(cuda0)
+rho_T_tensor = rho_T_tensor.to(cuda0)
+cvector_tensor = cvector_tensor.to(cuda0)
+
+# first train on mse, then train on wass?
+class LossSeq(object):
+    def __init__(self):
+        self.mode = 0
+        self.print_mode = 0
+
+    def rho0_WASS_cuda1(self, y_true, y_pred):
+        total = torch.mean(torch.square(y_true - y_pred))
+        return total
+
+# fail_cost = torch.Tensor(1e3, dtype=torch.float32)
+
+def rho0_WASS_cuda0(y_true, y_pred):
+    # avoid moving to speed up
+    # y_pred = y_pred.to(cuda0)
+    # y_pred.retain_grad()
+    # total = fail_cost
+
+    # # normalize to pdf
+    y_pred = torch.where(y_pred < 0, 0, y_pred)
+    y_pred /= torch.trapz(y_pred, x=xT_tensor, dim=0)[0]
+
+    # normalize to PMF
+    y_pred = y_pred / torch.sum(torch.abs(y_pred))
+
+    param = torch.cat((rho_0_tensor, y_pred), 0)
+    param = torch.reshape(param, (2*N**3,))
+    # print(type(param))
+    try:
+        x_sol, = cvxpylayer(param, solver_args={
+            'max_iters': 10000,
+            # 'eps' : 1e-5,
+            'solve_method' : 'ECOS'
+        }) # or ECOS, ECOS is faster
+        wass_dist = torch.matmul(cvector_tensor, x_sol)
+        wass_dist = torch.sqrt(wass_dist)
+
+        # ECOS might return nan
+        # SCS is slower, and you need 'luck'?
+        wass_dist = torch.nan_to_num(wass_dist, 1e3)
+
+        return wass_dist
+    except:
+        print("cvx failed, returning mse")
+        return torch.mean(torch.square(y_true - y_pred))
+
+def rhoT_WASS_cuda0(y_true, y_pred):
+    # avoid moving to speed up
+    # y_pred = y_pred.to(cuda0)
+    # y_pred.retain_grad()
+    # total = fail_cost
+
+    # # normalize to pdf
+    y_pred = torch.where(y_pred < 0, 0, y_pred)
+    y_pred /= torch.trapz(y_pred, x=xT_tensor, dim=0)[0]
+
+    # normalize to PMF
+    y_pred = y_pred / torch.sum(torch.abs(y_pred))
+
+    param = torch.cat((rho_T_tensor, y_pred), 0)
+    param = torch.reshape(param, (2*N**3,))
+    # print(type(param))
+    try:
+        x_sol, = cvxpylayer(param, solver_args={
+            'max_iters': 10000,
+            # 'eps' : 1e-5,
+            'solve_method' : 'ECOS'
+        }) # or ECOS, ECOS is faster
+        wass_dist = torch.matmul(cvector_tensor, x_sol)
+        wass_dist = torch.sqrt(wass_dist)
+
+        # ECOS might return nan
+        # SCS is slower, and you need 'luck'?
+        wass_dist = torch.nan_to_num(wass_dist, 1e3)
+
+        return wass_dist
+    except:
+        print("cvx failed, returning mse")
+        return torch.nan_to_num(torch.mean(torch.square(y_true - y_pred)), 1e3)
+'''

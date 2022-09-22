@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 
 from scipy.stats import truncnorm, norm
-import numpy as np
+import numpy as np, os, time, sys
 
 import torch
+
+def pdf3d(x,y,z,rv):
+    return rv.pdf(np.hstack((x, y, z)))
 
 def slice(matrix_3d, i, j, mode):
     if mode == 0:
@@ -12,6 +15,28 @@ def slice(matrix_3d, i, j, mode):
         return matrix_3d[i, j, :]
     else:
         return matrix_3d[i, :, j]
+
+def get_pdf_support_torch(
+    tensor,
+    xtensors,
+    mode):
+    n = len(xtensors[0])
+    tensor_3d = torch.reshape(
+        tensor, (n, n, n))
+
+    buffer0 = torch.zeros(len(xtensors[1]), dtype=dt)
+    buffer1 = torch.zeros(len(xtensors[0]), dtype=dt)
+    for j in range(len(xtensors[0])):
+        # collapse 1 dimension away into buffer0
+        for i in range(len(xtensors[1])):
+            buffer0[i] = torch.trapz(
+                slice(tensor_3d, i, j, mode)
+                , x=xtensors[2])
+        # collapse 2 dimensions into 1 scalar
+        buffer1[j] = torch.trapz(
+            buffer0,
+            x=xtensors[1])
+    return torch.trapz(buffer1, x=xtensors[0])
 
 def get_marginal_pmf(matrix_3d, xs, mode):
     marginal = np.array([
@@ -146,6 +171,33 @@ def get_pmf_stats_torch(
 
     return mu, cov_matrix
 
+def get_multivariate_truncated_norm(x_T, y_T, z_T, mu, sigma, state_min, state_max, N, f, cache_name):
+    state = np.hstack((x_T, y_T, z_T))
+    if not os.path.exists(cache_name):
+        import julia
+        from julia.api import Julia
+        jl = Julia(compiled_modules=False)
+        jl.eval('import Pkg; Pkg.add("Primes"); Pkg.add("Parameters"); Pkg.add("Distributions");')
+        jl.eval('')
+        jl.eval('include("/home/cyan3/Dev/jim/TMvNormals.jl/src/TMvNormals.jl"); using .TMvNormals; using LinearAlgebra')
+        make_d = jl.eval('(mu, sigma, state_min, state_max) -> d = TMvNormal(mu*ones(3),sigma*I(3),[state_min, state_min, state_min],[state_max, state_max, state_max])')
+        trunc_pdf = jl.eval('(d, x) -> pdf(d, x)')
+        trunc_mean = jl.eval('d -> mean(d)')
+        trunc_cov = jl.eval('d -> cov(d)')
+
+        trunc_rv = make_d(mu, sigma, state_min, state_max)
+
+        #################################################
+
+        trunc_pdf = np.array([
+            trunc_pdf(trunc_rv, state[i, :]) for i in range(state.shape[0])
+            ]).astype(f).reshape(N**3, 1)
+        np.savetxt(cache_name, trunc_pdf)
+    else:
+        trunc_pdf = np.loadtxt(cache_name).astype(f).reshape(N**3, 1)
+
+    return trunc_pdf
+
 N = 50
 
 # must be floats
@@ -166,6 +218,16 @@ T_t=20. #Terminal time
 
 id_prefix = "wass_3d"
 de = 1
+
+f = 'float32'
+dt = torch.float32
+
+samples_between_initial_and_final = 12000 # 10^4 order, 20k = out of memory
+initial_and_final_samples = 2000 # some 10^3 order
+
+num_epochs = 100000
+
+epsilon=.001
 
 ########################################################
 
