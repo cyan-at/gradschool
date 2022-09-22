@@ -70,7 +70,7 @@ state = np.hstack((x_T, y_T, z_T))
 trunc_rho0 = np.array([
     trunc_pdf(trunc_rv0, state[i, :]) for i in range(state.shape[0])
     ])
-np.savetxt('rho0_%.3f_%.3f__%.3f_%.3f__%d' % (
+np.savetxt('rho0_%.3f_%.3f__%.3f_%.3f__%d.dat' % (
     mu_0, sigma_0,
     state_min, state_max,
     N), trunc_rho0)
@@ -80,7 +80,7 @@ np.savetxt('rho0_%.3f_%.3f__%.3f_%.3f__%d' % (
 trunc_rhoT = np.array([
     trunc_pdf(trunc_rvT, state[i, :]) for i in range(state.shape[0])
     ])
-np.savetxt('rhoT_%.3f_%.3f__%.3f_%.3f__%d' % (
+np.savetxt('rhoT_%.3f_%.3f__%.3f_%.3f__%d.dat' % (
     mu_T, sigma_T,
     state_min, state_max,
     N), trunc_rhoT)
