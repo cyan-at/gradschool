@@ -3,15 +3,69 @@
 from scipy.stats import truncnorm, norm
 import numpy as np
 
-def pdf1d(x, mu, sigma):
-    a, b = (state_min - mu) / sigma, (state_max - mu) / sigma
-    rho_x=truncnorm.pdf(x, a, b,
-        loc = mu, scale = sigma)
+def slice(matrix_3d, i, j, mode):
+    if mode == 0:
+        return matrix_3d[j, i, :]
+    elif mode == 1:
+        return matrix_3d[i, j, :]
+    else:
+        return matrix_3d[i, :, j]
 
-    # do NOT use gaussian norm, because it is only area=1
-    # from -inf, inf, will not be for finite state/grid
-    # rho_x = norm.pdf(x, mu, sigma)
-    return rho_x
+def get_marginal_pmf(matrix_3d, xs, mode):
+    marginal = np.array([
+      np.sum(
+          np.array([
+            np.sum(
+                slice(matrix_3d, i, j, mode)
+            )
+            for i in range(len(xs[1]))])
+        ) # x2 slice for one x1 => R
+    for j in range(len(xs[0]))])
+    return marginal
+
+def get_pmf_stats(pmf, x1, x2, x3, x_T, y_T, z_T):
+    # pmf has SUM=1, so normalize as such
+    pmf_support = np.sum(pmf)
+
+    pmf_normed = pmf / pmf_support
+
+    n = len(x1)
+    pmf_cube_normed = pmf_normed.reshape(n, n, n)
+
+    # finding mu / E(x1) of discrete distribution / pmf
+    # is implemented as a dot product
+    x1_marginal_pmf = get_marginal_pmf(
+        pmf_cube_normed, [x1, x2, x3], 0)
+    mu1 = np.dot(x1_marginal_pmf, x1)
+
+    x2_marginal_pmf = get_marginal_pmf(
+        pmf_cube_normed, [x2, x3, x1], 1)
+    mu2 = np.dot(x2_marginal_pmf, x2)
+
+    x3_marginal_pmf = get_marginal_pmf(
+        pmf_cube_normed, [x3, x1, x2], 2)
+    mu3 = np.dot(x3_marginal_pmf, x3)
+
+    mu = np.array([mu1, mu2, mu3])
+
+    dx = x_T - mu1
+    dy = y_T - mu2
+    dz = z_T - mu3
+
+    cov_xx = np.sum(pmf_normed * dx * dx)
+    cov_xy = np.sum(pmf_normed * dx * dy)
+    cov_xz = np.sum(pmf_normed * dx * dz)
+    cov_yy = np.sum(pmf_normed * dy * dy)
+    cov_yz = np.sum(pmf_normed * dy * dz)
+    cov_zz = np.sum(pmf_normed * dz * dz)
+
+    cov_matrix = np.array([
+        [cov_xx, cov_xy, cov_xz],
+        [cov_xy, cov_yy, cov_yz],
+        [cov_xz, cov_yz, cov_zz]
+    ])
+
+    return mu, cov_matrix, pmf_cube_normed
 
 N = 50
 
@@ -41,6 +95,7 @@ T_IDX = 1
 Y3_IDX = 2
 RHO_OPT_IDX = 3
 
+'''
 def plot_rho_bc(label, test_ti, mu, sigma, ax):
     ind = np.lexsort((test_ti[:,X_IDX], test_ti[:,T_IDX]))
     test_ti = test_ti[ind]
@@ -77,3 +132,4 @@ def plot_rho_bc(label, test_ti, mu, sigma, ax):
         label='true %s' % (label))
 
     return s1, s2
+'''
