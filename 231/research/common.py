@@ -3,6 +3,8 @@
 from scipy.stats import truncnorm, norm
 import numpy as np
 
+import torch
+
 def slice(matrix_3d, i, j, mode):
     if mode == 0:
         return matrix_3d[j, i, :]
@@ -23,7 +25,7 @@ def get_marginal_pmf(matrix_3d, xs, mode):
     for j in range(len(xs[0]))])
     return marginal
 
-def get_pmf_stats(pmf, x1, x2, x3, x_T, y_T, z_T):
+def get_pmf_stats(pmf, x_T, y_T, z_T, x1, x2, x3):
     # pmf has SUM=1, so normalize as such
     pmf_support = np.sum(pmf)
 
@@ -66,6 +68,83 @@ def get_pmf_stats(pmf, x1, x2, x3, x_T, y_T, z_T):
     ])
 
     return mu, cov_matrix, pmf_cube_normed
+
+def fill_marginal_pmf_torch(
+    tensor_3d,
+    xtensors,
+    mode,
+    buffer0,
+    buffer1):
+    for j in range(len(xtensors[0])):
+        # collapse 1 dimension away into buffer0
+        for i in range(len(xtensors[1])):
+            buffer0[i] = torch.sum(slice(tensor_3d, i, j, mode))
+        # collapse 2 dimensions into 1 scalar
+        buffer1[j] = torch.sum(buffer0)
+
+def get_pmf_stats_torch(
+    pmf,
+    x_T, y_T, z_T,
+    x1, x2, x3,
+    dt):
+    pmf_support = torch.sum(pmf)
+
+    pmf_normed = pmf / pmf_support
+
+    n = len(x1)
+    pmf_cube_normed = torch.reshape(
+        pmf_normed, (n, n, n))
+
+    # finding mu / E(x1) of discrete distribution / pmf
+    # is implemented as a dot product
+    buffer0 = torch.zeros(len(x2), dtype=dt)
+    x1_marginal_pmf = torch.zeros(len(x1), dtype=dt)
+    fill_marginal_pmf_torch(pmf_cube_normed,
+        [x1, x2, x3], 0,
+        buffer0,
+        x1_marginal_pmf)
+    mu1 = torch.dot(x1_marginal_pmf, x1)
+
+    buffer1 = torch.zeros(len(x3), dtype=dt)
+    x2_marginal_pmf = torch.zeros(len(x2), dtype=dt)
+    fill_marginal_pmf_torch(pmf_cube_normed,
+        [x2, x3, x1], 1,
+        buffer1,
+        x2_marginal_pmf)
+    mu2 = torch.dot(x2_marginal_pmf, x2)
+
+    buffer2 = torch.zeros(len(x1), dtype=dt)
+    x3_marginal_pmf = torch.zeros(len(x3), dtype=dt)
+    fill_marginal_pmf_torch(pmf_cube_normed,
+        [x3, x1, x2], 2,
+        buffer2,
+        x3_marginal_pmf)
+    mu3 = torch.dot(x3_marginal_pmf, x3)
+
+    mu = torch.cat((
+        mu1.reshape(1),
+        mu2.reshape(1),
+        mu3.reshape(1)
+    ))
+
+    dx = x_T - mu1
+    dy = y_T - mu2
+    dz = z_T - mu3
+
+    cov_xx = torch.sum(pmf_normed * dx * dx).reshape(1)
+    cov_xy = torch.sum(pmf_normed * dx * dy).reshape(1)
+    cov_xz = torch.sum(pmf_normed * dx * dz).reshape(1)
+    cov_yy = torch.sum(pmf_normed * dy * dy).reshape(1)
+    cov_yz = torch.sum(pmf_normed * dy * dz).reshape(1)
+    cov_zz = torch.sum(pmf_normed * dz * dz).reshape(1)
+
+    cov_matrix = torch.stack((
+        torch.cat((cov_xx, cov_xy, cov_xz)),
+        torch.cat((cov_xy, cov_yy, cov_yz)),
+        torch.cat((cov_xz, cov_yz, cov_zz))
+    ))
+
+    return mu, cov_matrix
 
 N = 50
 
