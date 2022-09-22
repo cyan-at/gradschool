@@ -22,6 +22,26 @@ from scipy.stats import multivariate_normal
 
 from common import *
 
+def slice(matrix_3d, i, j, mode):
+    if mode == 0:
+        return matrix_3d[j, i, :]
+    elif mode == 1:
+        return matrix_3d[i, j, :]
+    else:
+        return matrix_3d[i, :, j]
+
+def get_marginal_pmf(matrix_3d, xs, mode):
+    marginal = np.array([
+      np.sum(
+          np.array([
+            np.sum(
+                slice(matrix_3d, i, j, mode)
+            )
+            for i in range(len(xs[1]))])
+        ) # x2 slice for one x1 => R
+    for j in range(len(xs[0]))])
+    return marginal
+
 jl = Julia(compiled_modules=False)
 jl.eval('import Pkg; Pkg.add("Primes"); Pkg.add("Parameters"); Pkg.add("Distributions");')
 jl.eval('')
@@ -36,8 +56,6 @@ trunc_rvT = make_d(mu_T, sigma_T, state_min, state_max)
 
 #################################################
 
-N = 100
-
 x1 = np.transpose(np.linspace(state_min, state_max, N))
 x2 = np.transpose(np.linspace(state_min, state_max, N))
 x3 = np.transpose(np.linspace(state_min, state_max, N))
@@ -48,6 +66,52 @@ z_T=Z.reshape(N**3,1)
 state = np.hstack((x_T, y_T, z_T))
 
 #################################################
+
+trunc_rho0 = np.array([
+    trunc_pdf(trunc_rv0, state[i, :]) for i in range(state.shape[0])
+    ])
+np.savetxt('rho0_%.3f_%.3f__%.3f_%.3f__%d' % (
+    mu_0, sigma_0,
+    state_min, state_max,
+    N), trunc_rho0)
+
+#################################################
+
+trunc_rhoT = np.array([
+    trunc_pdf(trunc_rvT, state[i, :]) for i in range(state.shape[0])
+    ])
+np.savetxt('rhoT_%.3f_%.3f__%.3f_%.3f__%d' % (
+    mu_T, sigma_T,
+    state_min, state_max,
+    N), trunc_rhoT)
+
+#################################################
+
+# trunc_rho0_cube = trunc_rho0.reshape(N, N, N)
+
+# # deserializing the trunc_rho0 as a PMF
+# pmf_support = np.sum(trunc_rho_0_cube)
+# trunc_rho0_cube_normed = trunc_rho_0_cube / pmf_support
+
+# # finding mu / E(x1) of discrete distribution / pmf
+# # is implemented as a dot product
+# x1_marginal_pmf = get_marginal_pmf(
+#     trunc_rho0_cube_normed, [x1, x2, x3], 0)
+# mu1 = np.dot(x1_marginal_pmf, x1)
+
+# x2_marginal_pmf = get_marginal_pmf(
+#     trunc_rho0_cube_normed, [x2, x3, x1], 1)
+# mu2 = np.dot(x2_marginal_pmf, x2)
+
+# x3_marginal_pmf = get_marginal_pmf(
+#     trunc_rho0_cube_normed, [x3, x1, x2], 2)
+# mu3 = np.dot(x3_marginal_pmf, x3)
+
+
+
+#################################################
+
+# trunc_rhoT_cube = trunc_rhoT.reshape(N, N, N)
 
 '''
 rv0 = multivariate_normal([mu_0, mu_0, mu_0], sigma_0 * np.eye(3))
@@ -61,13 +125,6 @@ rho0_x1_marginal = get_marginal(
 mu_1 = np.trapz(rho0_x1_marginal * x1, x=x1)
 print("mu_1", mu_1)
 '''
-
-trunc_rho_0 = np.array([trunc_pdf(trunc_rv0, state[i, :]) for i in range(state.shape[0])])
-trunc_rho_0_cube = trunc_rho_0.reshape(N, N, N)
-
-
-
-
 
 # trunc_rho_T = np.array([trunc_pdf(trunc_rvT, state[i, :]) for i in range(state.shape[0])])
 
@@ -91,7 +148,6 @@ trunc_rho_0_cube = trunc_rho_0.reshape(N, N, N)
 
 
 import ipdb; ipdb.set_trace();
-
 
 
 
