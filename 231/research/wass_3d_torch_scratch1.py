@@ -74,7 +74,7 @@ parser = argparse.ArgumentParser(description="")
 parser.add_argument('--N', type=int, default=50, help='')
 parser.add_argument('--js', type=str, default="1,1,2", help='')
 parser.add_argument('--q', type=float, default=0.0, help='')
-parser.add_argument('--debug', type=bool, default=False, help='')
+parser.add_argument('--debug', type=int, default=False, help='')
 args = parser.parse_args()
 
 if args.debug:
