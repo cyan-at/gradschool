@@ -60,13 +60,13 @@ rho0_name = 'rho0_%.3f_%.3f__%.3f_%.3f__%d.dat' % (
     mu_0, sigma_0,
     state_min, state_max,
     N)
-trunc_rho0_pdf = get_multivariate_truncated_norm(x_T, y_T, z_T, mu_0, sigma_0, state_min, state_max, N, f, rho0_name)
+trunc_rho0_pdf = get_multivariate_truncated_pdf(x_T, y_T, z_T, mu_0, sigma_0, state_min, state_max, N, f, rho0_name)
 
 rhoT_name = 'rhoT_%.3f_%.3f__%.3f_%.3f__%d.dat' % (
     mu_T, sigma_T,
     state_min, state_max,
     N)
-trunc_rhoT_pdf = get_multivariate_truncated_norm(x_T, y_T, z_T, mu_T, sigma_T, state_min, state_max, N, f, rhoT_name)
+trunc_rhoT_pdf = get_multivariate_truncated_pdf(x_T, y_T, z_T, mu_T, sigma_T, state_min, state_max, N, f, rhoT_name)
 
 '''
 #################################################

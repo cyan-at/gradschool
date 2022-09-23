@@ -50,11 +50,12 @@ def get_marginal_pmf(matrix_3d, xs, mode):
     for j in range(len(xs[0]))])
     return marginal
 
-def get_pmf_stats(pmf, x_T, y_T, z_T, x1, x2, x3):
+def get_pmf_stats(pmf, x_T, y_T, z_T, x1, x2, x3, normalize=True):
     # pmf has SUM=1, so normalize as such
-    pmf_support = np.sum(pmf)
-
-    pmf_normed = pmf / pmf_support
+    pmf_normed = pmf
+    if normalize:
+        pmf_support = np.sum(pmf)
+        pmf_normed = pmf / pmf_support
 
     n = len(x1)
     pmf_cube_normed = pmf_normed.reshape(n, n, n)
@@ -171,7 +172,7 @@ def get_pmf_stats_torch(
 
     return mu, cov_matrix
 
-def get_multivariate_truncated_norm(x_T, y_T, z_T, mu, sigma, state_min, state_max, N, f, cache_name):
+def get_multivariate_truncated_pdf(x_T, y_T, z_T, mu, sigma, state_min, state_max, N, f, cache_name):
     state = np.hstack((x_T, y_T, z_T))
     if not os.path.exists(cache_name):
         import julia

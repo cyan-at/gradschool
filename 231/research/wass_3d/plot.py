@@ -111,7 +111,8 @@ parser = argparse.ArgumentParser(description="")
 parser.add_argument('--N', type=int, default=50, help='')
 parser.add_argument('--js', type=str, default="1,1,2", help='')
 parser.add_argument('--q', type=float, default=0.0, help='')
-parser.add_argument('--debug', type=int, default=False, help='')
+parser.add_argument('--debug', type=int, default=0, help='')
+parser.add_argument('--save', type=int, default=1, help='')
 parser.add_argument('--modelpt',
     type=str, default='')
 parser.add_argument('--testdat',
@@ -145,9 +146,14 @@ test = np.loadtxt(args.testdat)
 t0 = test[:N**3, :]
 
 rho0 = t0[:, RHO_OPT_IDX]
-rho0 = np.where(rho0 < 0, 0, rho0)
+print("# of positive terms:", len(rho0) - np.sum(rho0 < 0))
+# of positive terms
+# there ARE positive terms, but they get OVERWHELMED
+# by negative terms in summing out the marginal pmfs
+# rho0 = np.where(rho0 < 0, 0, rho0)
 
-mu, cov_matrix, pmf_cube_normed, x1m, x2m, x3m = get_pmf_stats(rho0, x_T, y_T, z_T, x1, x2, x3)
+
+mu, cov_matrix, pmf_cube_normed, x1m, x2m, x3m = get_pmf_stats(rho0, x_T, y_T, z_T, x1, x2, x3, False)
 print("mu\n", mu)
 print("cov_matrix\n", cov_matrix)
 
@@ -155,9 +161,9 @@ rho0_name = 'rho0_%.3f_%.3f__%.3f_%.3f__%d.dat' % (
     mu_0, sigma_0,
     state_min, state_max,
     N)
-trunc_rho0_pdf = get_multivariate_truncated_norm(x_T, y_T, z_T, mu_0, sigma_0, state_min, state_max, N, f, rho0_name)
+trunc_rho0_pdf = get_multivariate_truncated_pdf(x_T, y_T, z_T, mu_0, sigma_0, state_min, state_max, N, f, rho0_name)
 rho0_mu, rho0_cov_matrix, _, true_x1m, true_x2m, true_x3m = get_pmf_stats(
-    trunc_rho0_pdf, x_T, y_T, z_T, x1, x2, x3)
+    trunc_rho0_pdf, x_T, y_T, z_T, x1, x2, x3, True)
 print("rho0_mu\n", rho0_mu)
 print("rho0_cov_matrix\n", rho0_cov_matrix)
 
@@ -176,7 +182,7 @@ rhoT_name = 'rhoT_%.3f_%.3f__%.3f_%.3f__%d.dat' % (
     mu_T, sigma_T,
     state_min, state_max,
     N)
-trunc_rhoT_pdf = get_multivariate_truncated_norm(x_T, y_T, z_T, mu_T, sigma_T, state_min, state_max, N, f, rhoT_name)
+trunc_rhoT_pdf = get_multivariate_truncated_pdf(x_T, y_T, z_T, mu_T, sigma_T, state_min, state_max, N, f, rhoT_name)
 rhoT_mu, rhoT_cov_matrix, _, true_x1mT, true_x2mT, true_x3mT = get_pmf_stats(
     trunc_rhoT_pdf, x_T, y_T, z_T, x1, x2, x3)
 print("rhoT_mu\n", rhoT_mu)
@@ -279,11 +285,12 @@ ax3.legend(loc="lower left")
 # ax.set_yscale('log')
 # ax.set_xscale('log')
 
-plot_fname = "%s/%s.png" % (
-    os.path.abspath("./"),
-    args.testdat.replace(".dat", "")
-)
-plt.savefig(plot_fname, dpi=500)
-print("saved plot")
+if args.save:
+    plot_fname = "%s/%s.png" % (
+        os.path.abspath("./"),
+        args.testdat.replace(".dat", "")
+    )
+    plt.savefig(plot_fname, dpi=500)
+    print("saved plot")
 
 plt.show()
