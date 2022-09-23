@@ -1699,7 +1699,7 @@ if you had a trunnorm pdf, then it would be integral from a to b, and the state 
 
 #########################################################
 
-
+use julia multivariate trunc norm to get a 3d trunc norm from julia into python, cached
 
 import Pkg; Pkg.add("Distributions")
 import Pkg; Pkg.add("Primes")
@@ -1729,7 +1729,106 @@ jl.eval('pdf(d, zeros(3))')
 
 
 #########################################################
+
+Step      Train loss                                  Test loss                                   Test metric
+0         [1.02e+00, 5.53e-01, 1.56e+01, 5.78e-01]    [1.02e+00, 5.53e-01, 1.56e+01, 5.78e-01]    []  
+c
+ tensor([[     8.908,     -0.000,      0.000],
+        [    -0.000,     11.303,     -0.000],
+        [     0.000,     -0.000,      2.796]], grad_fn=<MulBackward0>)
+a max
+ tensor([[    2.985,     0.000,     0.004],
+        [    0.000,     3.362,     0.000],
+        [    0.004,     0.000,     1.672]], grad_fn=<AddBackward0>)
+ysig max
+ tensor([[ 8.960, -3.345,  1.258],
+        [-3.345, 11.369, -0.571],
+        [ 1.258, -0.571,  2.813]], grad_fn=<AddBackward0>)
+b max
+ tensor(10.086, grad_fn=<AddBackward0>)
+ym
+ tensor([-0.034,  1.576, -3.068], grad_fn=<CatBackward0>)
+/usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/torch/autograd/__init__.py:173: UserWarning: Error detected in SqrtBackward0. Traceback of forward call that caused the error:
+  File "/usr/local/home/cyan3/Dev/jim/gradschool/231/research/./wass_3d_torch_scratch1.py", line 441, in <module>
+    losshistory, train_state = model.train(
+  File "/usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/utils/internal.py", line 22, in wrapper
+    result = f(*args, **kwargs)
+  File "/usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/model.py", line 583, in train
+    self._train_sgd(iterations, display_every)
+  File "/usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/model.py", line 600, in _train_sgd
+    self._train_step(
+  File "/usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/model.py", line 504, in _train_step
+    self.train_step(inputs, targets)
+  File "/usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/model.py", line 339, in train_step
+    self.opt.step(closure)
+  File "/usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/torch/optim/optimizer.py", line 113, in wrapper
+    return func(*args, **kwargs)
+  File "/usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/torch/autograd/grad_mode.py", line 27, in decorate_context
+    return func(*args, **kwargs)
+  File "/usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/torch/optim/adam.py", line 118, in step
+    loss = closure()
+  File "/usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/model.py", line 333, in closure
+    losses = outputs_losses_train(inputs, targets)[1]
+  File "/usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/model.py", line 301, in outputs_losses_train
+    return outputs_losses(True, inputs, targets, self.data.losses_train)
+  File "/usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/model.py", line 286, in outputs_losses
+    losses = losses_fn(targets, outputs_, loss_fn, inputs, self)
+  File "/usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/data/data.py", line 13, in losses_train
+    return self.losses(targets, outputs, loss_fn, inputs, model, aux=aux)
+  File "/usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/data/pde.py", line 183, in losses
+    losses.append(loss_fn[len(error_f) + i](
+  File "/usr/local/home/cyan3/Dev/jim/gradschool/231/research/./wass_3d_torch_scratch1.py", line 294, in rho0_WASS_cuda0
+    a = torch.sqrt(c)
+ (Triggered internally at  /opt/conda/conda-bld/pytorch_1659484806139/work/torch/csrc/autograd/python_anomaly_mode.cpp:102.)
+  Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+Traceback (most recent call last):
+  File "/usr/local/home/cyan3/Dev/jim/gradschool/231/research/./wass_3d_torch_scratch1.py", line 441, in <module>
+    losshistory, train_state = model.train(
+  File "/usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/utils/internal.py", line 22, in wrapper
+    result = f(*args, **kwargs)
+  File "/usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/model.py", line 583, in train
+    self._train_sgd(iterations, display_every)
+  File "/usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/model.py", line 600, in _train_sgd
+    self._train_step(
+  File "/usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/model.py", line 504, in _train_step
+    self.train_step(inputs, targets)
+  File "/usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/model.py", line 339, in train_step
+    self.opt.step(closure)
+  File "/usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/torch/optim/optimizer.py", line 113, in wrapper
+    return func(*args, **kwargs)
+  File "/usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/torch/autograd/grad_mode.py", line 27, in decorate_context
+    return func(*args, **kwargs)
+  File "/usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/torch/optim/adam.py", line 118, in step
+    loss = closure()
+  File "/usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/model.py", line 336, in closure
+    total_loss.backward()
+  File "/usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/torch/_tensor.py", line 396, in backward
+    torch.autograd.backward(self, gradient, retain_graph, create_graph, inputs=inputs)
+  File "/usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/torch/autograd/__init__.py", line 173, in backward
+    Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+RuntimeError: Function 'SqrtBackward0' returned nan values in its 0th output.
+
+now you are using the statistical wass definition, but running into gradient issues, so you need REGULARIZATION?
+
 #########################################################
+
+tensorflow v1 / v2 cannot compute wass-opt loss with scipy without
+    popping tensors out of the graph, eval, then putting back into graph, but you lose the gradient if you do this, at least i could not accomplish, with tf.py_func
+    so then we switch to pytorch
+
+then i realize a mathematical problem in the implementation: we are only training for the diagonal cells in the 3d grid for boundary conditions, so we change to meshgrid
+    fixed issues with using 1D wass distance c table / vector
+    fixed issues with normalization the pdf by 1D x instead of 3d normalization
+
+but then the meshgrid means the wass-opt loss is too expensive to compute, for N=10, M=10**3, C=10**6, A=2*10**9
+2 billion, and then there is underlying gradient memory
+this blows up the nasa machines, so 
+    memory issues when training with N=10, for cvxpylayers for optimization-based wass distance, so switch to statistical based wass distance, which requires computing differentiable metrics mu and covariance for pinn output
+
+run into issues of backprop gradient = nan when you take sqrt of degenerate covariance , sqrt(0), so need to regularize / hybrid train
+    try regularization, doesn't really help
+    realize torch.sqrt of matrix does element-wise sqrt, so instead of approximate matrix sqrt from library, starts training
+
 #########################################################
 #########################################################
 #########################################################
@@ -1804,6 +1903,42 @@ jl.eval('pdf(d, zeros(3))')
 #########################################################
 #########################################################
 #########################################################
+
+i had a dream where i was searching online and i found a paper that does exactly what my research is doing, and did it
+
+i then sought out the author, a woman, and she was so helpful explaining to me how it works and showing me this and that about it and i'm not sure how to react
+
+it was exactly what i had been solving for. how do i take this? is my investment then just completely worthless? but if it's about the problem, shouldn't this be a good thing?
+
+should i tell my faculty advisor? what if he dismisses me then? should i bring this up to iman, my senpai?
+
+in math, 'what' IS 'what'?
+as in, the 'wass distance' IS 'the solution to this optimization problem'
+or the 'psuedo-inverse' IS the 'convex optimization solution'
+that a number is the sum of a sequence
+that some result of an operation is a variable
+
+its a discontinuous partition:
+  the people who are most like you exist, just not near you
+
+the truth blinking in and out
+  it is true only to you, and you glimpse it, and you can't speak to it because it falls out of scope right away
+
+what you are doing when you 'machine-learn'
+
+you compile a graph (net + loss functions) that supports auto-diff (symbolic gradients)
+this is loss = f(theta)(x) where f(theta) is the graph mapping input to loss
+where analytical differentiation is not possible and numerical diff is meaningless
+
+then you forward propagate the input to an output and further out into losses
+all of this while the machine is 'watching' the symoblic forward prop
+then the machine auto-diff's out the d(loss)/d(theta)
+and then the optimizer steps along the gradient to find some minimum global / local
+
+a Tensor is an interesting entity
+it is a matrix of some shape that is also a node in a graph
+it is a matrix whose elements are symbolic functions
+
 #########################################################
 
 abhishek questions:
@@ -1889,47 +2024,6 @@ print(grad_ypred)
 
 print("problem.value", problem.value)
 '''
-
-
-its a discontinuous partition:
-  the people who are most like you exist, just not near you
-
-the truth blinking in and out
-  it is true only to you, and you glimpse it, and you can't speak to it because it falls out of scope right away
-
-
-
-
-what you are doing when you 'machine-learn'
-
-you compile a graph (net + loss functions) that supports auto-diff (symbolic gradients)
-this is loss = f(theta)(x) where f(theta) is the graph mapping input to loss
-where analytical differentiation is not possible and numerical diff is meaningless
-
-then you forward propagate the input to an output and further out into losses
-all of this while the machine is 'watching' the symoblic forward prop
-then the machine auto-diff's out the d(loss)/d(theta)
-and then the optimizer steps along the gradient to find some minimum global / local
-
-a Tensor is an interesting entity
-it is a matrix of some shape that is also a node in a graph
-it is a matrix whose elements are symbolic functions
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 https://github.com/lululxvi/deepxde
 https://github.com/tensorly/tensorly
@@ -2095,3 +2189,31 @@ https://gist.github.com/sethaxen/6408d7f104ba44abfbb74981f8a8deb8
 https://gist.github.com/Flunzmas/6e359b118b0730ab403753dcc2a447df
 https://gist.github.com/pratheeksh/32fa493676222252cc9774b947280397
 https://github.com/dfdazac/wassdistance/blob/master/sinkhorn.ipynb
+
+https://discuss.pytorch.org/t/gradient-value-is-nan/91663/3
+https://pytorch.org/maskedtensor/main/notebooks/nan_grad.html
+https://www.google.com/search?q=torch+check+matrix+positive+semi-definite&ei=1awsY7eQG7nckPIP19GB2AE&ved=0ahUKEwj3zu-Bh6n6AhU5LkQIHddoABsQ4dUDCA4&uact=5&oq=torch+check+matrix+positive+semi-definite&gs_lcp=Cgdnd3Mtd2l6EAMyBwghEKABEAoyBwghEKABEAoyBQghEKsCOgoIABBHENYEELADOgQIABBDOgcIABBDEIsDOgoIABCxAxCDARBDOg0IABCxAxCDARBDEIsDOg4IABCxAxCDARCRAhCLAzoLCAAQsQMQgwEQkQI6CAgAEJECEIsDOg4IABCABBCxAxCDARCLAzoICAAQgAQQiwM6BQgAEIAEOgcIABAKEIsDOggILhCABBCLAzoECAAQCjoGCAAQHhAWOgUIABCGAzoFCCEQoAE6CAghEB4QFhAdOgoIIRAeEA8QFhAdSgQIQRgASgQIRhgAUJ0OWOtAYKpCaANwAXgAgAGpA4gBhUaSAQswLjE5LjIwLjEuMZgBAKABAcgBCLgBAsABAQ&sclient=gws-wiz
+https://github.com/steveli/pytorch-sqrtm
+https://github.com/steveli/pytorch-sqrtm/blob/master/sqrtm.py
+https://pytorch.org/docs/stable/generated/torch.linalg.cholesky.html#torch.linalg.cholesky
+https://www.google.com/search?q=covariance+matrix+check&oq=covariance+matrix&aqs=chrome.0.69i59l2j69i57j69i60l2j69i61.2275j0j1&sourceid=chrome&ie=UTF-8
+https://stackoverflow.com/questions/57627406/how-to-use-autograd-gradcheck-in-pytorch
+https://www.google.com/search?q=derive+sqrt+of+a+matrix&oq=derive+sqrt+of+a+matrix&aqs=chrome..69i57.3474j0j1&sourceid=chrome&ie=UTF-8
+https://hulk.ndc.nasa.gov/yamcs/telemetry/parameters?c=viper__realtime&filter=ViperGround%2FTime%2FserverTime
+https://www.google.com/search?q=c%2B%2B+all+types+of+const&ei=PbMsY6TGFbHfkPIPo76keA&ved=0ahUKEwjk2OuPjan6AhWxL0QIHSMfCQ8Q4dUDCA4&uact=5&oq=c%2B%2B+all+types+of+const&gs_lcp=Cgdnd3Mtd2l6EAMyBggAEB4QFjIFCAAQhgMyBQgAEIYDMgUIABCGAzIFCAAQhgMyBQgAEIYDOgoIABBHENYEELADOgUIIRCgAToICCEQHhAWEB06BQghEKsCOgoIIRAeEA8QFhAdSgQIQRgASgQIRhgAUKwFWNgKYL8LaAFwAXgAgAHPAYgB5wmSAQUwLjYuMZgBAKABAcgBB8ABAQ&sclient=gws-wiz
+https://www.geeksforgeeks.org/auto_ptr-unique_ptr-shared_ptr-weak_ptr-2/
+https://www.geeksforgeeks.org/different-ways-to-use-const-with-reference-to-a-pointer-in-c/
+https://dzone.com/articles/c-type-casting-with-example-for-c-developers
+https://www.geeksforgeeks.org/const-keyword-in-cpp/
+https://outlook.office365.com/mail/inbox/id/AAQkADAyZDgxZDI4LTg1ZDctNDEyYi1hMzA3LTZhMDg3Y2IxZjE1ZgAQADGD28%2BWidhHvHJmX6xWazI%3D
+https://www.google.com/search?q=torch+regularizing+nan+gradient&oq=torch+regularizing+nan+gradient&aqs=chrome..69i57.4635j0j1&sourceid=chrome&ie=UTF-8
+https://stackoverflow.com/questions/42704283/l1-l2-regularization-in-pytorch
+https://deepxde.readthedocs.io/en/latest/_modules/deepxde/model.html
+https://deepxde.readthedocs.io/en/latest/modules/deepxde.nn.html#module-deepxde.nn.regularizers
+https://www.google.com/search?q=deepxde+regularizer&oq=deepxde+regularizer&aqs=chrome..69i57.2363j0j1&sourceid=chrome&ie=UTF-8
+https://www.google.com/search?q=pytorch+regularizer&oq=pytorch+regularizer&aqs=chrome..69i57.2486j0j4&sourceid=chrome&ie=UTF-8
+https://medium.com/analytics-vidhya/understanding-regularization-with-pytorch-26a838d94058
+https://chrome.google.com/webstore/detail/tab-snap/ajjloplcjllkammemhenacfjcccockde
+https://stackoverflow.com/questions/55671735/loss-is-nan-all-the-time-when-training-the-neural-network-in-pytorch
+https://discuss.pytorch.org/t/loss-is-not-nan-but-the-gradients-are/21224/5
+https://github.com/koshian2/swd-pytorch/blob/master/swd.py
