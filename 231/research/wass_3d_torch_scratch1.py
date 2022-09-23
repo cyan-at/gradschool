@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
-
-
 # 0 define backend
 import sys, os, time
 
@@ -66,6 +63,41 @@ from scipy.linalg import sqrtm
 from cvxpylayers.torch import CvxpyLayer
 
 ######################################
+
+import torch
+from torch.autograd import Function
+import numpy as np
+import scipy.linalg
+
+class MatrixSquareRoot(Function):
+    """Square root of a positive definite matrix.
+    NOTE: matrix square root is not differentiable for matrices with
+          zero eigenvalues.
+    """
+    @staticmethod
+    def forward(ctx, input):
+        m = input.detach().cpu().numpy().astype(np.float_)
+        sqrtm = torch.from_numpy(scipy.linalg.sqrtm(m).real).to(input)
+        ctx.save_for_backward(sqrtm)
+        return sqrtm
+
+    @staticmethod
+    def backward(ctx, grad_output):
+        grad_input = None
+        if ctx.needs_input_grad[0]:
+            sqrtm, = ctx.saved_tensors
+            sqrtm = sqrtm.data.cpu().numpy().astype(np.float_)
+            gm = grad_output.data.cpu().numpy().astype(np.float_)
+
+            # Given a positive semi-definite matrix X,
+            # since X = X^{1/2}X^{1/2}, we can compute the gradient of the
+            # matrix square root dX^{1/2} by solving the Sylvester equation:
+            # dX = (d(X^{1/2})X^{1/2} + X^{1/2}(dX^{1/2}).
+            grad_sqrtm = scipy.linalg.solve_sylvester(sqrtm, sqrtm, gm)
+
+            grad_input = torch.from_numpy(grad_sqrtm).to(grad_output)
+        return grad_input
+sqrtm = MatrixSquareRoot.apply
 
 from common import *
 
@@ -251,7 +283,8 @@ rhoT_m, rhoT_sig = get_pmf_stats_torch(
     x_T_tensor, y_T_tensor, z_T_tensor,
     x1_tensor, x2_tensor, x3_tensor, dt)
 
-e = torch.ones((3,3)) * 1e-5
+r = 1e-5
+e = torch.ones((3,3)) * r
 # regularizer to prevent nan in matrix sqrt
 # nan in gradient
 
@@ -280,27 +313,30 @@ def rho0_WASS_cuda0(y_true, y_pred):
         x1_tensor, x2_tensor, x3_tensor, dt)
     ysig = torch.nan_to_num(ysig) + e
 
-    if torch.max(ysig) < 1e-3:
-        print("degenerate\n", ysig)
+    # if torch.max(ysig) < 1e-3:
+    #     print("degenerate\n", ysig)
 
-        import ipdb; ipdb.set_trace();
+    #     import ipdb; ipdb.set_trace();
 
-        tmp = torch.mean(torch.square(y_true - y_pred))
-        return torch.nan_to_num(tmp)
+    #     tmp = torch.mean(torch.square(y_true - y_pred))
+    #     return torch.nan_to_num(tmp)
 
-    c = rho0_w1 * ysig * rho0_w1
-    print("c\n", c)
-
-    a = torch.sqrt(c)
-    a = torch.nan_to_num(a) + e
+    c = rho0_w1 * ysig * rho0_w1 + e
+    # torch.sqrt element-wise sqrt of c introduces
+    # nans into the gradient, and then
+    # y_pred becomes nan and all losses become nan
+    # and learning stops
+    a = sqrtm(c)
+    # a = torch.nan_to_num(a) + e
 
     b = torch.trace(rho0_sig + ysig - 2*a)
-    b = torch.nan_to_num(b) + 1e-5
+    b = torch.nan_to_num(b) + r
 
-    print("a max\n", a)
-    print("ysig max\n", ysig)
-    print("b max\n", b)
-    print("ym\n", ym)
+    # print("c\n", c)
+    # print("a max\n", a)
+    # print("ysig max\n", ysig)
+    # print("b max\n", b)
+    # print("ym\n", ym)
 
     w = torch.norm(rho0_m - ym, p=2) + b
     return w
