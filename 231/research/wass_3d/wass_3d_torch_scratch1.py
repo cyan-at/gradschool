@@ -132,9 +132,9 @@ z_T=Z.reshape(N**3,1)
 
 ######################################
 
-U1 = dde.Variable(1.0)
-U2 = dde.Variable(1.0)
-U3 = dde.Variable(1.0)
+# U1 = dde.Variable(1.0)
+# U2 = dde.Variable(1.0)
+# U3 = dde.Variable(1.0)
 def euler_pde(x, y):
     """Euler system.
     dy1_t = g(x)-1/2||Dy1_x||^2-<Dy1_x,f>-epsilon*Dy1_xx
@@ -345,20 +345,47 @@ def rhoT_WASS_cuda0(y_true, y_pred):
     # normalize to pdf
     y_pred = torch.where(y_pred < 0, 0, y_pred)
 
-    y_pred /= get_pdf_support_torch(y_pred, [x1_tensor, x2_tensor, x3_tensor], 0)
+    pdf_support = get_pdf_support_torch(y_pred, [x1_tensor, x2_tensor, x3_tensor], 0)
+    if pdf_support > 1e-3:
+        y_pred /= pdf_support
 
     # normalize to PMF
-    y_pred = y_pred / torch.sum(y_pred)
+    pmf_support = torch.sum(y_pred)
+    if pmf_support > 1e-3:
+        y_pred = y_pred / pmf_support
 
     ym, ysig = get_pmf_stats_torch(
         y_pred,
         x_T_tensor, y_T_tensor, z_T_tensor,
         x1_tensor, x2_tensor, x3_tensor, dt)
+    ysig = torch.nan_to_num(ysig) + e
 
-    a = torch.sqrt(rhoT_w1 * ysig * rhoT_w1 + e)
-    a = torch.nan_to_num(a)
+    # if torch.max(ysig) < 1e-3:
+    #     print("degenerate\n", ysig)
 
-    w = torch.norm(rhoT_m - ym, p=2) + torch.trace(rhoT_sig + ysig)
+    #     import ipdb; ipdb.set_trace();
+
+    #     tmp = torch.mean(torch.square(y_true - y_pred))
+    #     return torch.nan_to_num(tmp)
+
+    c = rhoT_w1 * ysig * rhoT_w1 + e
+    # torch.sqrt element-wise sqrt of c introduces
+    # nans into the gradient, and then
+    # y_pred becomes nan and all losses become nan
+    # and learning stops
+    a = sqrtm(c)
+    # a = torch.nan_to_num(a) + e
+
+    b = torch.trace(rhoT_sig + ysig - 2*a)
+    b = torch.nan_to_num(b) + r
+
+    # print("c\n", c)
+    # print("a max\n", a)
+    # print("ysig max\n", ysig)
+    # print("b max\n", b)
+    # print("ym\n", ym)
+
+    w = torch.norm(rhoT_m - ym, p=2) + b
     return w
 
 ######################################
@@ -467,8 +494,7 @@ modelcheckpt_cb = ModelCheckpoint2(
 loss_func=[
     "MSE","MSE",
     rho0_WASS_cuda0,
-    "MSE",
-    # rhoT_WASS_cuda0
+    rhoT_WASS_cuda0
 ]
 # loss functions are based on PDE + BC: 2 eq outputs, 2 BCs
 

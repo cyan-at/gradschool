@@ -92,7 +92,7 @@ def get_pmf_stats(pmf, x_T, y_T, z_T, x1, x2, x3):
         [cov_xz, cov_yz, cov_zz]
     ])
 
-    return mu, cov_matrix, pmf_cube_normed
+    return mu, cov_matrix, pmf_cube_normed, x1_marginal_pmf, x2_marginal_pmf, x3_marginal_pmf
 
 def fill_marginal_pmf_torch(
     tensor_3d,
@@ -232,9 +232,11 @@ epsilon=.001
 ########################################################
 
 X_IDX = 0
-T_IDX = 1
-Y3_IDX = 2
-RHO_OPT_IDX = 3
+Y_IDX = 1
+Z_IDX = 2
+T_IDX = 3
+PSI_IDX = 4
+RHO_OPT_IDX = 5
 
 '''
 def plot_rho_bc(label, test_ti, mu, sigma, ax):
