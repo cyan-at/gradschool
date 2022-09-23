@@ -186,78 +186,104 @@ print("rhoT_cov_matrix\n", rhoT_cov_matrix)
 
 colors = 'rgbymck'
 
-fig, ax = plt.subplots()
+fig = plt.figure(1, figsize=(20, 10))
+ax1 = plt.subplot(131, frameon=False)
+# ax1.set_aspect('equal')
+ax1.grid()
+
+ax2 = plt.subplot(132, frameon=False)
+# ax2.set_aspect('equal')
+ax2.grid()
+
+ax3 = plt.subplot(133, frameon=False)
+# fig2 = plt.figure(2)
+# ax3 = plt.subplot(111, frameon=False)
+# ax3.set_aspect('equal')
+ax3.grid()
 
 ###############################################
 
-ax.plot(x1, x1m,
+ax1.plot(x1, x1m,
   color=colors[0 % len(colors)],
   lw=1,
   label='rho0 pred x1')
-ax.plot(x1, true_x1m,
+ax1.plot(x1, true_x1m,
   color=colors[1 % len(colors)],
   lw=1,
   label='rho0 true x1')
 
-ax.plot(x2, x2m,
+ax2.plot(x2, x2m,
   color=colors[2 % len(colors)],
   lw=1,
   label='rho0 pred x2')
-ax.plot(x2, true_x2m,
+ax2.plot(x2, true_x2m,
   color=colors[3 % len(colors)],
   lw=1,
   label='rho0 true x2')
 
-ax.plot(x3, x3m,
+ax3.plot(x3, x3m,
   color=colors[4 % len(colors)],
   lw=1,
   label='rho0 pred x3')
-ax.plot(x3, true_x3m,
+ax3.plot(x3, true_x3m,
   color=colors[5 % len(colors)],
   lw=1,
   label='rho0 true x3')
 
 ###############################################
 
-# ax.plot(x1, x1mT,
-#   color=colors[0 % len(colors)],
-#   lw=1,
-#   label='rhoT pred x1')
-# ax.plot(x1, true_x1mT,
-#   color=colors[1 % len(colors)],
-#   lw=1,
-#   label='rhoT true x1')
+ax1.plot(x1, x1mT,
+  color=colors[0 % len(colors)],
+  lw=1,
+  label='rhoT pred x1')
+ax1.plot(x1, true_x1mT,
+  color=colors[1 % len(colors)],
+  lw=1,
+  label='rhoT true x1')
 
-# ax.plot(x2, x2mT,
-#   color=colors[2 % len(colors)],
-#   lw=1,
-#   label='rhoT pred x2')
-# ax.plot(x2, true_x2mT,
-#   color=colors[3 % len(colors)],
-#   lw=1,
-#   label='rhoT true x2')
+ax2.plot(x2, x2mT,
+  color=colors[2 % len(colors)],
+  lw=1,
+  label='rhoT pred x2')
+ax2.plot(x2, true_x2mT,
+  color=colors[3 % len(colors)],
+  lw=1,
+  label='rhoT true x2')
 
-# ax.plot(x3, x3mT,
-#   color=colors[4 % len(colors)],
-#   lw=1,
-#   label='rhoT pred x3')
-# ax.plot(x3, true_x3mT,
-#   color=colors[5 % len(colors)],
-#   lw=1,
-#   label='rhoT true x3')
+ax3.plot(x3, x3mT,
+  color=colors[4 % len(colors)],
+  lw=1,
+  label='rhoT pred x3')
+ax3.plot(x3, true_x3mT,
+  color=colors[5 % len(colors)],
+  lw=1,
+  label='rhoT true x3')
 
 ###############################################
 
-plt.title('MSE, MSE, rho0_WASS_cuda0, MSE: [6.17e-04, 1.39e-02, 1.26e-02, 1.06e-04]\nPMF: mu0=%.3f, sigma0=%.3f, N=%d' % (mu_0, sigma_0, N))
+plt.suptitle('loss (%s)=%s\nPMF: mu0=%.3f, sigma0=%.3f\nmuT=%.3f, sigmaT=%.3f\nN=%d' % (
+    "MSE, MSE, wass, wass",
+    "[5.02e-04, 1.98e-02, 1.78e-02, 1.16e-02]",
+    mu_0, sigma_0,
+    mu_T, sigma_T,
+    N))
 
-ax.grid()
-ax.legend(loc="lower left")
+plt.tight_layout()
+
+# ax.grid()
+ax1.legend(loc="lower left")
+ax2.legend(loc="lower left")
+ax3.legend(loc="lower left")
+
 # ax.set_title('training error/residual plots')
 # ax.set_yscale('log')
 # ax.set_xscale('log')
 
-# plot_fname = "%s/loss.png" % (os.path.abspath("./"))
-# plt.savefig(plot_fname, dpi=300)
-# print("saved plot")
+plot_fname = "%s/%s.png" % (
+    os.path.abspath("./"),
+    args.testdat.replace(".dat", "")
+)
+plt.savefig(plot_fname, dpi=500)
+print("saved plot")
 
 plt.show()
