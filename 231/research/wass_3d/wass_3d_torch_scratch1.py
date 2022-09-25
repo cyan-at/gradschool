@@ -300,8 +300,8 @@ def rho0_WASS_cuda0(y_true, y_pred):
     pdf_support = get_pdf_support_torch(y_pred, [x1_tensor, x2_tensor, x3_tensor], 0)
     p2 = 10 * torch.abs(pdf_support - 1)
 
-    if p1 > 1e-3 or p2 > 1e-3:
-        return p1 + p2
+    # if p1 > 1e-3 or p2 > 1e-3:
+    #     return p1 + p2
 
     # normalize to pdf
     y_pred = torch.where(y_pred < 0, 0, y_pred)
@@ -347,7 +347,8 @@ def rho0_WASS_cuda0(y_true, y_pred):
     # print("ym\n", ym)
 
     w = torch.norm(rho0_m - ym, p=2) + b
-    return w
+
+    return p1 + p2 + w
 
 def rhoT_WASS_cuda0(y_true, y_pred):
     p1 = 10 * (y_pred<0).sum() # negative terms
@@ -355,8 +356,8 @@ def rhoT_WASS_cuda0(y_true, y_pred):
     pdf_support = get_pdf_support_torch(y_pred, [x1_tensor, x2_tensor, x3_tensor], 0)
     p2 = 10 * torch.abs(pdf_support - 1)
 
-    if p1 > 1e-3 or p2 > 1e-3:
-        return p1 + p2
+    # if p1 > 1e-3 or p2 > 1e-3:
+    #     return p1 + p2
 
     # normalize to pdf
     y_pred = torch.where(y_pred < 0, 0, y_pred)
@@ -402,7 +403,8 @@ def rhoT_WASS_cuda0(y_true, y_pred):
     # print("ym\n", ym)
 
     w = torch.norm(rhoT_m - ym, p=2) + b
-    return w
+
+    return p1 + p2 + w
 
 ######################################
 
