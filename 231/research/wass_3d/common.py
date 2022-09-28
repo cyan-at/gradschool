@@ -16,6 +16,19 @@ def slice(matrix_3d, i, j, mode):
     else:
         return matrix_3d[i, :, j]
 
+def get_pdf_support(matrix_3d, xs, mode):
+    buffer0 = np.zeros(len(xs[1]))
+    buffer1 = np.zeros(len(xs[0]))
+
+    for j in range(len(xs[0])):
+        for i in range(len(xs[1])):
+            buffer0[i] = np.trapz(
+                slice(matrix_3d, i, j, mode),
+                x=xs[2])
+        buffer1[j] = np.trapz(buffer0, x=xs[1])
+
+    return np.trapz(buffer1, x=xs[0])
+
 def get_pdf_support_torch(
     tensor,
     xtensors,

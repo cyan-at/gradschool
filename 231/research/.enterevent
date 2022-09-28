@@ -84,6 +84,16 @@ pip install tensorflow tensorflow-gpu
 
 scp cyan3@vipersim01:/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/data/pde.py /home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/data/pde.py
 
+julia:
+
+julia
+using PyCall
+using PDMats
+using Primes
+using Distributions
+using LinearAlgebra
+using Parameters
+
 setup
 
 echo "hello, starting tf conda"

@@ -63,7 +63,7 @@ else:
 import cvxpy as cp
 import numpy as np
 from scipy.linalg import solve_discrete_are
-from scipy.linalg import sqrtm
+from scipy.linalg import sqrtm as sqrtm2
 
 from cvxpylayers.torch import CvxpyLayer
 
@@ -73,6 +73,7 @@ import torch
 from torch.autograd import Function
 import numpy as np
 import scipy.linalg
+from scipy.linalg import sqrtm
 
 class MatrixSquareRoot(Function):
     """Square root of a positive definite matrix.
@@ -117,6 +118,8 @@ parser.add_argument('--modelpt',
     type=str, default='')
 parser.add_argument('--testdat',
     type=str, required=True)
+parser.add_argument('--normalize_pmf',
+    type=bool, default=True)
 args = parser.parse_args()
 
 N = args.N
@@ -146,14 +149,19 @@ test = np.loadtxt(args.testdat)
 t0 = test[:N**3, :]
 
 rho0 = t0[:, RHO_OPT_IDX]
-print("# of positive terms:", len(rho0) - np.sum(rho0 < 0))
+
+rho0_p1 = np.sum(rho0 < 0)
+rho0_cube = rho0.reshape(N, N, N)
+pdf_support = get_pdf_support(
+    rho0_cube, [x1, x2, x3], 0)
+rho0_p2 = pdf_support
+
 # of positive terms
 # there ARE positive terms, but they get OVERWHELMED
 # by negative terms in summing out the marginal pmfs
 # rho0 = np.where(rho0 < 0, 0, rho0)
 
-
-mu, cov_matrix, pmf_cube_normed, x1m, x2m, x3m = get_pmf_stats(rho0, x_T, y_T, z_T, x1, x2, x3, False)
+mu, cov_matrix, pmf_cube_normed, x1m, x2m, x3m = get_pmf_stats(rho0, x_T, y_T, z_T, x1, x2, x3, args.normalize_pmf)
 print("mu\n", mu)
 print("cov_matrix\n", cov_matrix)
 
@@ -164,6 +172,13 @@ rho0_name = 'rho0_%.3f_%.3f__%.3f_%.3f__%d.dat' % (
 trunc_rho0_pdf = get_multivariate_truncated_pdf(x_T, y_T, z_T, mu_0, sigma_0, state_min, state_max, N, f, rho0_name)
 rho0_mu, rho0_cov_matrix, _, true_x1m, true_x2m, true_x3m = get_pmf_stats(
     trunc_rho0_pdf, x_T, y_T, z_T, x1, x2, x3, True)
+
+rho0_w1 = sqrtm2(rho0_cov_matrix)
+c = rho0_w1 * cov_matrix * rho0_w1
+a = sqrtm2(c)
+b = np.trace(rho0_cov_matrix + cov_matrix - 2*a)
+rho0_w2 = np.linalg.norm(rho0_mu - mu, ord=2) + b
+
 print("rho0_mu\n", rho0_mu)
 print("rho0_cov_matrix\n", rho0_cov_matrix)
 
@@ -172,9 +187,16 @@ print("rho0_cov_matrix\n", rho0_cov_matrix)
 tt = test[N**3:2*N**3, :]
 
 rhoT = tt[:, RHO_OPT_IDX]
+
+rhoT_p1 = np.sum(rhoT < 0)
+rhoT_cube = rhoT.reshape(N, N, N)
+pdf_support = get_pdf_support(
+    rhoT_cube, [x1, x2, x3], 0)
+rhoT_p2 = pdf_support
+
 rhoT = np.where(rhoT < 0, 0, rhoT)
 
-muT, cov_matrixT, pmf_cube_normedT, x1mT, x2mT, x3mT = get_pmf_stats(rhoT, x_T, y_T, z_T, x1, x2, x3)
+muT, cov_matrixT, pmf_cube_normedT, x1mT, x2mT, x3mT = get_pmf_stats(rhoT, x_T, y_T, z_T, x1, x2, x3, args.normalize_pmf)
 print("muT\n", muT)
 print("cov_matrixT\n", cov_matrixT)
 
@@ -185,6 +207,13 @@ rhoT_name = 'rhoT_%.3f_%.3f__%.3f_%.3f__%d.dat' % (
 trunc_rhoT_pdf = get_multivariate_truncated_pdf(x_T, y_T, z_T, mu_T, sigma_T, state_min, state_max, N, f, rhoT_name)
 rhoT_mu, rhoT_cov_matrix, _, true_x1mT, true_x2mT, true_x3mT = get_pmf_stats(
     trunc_rhoT_pdf, x_T, y_T, z_T, x1, x2, x3)
+
+rhoT_w1 = sqrtm2(rhoT_cov_matrix)
+c = rhoT_w1 * cov_matrixT * rhoT_w1
+a = sqrtm2(c)
+b = np.trace(rhoT_cov_matrix + cov_matrixT - 2*a)
+rhoT_w2 = np.linalg.norm(rhoT_mu - muT, ord=2) + b
+
 print("rhoT_mu\n", rhoT_mu)
 print("rhoT_cov_matrix\n", rhoT_cov_matrix)
 
@@ -267,9 +296,17 @@ ax3.plot(x3, true_x3mT,
 
 ###############################################
 
-plt.suptitle('loss (%s)=%s\nPMF: mu0=%.3f, sigma0=%.3f\nmuT=%.3f, sigmaT=%.3f\nN=%d' % (
+title_str = 'loss (%s)\n'
+title_str += '0: negative=%d, pdf_support=%.3f, w=%.3f\n'
+title_str += 'T: negative=%d, pdf_support=%.3f, w=%.3f\n'
+title_str += 'mu0=%.3f, sigma0=%.3f\n'
+title_str += 'muT=%.3f, sigmaT=%.3f\n'
+title_str += 'N=%d'
+
+plt.suptitle(title_str % (
     "MSE, MSE, wass, wass",
-    "[5.02e-04, 1.98e-02, 1.78e-02, 1.16e-02]",
+    rho0_p1, rho0_p2, rho0_w2,
+    rhoT_p1, rhoT_p2, rhoT_w2,
     mu_0, sigma_0,
     mu_T, sigma_T,
     N))
