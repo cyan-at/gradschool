@@ -335,6 +335,9 @@ def rho0_WASS_cuda0(y_true, y_pred):
     w3 = torch.norm(torch.diagonal(ysig, 1), p=2)
     w4 = torch.norm(torch.diagonal(ysig, 2), p=2)
 
+    if torch.isnan(w1) or torch.isnan(w2) or torch.isnan(w3) or torch.isnan(w4):
+        w1 = w2 = w3 = w4 = 0.0
+
     return p1 + p2 + w1 + w2 + w3 + w4
 
     '''
@@ -409,6 +412,9 @@ def rhoT_WASS_cuda0(y_true, y_pred):
         torch.diagonal(ysig) - rhoT_sig_diagonal)
     w3 = torch.norm(torch.diagonal(ysig, 1), p=2)
     w4 = torch.norm(torch.diagonal(ysig, 2), p=2)
+
+    if torch.isnan(w1) or torch.isnan(w2) or torch.isnan(w3) or torch.isnan(w4):
+        w1 = w2 = w3 = w4 = 0.0
 
     return p1 + p2 + w1 + w2 + w3 + w4
 
