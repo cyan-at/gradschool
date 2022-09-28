@@ -58,7 +58,7 @@ else:
 import cvxpy as cp
 import numpy as np
 from scipy.linalg import solve_discrete_are
-from scipy.linalg import sqrtm
+from scipy.linalg import sqrtm as sqrtm2
 
 from cvxpylayers.torch import CvxpyLayer
 
@@ -118,6 +118,8 @@ q_statepenalty_gain = args.q # 0.5
 print("N: ", N)
 print("js: ", j1, j2, j3)
 print("q: ", q_statepenalty_gain)
+
+k1 = 100.0
 
 ######################################
 
@@ -272,6 +274,7 @@ rho0_m, rho0_sig = get_pmf_stats_torch(
     trunc_rho0_tensor,
     x_T_tensor, y_T_tensor, z_T_tensor,
     x1_tensor, x2_tensor, x3_tensor, dt)
+rho0_sig_diagonal = torch.diagonal(rho0_sig)
 
 trunc_rhoT_tensor = torch.from_numpy(
     trunc_rhoT_pdf
@@ -282,27 +285,32 @@ rhoT_m, rhoT_sig = get_pmf_stats_torch(
     trunc_rhoT_tensor,
     x_T_tensor, y_T_tensor, z_T_tensor,
     x1_tensor, x2_tensor, x3_tensor, dt)
+rhoT_sig_diagonal = torch.diagonal(rhoT_sig)
 
 r = 1e-5
 e = torch.ones((3,3)) * r
 # regularizer to prevent nan in matrix sqrt
 # nan in gradient
 
-rho0_w1 = torch.sqrt(rho0_sig + e)
+rho0_w1 = sqrtm(rho0_sig)
 print("rho0_w1\n", rho0_w1)
 
-rhoT_w1 = torch.sqrt(rhoT_sig + e)
+rhoT_w1 = sqrtm(rhoT_sig)
 print("rhoT_w1\n", rhoT_w1)
 
 def rho0_WASS_cuda0(y_true, y_pred):
-    p1 = 10 * (y_pred<0).sum() # negative terms
+    p1 = (y_pred<0).sum() # negative terms
 
-    pdf_support = get_pdf_support_torch(y_pred, [x1_tensor, x2_tensor, x3_tensor], 0)
-    p2 = 10 * torch.abs(pdf_support - 1)
+    # pdf_support = get_pdf_support_torch(y_pred, [x1_tensor, x2_tensor, x3_tensor], 0)
+    pmf_support = torch.sum(y_pred)
+    p2 = torch.abs(pmf_support - 1)
 
-    # if p1 > 1e-3 or p2 > 1e-3:
-    #     return p1 + p2
+    if p1 > 1e-3 or p2 > 1e-3:
+        return k1 * (p1 + p2)
 
+    print("non-negative, pmf")
+
+    '''
     # normalize to pdf
     y_pred = torch.where(y_pred < 0, 0, y_pred)
 
@@ -314,11 +322,22 @@ def rho0_WASS_cuda0(y_true, y_pred):
     pmf_support = torch.sum(y_pred)
     if pmf_support > 1e-3:
         y_pred = y_pred / pmf_support
+    '''
 
     ym, ysig = get_pmf_stats_torch(
         y_pred,
         x_T_tensor, y_T_tensor, z_T_tensor,
         x1_tensor, x2_tensor, x3_tensor, dt)
+
+    w1 = torch.norm(ym - rho0_m, p=2)
+    w2 = torch.norm(
+        torch.diagonal(ysig) - rho0_sig_diagonal)
+    w3 = torch.norm(torch.diagonal(ysig, 1), p=2)
+    w4 = torch.norm(torch.diagonal(ysig, 2), p=2)
+
+    return w1 + w2 + w3 + w4
+
+    '''
     ysig = torch.nan_to_num(ysig) + e
 
     # if torch.max(ysig) < 1e-3:
@@ -349,16 +368,29 @@ def rho0_WASS_cuda0(y_true, y_pred):
     w = torch.norm(rho0_m - ym, p=2) + b
 
     return p1 + p2 + w
+    '''
 
 def rhoT_WASS_cuda0(y_true, y_pred):
-    p1 = 10 * (y_pred<0).sum() # negative terms
+    p1 = (y_pred<0).sum() # negative terms
 
-    pdf_support = get_pdf_support_torch(y_pred, [x1_tensor, x2_tensor, x3_tensor], 0)
-    p2 = 10 * torch.abs(pdf_support - 1)
+    # pdf_support = get_pdf_support_torch(y_pred, [x1_tensor, x2_tensor, x3_tensor], 0)
+    pmf_support = torch.sum(y_pred)
+    p2 = torch.abs(pmf_support - 1)
 
-    # if p1 > 1e-3 or p2 > 1e-3:
-    #     return p1 + p2
+    if p1 > 1e-3 or p2 > 1e-3:
+        return k1 * (p1 + p2)
 
+    print("non-negative, pmf")
+
+    w1 = torch.norm(ym - rhoT_m, p=2)
+    w2 = torch.norm(
+        torch.diagonal(ysig) - rhoT_sig_diagonal)
+    w3 = torch.norm(torch.diagonal(ysig, 1), p=2)
+    w4 = torch.norm(torch.diagonal(ysig, 2), p=2)
+
+    return w1 + w2 + w3 + w4
+
+    '''
     # normalize to pdf
     y_pred = torch.where(y_pred < 0, 0, y_pred)
 
@@ -370,6 +402,7 @@ def rhoT_WASS_cuda0(y_true, y_pred):
     pmf_support = torch.sum(y_pred)
     if pmf_support > 1e-3:
         y_pred = y_pred / pmf_support
+    '''
 
     ym, ysig = get_pmf_stats_torch(
         y_pred,
@@ -377,6 +410,7 @@ def rhoT_WASS_cuda0(y_true, y_pred):
         x1_tensor, x2_tensor, x3_tensor, dt)
     ysig = torch.nan_to_num(ysig) + e
 
+    '''
     # if torch.max(ysig) < 1e-3:
     #     print("degenerate\n", ysig)
 
@@ -405,6 +439,7 @@ def rhoT_WASS_cuda0(y_true, y_pred):
     w = torch.norm(rhoT_m - ym, p=2) + b
 
     return p1 + p2 + w
+    '''
 
 ######################################
 
@@ -423,7 +458,13 @@ data = dde.data.TimePDE(
 
 # 4 inputs: x,y,z,t
 # 5 outputs: 2 eq + 3 control vars
-net = dde.nn.FNN([4] + [70] *3  + [2], "tanh", "Glorot normal")
+net = dde.nn.FNN(
+    [4] + [70] *3  + [2],
+    "sigmoid",
+    "zeros",
+    # "tanh",
+    # "Glorot normal"
+)
 model = dde.Model(data, net)
 
 ######################################
@@ -468,7 +509,7 @@ earlystop_cb = EarlyStoppingFixed(baseline=1e-3, patience=0)
 class ModelCheckpoint2(dde.callbacks.ModelCheckpoint):
     def on_epoch_end(self):
         current = self.get_monitor_value()
-        if self.monitor_op(current, self.best) and current < 6e-2:
+        if self.monitor_op(current, self.best) and current < 1e-1:
             save_path = self.model.save(self.filepath, verbose=0)
             print(
                 "Epoch {}: {} improved from {:.2e} to {:.2e}, saving model to {} ...\n".format(
