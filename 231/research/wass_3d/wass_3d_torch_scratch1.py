@@ -305,10 +305,10 @@ def rho0_WASS_cuda0(y_true, y_pred):
     pmf_support = torch.sum(y_pred)
     p2 = torch.abs(pmf_support - 1)
 
-    if p1 > 1e-3 or p2 > 1e-3:
-        return k1 * (p1 + p2)
+    # if p1 > 1e-3 or p2 > 1e-3:
+    #     return k1 * (p1 + p2)
 
-    print("non-negative, pmf")
+    # print("non-negative, pmf")
 
     '''
     # normalize to pdf
@@ -335,7 +335,7 @@ def rho0_WASS_cuda0(y_true, y_pred):
     w3 = torch.norm(torch.diagonal(ysig, 1), p=2)
     w4 = torch.norm(torch.diagonal(ysig, 2), p=2)
 
-    return w1 + w2 + w3 + w4
+    return p1 + p2 + w1 + w2 + w3 + w4
 
     '''
     ysig = torch.nan_to_num(ysig) + e
@@ -377,18 +377,10 @@ def rhoT_WASS_cuda0(y_true, y_pred):
     pmf_support = torch.sum(y_pred)
     p2 = torch.abs(pmf_support - 1)
 
-    if p1 > 1e-3 or p2 > 1e-3:
-        return k1 * (p1 + p2)
+    # if p1 > 1e-3 or p2 > 1e-3:
+    #     return k1 * (p1 + p2)
 
     print("non-negative, pmf")
-
-    w1 = torch.norm(ym - rhoT_m, p=2)
-    w2 = torch.norm(
-        torch.diagonal(ysig) - rhoT_sig_diagonal)
-    w3 = torch.norm(torch.diagonal(ysig, 1), p=2)
-    w4 = torch.norm(torch.diagonal(ysig, 2), p=2)
-
-    return w1 + w2 + w3 + w4
 
     '''
     # normalize to pdf
@@ -408,7 +400,14 @@ def rhoT_WASS_cuda0(y_true, y_pred):
         y_pred,
         x_T_tensor, y_T_tensor, z_T_tensor,
         x1_tensor, x2_tensor, x3_tensor, dt)
-    ysig = torch.nan_to_num(ysig) + e
+
+    w1 = torch.norm(ym - rhoT_m, p=2)
+    w2 = torch.norm(
+        torch.diagonal(ysig) - rhoT_sig_diagonal)
+    w3 = torch.norm(torch.diagonal(ysig, 1), p=2)
+    w4 = torch.norm(torch.diagonal(ysig, 2), p=2)
+
+    return p1 + p2 + w1 + w2 + w3 + w4
 
     '''
     # if torch.max(ysig) < 1e-3:
