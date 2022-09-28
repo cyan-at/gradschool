@@ -119,7 +119,7 @@ print("N: ", N)
 print("js: ", j1, j2, j3)
 print("q: ", q_statepenalty_gain)
 
-k1 = 100.0
+k1 = 1.0
 
 ######################################
 
@@ -305,8 +305,8 @@ def rho0_WASS_cuda0(y_true, y_pred):
     pmf_support = torch.sum(y_pred)
     p2 = torch.abs(pmf_support - 1)
 
-    # if p1 > 1e-3 or p2 > 1e-3:
-    #     return k1 * (p1 + p2)
+    if p1 > 0 or p2 > 1e-1:
+        return k1 * (p1 + p2)
 
     # print("non-negative, pmf")
 
@@ -377,10 +377,13 @@ def rhoT_WASS_cuda0(y_true, y_pred):
     pmf_support = torch.sum(y_pred)
     p2 = torch.abs(pmf_support - 1)
 
+    if p1 > 0 or p2 > 1e-1:
+        return k1 * (p1 + p2)
+
     # if p1 > 1e-3 or p2 > 1e-3:
     #     return k1 * (p1 + p2)
 
-    print("non-negative, pmf")
+    # print("non-negative, pmf")
 
     '''
     # normalize to pdf
