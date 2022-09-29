@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# ./plot_test.py --testdat ./test.dat --plot 1 --modelpt ./empty_model-9504.pt
+# ./plot_test.py --testdat ./test.dat --plot 0 --modelpt ./empty_model-9504.pt
 
 
 # 0 define backend
@@ -88,6 +89,8 @@ if __name__ == '__main__':
         type=str, default='')
     parser.add_argument('--testdat',
         type=str, required=True)
+    parser.add_argument('--plot',
+        type=int, default=0)
 
     args = parser.parse_args()
 
@@ -171,29 +174,42 @@ if __name__ == '__main__':
     ########################################################
 
     fig = plt.figure(1)
-    ax1 = plt.subplot(111, frameon=False)
-    ax1.grid()
+    if args.plot == 0:
+        ax1 = plt.subplot(111, frameon=False)
+        ax1.grid()
 
-    ########################################################
+        ########################################################
 
-    s1, s2 = plot_rho_bc('rho_0', test[0:N, :], mu_0, sigma_0, ax1)
+        s1, s2 = plot_rho_bc('rho_0', test[0:N, :], mu_0, sigma_0, ax1)
 
-    test_tt = test[N:2*N, :]
-    s3, s4 = plot_rho_bc('rho_T', test_tt, mu_T, sigma_T, ax1)
+        test_tt = test[N:2*N, :]
+        s3, s4 = plot_rho_bc('rho_T', test_tt, mu_T, sigma_T, ax1)
 
-    ########################################################
+        ########################################################
 
-    ax1.plot(
-        test_tt[:, X_IDX],
-        test_tt[:, Y3_IDX],
-        linewidth=1,
-        c='m',
-        label='y3')
+        ax1.plot(
+            test_tt[:, X_IDX],
+            test_tt[:, Y3_IDX],
+            linewidth=1,
+            c='m',
+            label='y3')
 
-    ########################################################
+        ########################################################
 
-    ax1.legend(loc='lower right')
-    ax1.set_title(
-    'rho0: trapz=%.3f, sum=%.3f, rhoT: trapz=%.3f, sum=%.3f' % (s1, s2, s3, s4))
+        ax1.legend(loc='lower right')
+        ax1.set_title(
+        'rho0: trapz=%.3f, sum=%.3f, rhoT: trapz=%.3f, sum=%.3f' % (s1, s2, s3, s4))
+    elif args.plot == 1:
+        ax1 = fig.add_subplot(projection='3d')
+
+        ts = test[:, T_IDX]
+        xs = test[:, X_IDX]
+        rho_opt = test[:, RHO_OPT_IDX]
+
+        ax1.scatter(ts, xs, rho_opt, marker='o')
+
+        ax1.set_xlabel('t')
+        ax1.set_ylabel('x')
+        ax1.set_zlabel('rho_opt')
 
     plt.show()

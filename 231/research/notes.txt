@@ -1830,6 +1830,48 @@ run into issues of backprop gradient = nan when you take sqrt of degenerate cova
     realize torch.sqrt of matrix does element-wise sqrt, so instead of approximate matrix sqrt from library, starts training
 
 #########################################################
+
+ipdb> x.shape
+torch.Size([16000, 70])
+ipdb> self.linears[:-1]
+ModuleList(
+  (0): Linear(in_features=4, out_features=70, bias=True)
+  (1): Linear(in_features=70, out_features=70, bias=True)
+  (2): Linear(in_features=70, out_features=70, bias=True)
+)
+
+here x is between 0 and 1
+
+> /usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/nn/pytorch/fnn.py(35)forward()
+     34         x = self.linears[-1](x)
+---> 35         if self._output_transform is not None:
+     36             x = self._output_transform(inputs, x)
+
+ipdb> x
+tensor([[-0.150,  1.082],
+        [-0.149,  1.083],
+        [-0.148,  1.083],
+        ...,
+        [-0.203,  1.054],
+        [-0.207,  1.045],
+        [-0.194,  1.074]], grad_fn=<AddmmBackward0>)
+
+ipdb> self.linears[-1]
+Linear(in_features=70, out_features=2, bias=True)
+
+now x has negative terms
+
+* the weights of the last layer of the nn can be anything, so a sigmoid activation in the hidden layer + negative weights => negative output
+
+last layer weights have shape:
+
+ipdb> x[5].weight.shape
+torch.Size([2, 70])
+
+* should i implement 'pdf output' as an '_output_transform'?
+* should i implement a CLAMP on the last layer weights so that, with sigmoid activation, and non-negative last-layer weights on the boundary conditions?
+  would this overfit the problem?
+
 #########################################################
 #########################################################
 #########################################################

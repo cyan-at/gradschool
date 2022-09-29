@@ -45,6 +45,14 @@ def plot_rho_bc(label, test_ti, mu, sigma, ax):
     ind = np.lexsort((test_ti[:,X_IDX], test_ti[:,T_IDX]))
     test_ti = test_ti[ind]
 
+    p1 = np.where(test_ti[:,RHO_OPT_IDX] < 0)[0]
+    print("# neg:", len(p1))
+
+    pdf = np.trapz(test_ti[:,RHO_OPT_IDX],
+        axis=0,
+        x=test_ti[:,X_IDX])
+    print("pdf: ", pdf)
+
     test_ti[:,RHO_OPT_IDX] = np.where(
       test_ti[:,RHO_OPT_IDX] < 0, 0, test_ti[:,RHO_OPT_IDX])
     s1 = np.trapz(test_ti[:,RHO_OPT_IDX],
