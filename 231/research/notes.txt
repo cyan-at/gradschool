@@ -1831,6 +1831,40 @@ run into issues of backprop gradient = nan when you take sqrt of degenerate cova
 
 #########################################################
 
+Hi Abhishek
+
+In a prior meeting I remember we discussed we should normalize the PINN output to a PDF, and then convert it to a PMF to compute the wasserstein.
+I understood this as we should not penalize the PINN output if it was not a PDF, but turn it into a PDF ourselves.
+I also understood then that if we are normalizing the output ourselves to a PMF to get the optimization-based wass, I could swap the optimization-based wass with the statistics-based wass.
+
+It is correct that our ultimate goal is to get the PINN to:
+1. natively output a PDF
+2. s.t. the PDF normalized to a PMF is wass close to the rho0 / rhoT PMFs.
+
+This result shows the PINN, when normalized (made non-negative, sum=1), achieves goal 2., but not natively, so not 1.
+
+
+Here is the pipeline for this result:
+1. normalize the PINN output to a PDF
+(0ing out negative values, dividing by trapz integral) 
+2. then computing the wasserstein distance
+(normalize to PMF, then solving lin prog)
+
+What I did here was to swap step 2 from optimization-based to statistics-based because the optimization-based wasserstein loss is not computable on the machines.
+It is definitely true that very often the PINN output, when artificially normalized to a PMF, is degenerate in the sense the covariance matrix is 0, and I am using an approximate matrix square root function.
+This result shows the statistics-based wasserstein-1 distance steers the output (normalized as PMF) towards the desired shape
+
+
+
+So in the loss function I normalize it to a PDF explicitly, and then normalize it to PMF to find wass loss.
+What I have done here is replace the way the loss is found, I thought I could because we are already artificially normalizing the output to a PMF anyway when solving the optimization-based wass loss.
+
+But are you saying that the PINN output should be:
+1. penalized / taught into outputting a PDF
+2. only normalized artificially into a PMF
+
+#########################################################
+
 ipdb> x.shape
 torch.Size([16000, 70])
 ipdb> self.linears[:-1]
@@ -1886,7 +1920,6 @@ self.linears[-1].weight.data = clamped_weights
 clamped_weight = self.linears[-1].weight[1, :].clamp(0.0, 1.0)
 self.linears[-1].weight.data[1, :] = clamped_weight
 
-#########################################################
 #########################################################
 #########################################################
 #########################################################
@@ -2296,3 +2329,16 @@ https://arxiv.org/abs/2105.02498
 https://github.com/KingJamesSong/DifferentiableSVD
 https://github.com/KingJamesSong/FastDifferentiableMatSqrt
 https://github.com/KingJamesSong/FastDifferentiableMatSqrt/blob/main/torch_utils.py
+https://www.google.com/search?q=covariance+matrix+properties&sxsrf=ALiCzsa-AFlhI1zrR2fRYB8x-6dwtPRTqw%3A1664339619078&ei=o84zY76qBL2m5NoP3YS-aA&ved=0ahUKEwj-h5-e1Lb6AhU9E1kFHV2CDw0Q4dUDCA4&uact=5&oq=covariance+matrix+properties&gs_lcp=Cgdnd3Mtd2l6EAMyBQgAEIAEMgUIABCABDIGCAAQHhAWMgYIABAeEBYyBggAEB4QFjIGCAAQHhAWMggIABAeEA8QFjIICAAQHhAPEBYyBQgAEIYDMgUIABCGAzoKCAAQRxDWBBCwAzoECCMQJzoECAAQQzoFCAAQkQI6FAguEIAEELEDEIMBEMcBENEDEIsDOg4IABCABBCxAxCDARCLAzoRCC4QsQMQgwEQiwMQqAMQmwM6CAgAEJECEIsDOgcIABBDEIsDOhAILhBDEIsDEJoDEJsDEKgDOgcIABCxAxBDOgoIABCxAxCDARBDOgYIABAKEEM6CwguEIAEEMcBEK8BOgsIABCABBCxAxCDAToRCC4QgAQQsQMQgwEQxwEQ0QNKBAhBGABKBAhGGABQ8gtY4SJg3SNoA3ABeACAAeEBiAGxIpIBBjAuMjUuMpgBAKABAcgBCLgBAsABAQ&sclient=gws-wiz
+https://docs.scipy.org/doc/scipy/reference/generated/scipy.linalg.sqrtm.html
+https://pytorch.org/docs/stable/generated/torch.norm.html
+https://discuss.pytorch.org/t/most-efficient-way-to-get-just-the-off-diagonal-elements-of-a-tensor/131065
+https://pytorch.org/docs/stable/generated/torch.diagonal.html
+https://github.com/pymanopt/pymanopt
+https://doc.cgal.org/latest/Polygon/classCGAL_1_1Polygon__with__holes__2.html
+https://datascience.stackexchange.com/questions/41046/how-to-force-pytorch-model-to-predict-only-positive-values
+https://discuss.pytorch.org/t/proper-way-to-constraint-the-final-linear-layer-to-have-non-negative-weights/103498/2
+https://towardsdatascience.com/activation-functions-neural-networks-1cbd9f8d91d6
+https://towardsdatascience.com/understanding-pytorch-activation-functions-the-maths-and-algorithms-part-1-7d8ade494cee
+https://datascience.stackexchange.com/questions/13061/when-to-use-he-or-glorot-normal-initialization-over-uniform-init-and-what-are
+https://wandb.ai/wandb_fc/tips/reports/How-to-Initialize-Weights-in-PyTorch--VmlldzoxNjcwOTg1
