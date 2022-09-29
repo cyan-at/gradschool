@@ -1872,6 +1872,20 @@ torch.Size([2, 70])
 * should i implement a CLAMP on the last layer weights so that, with sigmoid activation, and non-negative last-layer weights on the boundary conditions?
   would this overfit the problem?
 
+tmp1 = x, 16000 x 70
+tmp2 = self.linears[-1].weight.data, 2 x 70
+output = torch.mm(tmp2, torch.t(tmp1)), 2 x 16000
+
+tmp3 = torch.t(torch.mm(tmp2, torch.t(tmp1))), 16000 x 2
+
+self.linears[-1].weight.clamp_min(0.0)
+
+clamped_weights = self.linears[-1].weight.clamp(0.0, 1.0)
+self.linears[-1].weight.data = clamped_weights
+
+clamped_weight = self.linears[-1].weight[1, :].clamp(0.0, 1.0)
+self.linears[-1].weight.data[1, :] = clamped_weight
+
 #########################################################
 #########################################################
 #########################################################
