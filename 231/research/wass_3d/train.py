@@ -120,6 +120,8 @@ print("js: ", j1, j2, j3)
 print("q: ", q_statepenalty_gain)
 
 k1 = 1.0
+k2 = 5.0
+k3 = -1e-2
 
 ######################################
 
@@ -299,14 +301,23 @@ rhoT_w1 = sqrtm(rhoT_sig)
 print("rhoT_w1\n", rhoT_w1)
 
 def rho0_WASS_cuda0(y_true, y_pred):
-    p1 = (y_pred<0).sum() # negative terms
+    p1 = (y_pred< k3).sum() # negative terms
+
+    # if p1 > 0:
+    #     import ipdb; ipdb.set_trace()
 
     # pdf_support = get_pdf_support_torch(y_pred, [x1_tensor, x2_tensor, x3_tensor], 0)
     pmf_support = torch.sum(y_pred)
+
+    # if pmf_support < 0:
+    #     import ipdb; ipdb.set_trace()
+
     p2 = torch.abs(pmf_support - 1)
 
-    if p1 > 0 or p2 > 1e-1:
-        return k1 * (p1 + p2)
+    # print("p1, p2", p1, p2)
+    # if p1 > 0 or p2 > k2:
+    #     # print("pmf_support", pmf_support)
+    #     return k1 * (p1 + p2)
 
     # print("non-negative, pmf")
 
@@ -336,6 +347,7 @@ def rho0_WASS_cuda0(y_true, y_pred):
     w4 = torch.norm(torch.diagonal(ysig, 2), p=2)
 
     if torch.isnan(w1) or torch.isnan(w2) or torch.isnan(w3) or torch.isnan(w4):
+        # print("bad pmf")
         w1 = w2 = w3 = w4 = 0.0
 
     return p1 + p2 + w1 + w2 + w3 + w4
@@ -374,14 +386,14 @@ def rho0_WASS_cuda0(y_true, y_pred):
     '''
 
 def rhoT_WASS_cuda0(y_true, y_pred):
-    p1 = (y_pred<0).sum() # negative terms
+    p1 = (y_pred< k3).sum() # negative terms
 
     # pdf_support = get_pdf_support_torch(y_pred, [x1_tensor, x2_tensor, x3_tensor], 0)
     pmf_support = torch.sum(y_pred)
     p2 = torch.abs(pmf_support - 1)
 
-    if p1 > 0 or p2 > 1e-1:
-        return k1 * (p1 + p2)
+    # if p1 > 0 or p2 > k2:
+    #     return k1 * (p1 + p2)
 
     # if p1 > 1e-3 or p2 > 1e-3:
     #     return k1 * (p1 + p2)
@@ -469,9 +481,9 @@ data = dde.data.TimePDE(
 net = dde.nn.FNN(
     [4] + [70] *3  + [2],
     "sigmoid",
-    "zeros",
+    # "zeros",
     # "tanh",
-    # "Glorot normal"
+    "Glorot normal"
 )
 model = dde.Model(data, net)
 
