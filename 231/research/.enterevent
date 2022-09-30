@@ -84,6 +84,8 @@ pip install tensorflow tensorflow-gpu
 
 scp cyan3@vipersim01:/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/data/pde.py /home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/data/pde.py
 
+scp model.py cyan3@vipersim03.ndc.nasa.gov:~/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/model.py
+
 julia:
 
 julia
