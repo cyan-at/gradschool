@@ -1921,7 +1921,24 @@ clamped_weight = self.linears[-1].weight[1, :].clamp(0.0, 1.0)
 self.linears[-1].weight.data[1, :] = clamped_weight
 
 #########################################################
+
+sinkhorn-divergence
+wass dist
+
+sinkhorn recursion
+
+5-10 convergence iterations
+gamma=10e-1,10e-2
+lowest=0.05
+
+regularization:
+given exact problem, solve it approximately
+change it to an approximate problem, solve it exactly
+
 #########################################################
+
+talk to ece, withdraw LOA for winter have abhishek cover tuition if possible
+
 #########################################################
 #########################################################
 #########################################################
