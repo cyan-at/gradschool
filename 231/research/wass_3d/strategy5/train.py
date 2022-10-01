@@ -22,7 +22,6 @@ print(torch.cuda.is_available())
 print(torch.cuda.device_count())
 print(torch.cuda.get_device_name(0))
 print(torch.version.cuda)
-print(torch.cuda.is_available())
 print(torch.cuda.current_device())
 torch.cuda.set_device(0)
 
@@ -252,6 +251,10 @@ c_tensor = c_tensor.to(device)
 M = torch.exp(C_tensor).type(torch.FloatTensor)
 M = M.to(device)
 
+u_vec = torch.ones(rho0_tensor.shape[0], dtype=torch.float32).to(device)
+v_vec = torch.ones(rho0_tensor.shape[0], dtype=torch.float32).to(device)
+p_opt = torch.zeros_like(M)
+
 ######################################
 
 # import ipdb; ipdb.set_trace()
@@ -260,7 +263,10 @@ def rho0_WASS_cuda0(y_true, y_pred):
     return sinkhorn_torch(M,
         c_tensor,
         rho0_tensor,
-        y_pred,
+        y_pred.view(-1),
+        u_vec,
+        v_vec,
+        p_opt,
         device,
         delta=1e-1,
         lam=1e-6)
@@ -269,7 +275,10 @@ def rhoT_WASS_cuda0(y_true, y_pred):
     return sinkhorn_torch(M,
         c_tensor,
         rhoT_tensor,
-        y_pred,
+        y_pred.view(-1),
+        u_vec,
+        v_vec,
+        p_opt,
         device,
         delta=1e-1,
         lam=1e-6)
@@ -293,9 +302,9 @@ data = dde.data.TimePDE(
 # 5 outputs: 2 eq + 3 control vars
 net = dde.nn.FNN(
     [4] + [70] *3  + [2],
-    "sigmoid",
+    # "sigmoid",
     # "zeros",
-    # "tanh",
+    "tanh",
     "Glorot normal"
 )
 model = dde.Model(data, net)

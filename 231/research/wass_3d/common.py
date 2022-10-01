@@ -242,12 +242,20 @@ def get_multivariate_truncated_pdf(x_T, y_T, z_T, mu, sigma, state_min, state_ma
 
     return trunc_pdf
 
-def sinkhorn_torch(K, c_tensor, a_tensor, b_tensor,
+def sinkhorn_torch(K,
+    c_tensor,
+    a_tensor,
+    b_tensor,
+    u_vec,
+    v_vec,
     device,
+    p_opt,
     delta=1e-1,
     lam=1e-5):    
     u_vec = torch.ones(a_tensor.shape[0], dtype=torch.float32).to(device)
     v_vec = torch.ones(b_tensor.shape[0], dtype=torch.float32).to(device)
+
+    # import ipdb; ipdb.set_trace()
 
     u_trans = torch.matmul(K, v_vec) + lam  # add regularization to avoid divide 0
     v_trans = torch.matmul(K.T, u_vec) + lam  # add regularization to avoid divide 0
@@ -278,7 +286,10 @@ def sinkhorn_torch(K, c_tensor, a_tensor, b_tensor,
         K,
         torch.diag(u_vec)])
 
-    return torch.dot(c_tensor, p_opt.view(-1))
+    w = torch.dot(c_tensor, p_opt.view(-1))
+    # print(w)
+
+    return w
 
 N = 20
 
