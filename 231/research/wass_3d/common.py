@@ -8,180 +8,210 @@ import torch
 def pdf3d(x,y,z,rv):
     return rv.pdf(np.hstack((x, y, z)))
 
-def slice(matrix_3d, i, j, mode):
+def slice(matrix, i, j, mode):
     if mode == 0:
-        return matrix_3d[j, i, :]
+        return matrix[:, i, j]
     elif mode == 1:
-        return matrix_3d[i, j, :]
+        return matrix[j, :, i]
     else:
-        return matrix_3d[i, :, j]
+        return matrix[i, j, :]
 
-def get_pdf_support(matrix_3d, xs, mode):
-    buffer0 = np.zeros(len(xs[1]))
-    buffer1 = np.zeros(len(xs[0]))
+def slice2d(matrix, i, mode):
+    if mode == 0:
+        return matrix[:, i]
+    else:
+        return matrix[i, :]
 
-    for j in range(len(xs[0])):
+def get_pdf_support(matrix, xs):
+    d = len(xs)
+
+    if d == 3:
+        # flatten z down into xy cell
+        # flatten x down to y row
+        # flatten y into number
+        buffer0 = np.zeros(len(xs[0]))
+        buffer1 = np.zeros(len(xs[1]))
+        for j in range(len(xs[1])):
+            for i in range(len(xs[0])):
+                buffer0[i] = np.trapz(
+                    slice(matrix, i, j, 2),
+                    x=xs[2])
+                # buffer0[i] = trapz out z
+                # buffer[i][j] = matrix[i][j][:]
+            # buffer0 is now filled with accumulated z
+            buffer1[j] = np.trapz(
+                buffer0,
+                x=xs[0])
+            # buffer1[j] = trapz out x
+            # buffer[j] = matrix[:][j][:]
+        return np.trapz(buffer1, x=xs[1])
+    elif d == 2:
+        # flatten x into y row
+        # flatten y into number
+        buffer1 = np.zeros(len(xs[1]))
         for i in range(len(xs[1])):
-            buffer0[i] = np.trapz(
-                slice(matrix_3d, i, j, mode),
-                x=xs[2])
-        buffer1[j] = np.trapz(buffer0, x=xs[1])
-
-    return np.trapz(buffer1, x=xs[0])
+            buffer1[i] = np.trapz(
+                slice2d(matrix, i, 0),
+                x=xs[0])
+            # buffer1[i] = trapz out x
+            # buffer1[i] = matrix[:, i]
+        return np.trapz(buffer1, x=xs[1])
 
 def get_pdf_support_torch(
     tensor,
     xtensors,
-    mode):
+    dt=torch.float32):
+    d = len(xtensors)
     n = len(xtensors[0])
-    tensor_3d = torch.reshape(
-        tensor, (n, n, n))
 
-    buffer0 = torch.zeros(len(xtensors[1]), dtype=dt)
-    buffer1 = torch.zeros(len(xtensors[0]), dtype=dt)
-    for j in range(len(xtensors[0])):
-        # collapse 1 dimension away into buffer0
+    tensor_matrix = torch.reshape(
+        tensor, tuple([n]*d))
+
+    if d == 3:
+        # flatten z down into xy cell
+        # flatten x down to y row
+        # flatten y into number    
+        buffer0 = torch.zeros(len(xtensors[0]), dtype=dt)
+        buffer1 = torch.zeros(len(xtensors[1]), dtype=dt)
+        for j in range(len(xtensors[1])):
+            for i in range(len(xtensors[0])):
+                buffer0[i] = torch.trapz(
+                    slice(tensor_matrix, i, j, 2)
+                    , x=xtensors[2])
+            buffer1[j] = torch.trapz(
+                buffer0,
+                x=xtensors[0])
+        return torch.trapz(buffer1, x=xtensors[1])
+    elif d == 2:
+        buffer1 = torch.zeros(len(xtensors[1]), dtype=dt)
         for i in range(len(xtensors[1])):
-            buffer0[i] = torch.trapz(
-                slice(tensor_3d, i, j, mode)
-                , x=xtensors[2])
-        # collapse 2 dimensions into 1 scalar
-        buffer1[j] = torch.trapz(
-            buffer0,
-            x=xtensors[1])
-    return torch.trapz(buffer1, x=xtensors[0])
+            buffer1[i] = torch.trapz(
+                slice2d(tensor_matrix, i, 0),
+                x=xtensors[0])
+        return np.trapz(buffer1, x=xs[1])
 
-def get_marginal_pmf(matrix_3d, xs, mode):
-    marginal = np.array([
-      np.sum(
-          np.array([
+def get_marginal_pmf(matrix, xs, mode):
+    d = len(xs)
+    if d == 3:
+        # mode == 0, smoosh out 'x', then 'y' => z marginal
+        # mode == 1, smoosh out 'y', then 'z' => x marginal
+        # mode == 2, smoosh out 'z', then 'x' => y marginal
+        marginal = np.array([
             np.sum(
-                slice(matrix_3d, i, j, mode)
+                np.array([
+                    np.sum(
+                        slice(matrix, i, j, mode)
+                    ) # smoosh out axis=mode
+                for i in range(len(xs[(mode + 1) % d]))])
+            ) # x2 slice for one x1 => R
+        for j in range(len(xs[(mode + 2) % d]))])
+        return marginal
+    elif d == 2:
+        # mode == 0, flatten 'x' => y marginal
+        # mode == 1, flatten 'y' => x marginal
+        marginal = np.array([
+            np.sum(
+                slice2d(matrix, i, mode)
             )
-            for i in range(len(xs[1]))])
-        ) # x2 slice for one x1 => R
-    for j in range(len(xs[0]))])
-    return marginal
+            for i in range(len(xs[mode]))
+        ])
+        return marginal
 
-def get_pmf_stats(pmf, x_T, y_T, z_T, x1, x2, x3, normalize=True):
+def get_pmf_stats(pmf, mesh_vectors, linspaces, normalize=True):
     # pmf has SUM=1, so normalize as such
     pmf_normed = pmf
     if normalize:
         pmf_support = np.sum(pmf)
         pmf_normed = pmf / pmf_support
 
-    n = len(x1)
-    pmf_cube_normed = pmf_normed.reshape(n, n, n)
+    d = len(linspaces)
+    n = len(linspaces[0])
+    pmf_cube = pmf_normed.reshape(tuple([n]*len(linspaces)))
 
-    # finding mu / E(x1) of discrete distribution / pmf
-    # is implemented as a dot product
-    x1_marginal_pmf = get_marginal_pmf(
-        pmf_cube_normed, [x1, x2, x3], 0)
-    mu1 = np.dot(x1_marginal_pmf, x1)
+    mus = np.array([0.0]*d)
+    marginals = []
+    deltas = []
 
-    x2_marginal_pmf = get_marginal_pmf(
-        pmf_cube_normed, [x2, x3, x1], 1)
-    mu2 = np.dot(x2_marginal_pmf, x2)
+    for i in range(d):
+        # finding mu / E(x1) of discrete distribution / pmf
+        # is implemented as a dot product
+        marginal_pmf = get_marginal_pmf(
+            pmf_cube, linspaces, (i+1) % d)
+        mus[i] = np.dot(marginal_pmf, linspaces[i])
 
-    x3_marginal_pmf = get_marginal_pmf(
-        pmf_cube_normed, [x3, x1, x2], 2)
-    mu3 = np.dot(x3_marginal_pmf, x3)
+        marginals.append(marginal_pmf)
+        deltas.append(mesh_vectors[i] - mus[i])
 
-    mu = np.array([mu1, mu2, mu3])
+    cov_matrix = np.zeros((d, d))
+    for i in range(d):
+        for j in range(d):
+            cov_matrix[i][j] = np.sum(pmf_normed * deltas[i] * deltas[j])
 
-    dx = x_T - mu1
-    dy = y_T - mu2
-    dz = z_T - mu3
+    return mus, cov_matrix, pmf_cube, marginals
 
-    cov_xx = np.sum(pmf_normed * dx * dx)
-    cov_xy = np.sum(pmf_normed * dx * dy)
-    cov_xz = np.sum(pmf_normed * dx * dz)
-    cov_yy = np.sum(pmf_normed * dy * dy)
-    cov_yz = np.sum(pmf_normed * dy * dz)
-    cov_zz = np.sum(pmf_normed * dz * dz)
-
-    cov_matrix = np.array([
-        [cov_xx, cov_xy, cov_xz],
-        [cov_xy, cov_yy, cov_yz],
-        [cov_xz, cov_yz, cov_zz]
-    ])
-
-    return mu, cov_matrix, pmf_cube_normed, x1_marginal_pmf, x2_marginal_pmf, x3_marginal_pmf
-
-def fill_marginal_pmf_torch(
-    tensor_3d,
+def get_marginal_pmf_torch(
+    tensor_matrix,
     xtensors,
-    mode,
-    buffer0,
-    buffer1):
-    for j in range(len(xtensors[0])):
-        # collapse 1 dimension away into buffer0
-        for i in range(len(xtensors[1])):
-            buffer0[i] = torch.sum(slice(tensor_3d, i, j, mode))
-        # collapse 2 dimensions into 1 scalar
-        buffer1[j] = torch.sum(buffer0)
+    mode):
+    d = len(xtensors)
+    if d == 3:
+        # mode == 0, smoosh out 'x', then 'y' => z marginal
+        # mode == 1, smoosh out 'y', then 'z' => x marginal
+        # mode == 2, smoosh out 'z', then 'x' => y marginal
+        marginal = torch.cat(
+            torch.sum(
+                torch.cat(
+                    torch.sum(
+                        slice(tensor_matrix, i, j, mode)
+                    ) # smoosh out axis=mode
+                    for i in range(len(xs[(mode + 1) % d]))
+                )
+            ) # x2 slice for one x1 => R
+            for j in range(len(xs[(mode + 2) % d]))
+        )
+        return marginal
+    else:
+        # mode == 0, flatten 'x' => y marginal
+        # mode == 1, flatten 'y' => x marginal
+        marginal = torch.cat(
+            torch.sum(
+                slice2d(matrix, i, mode)
+            )
+            for i in range(len(xs[mode]))
+        )
+        return marginal
 
 def get_pmf_stats_torch(
     pmf,
-    x_T, y_T, z_T,
-    x1, x2, x3,
+    mesh_vectors,
+    linspaces,
     dt):
     pmf_support = torch.sum(pmf)
 
     pmf_normed = pmf / pmf_support
 
-    n = len(x1)
-    pmf_cube_normed = torch.reshape(
-        pmf_normed, (n, n, n))
+    d = len(linspaces)
+    n = len(linspaces[0])
+    pmf_cube = pmf_normed.reshape(tuple([n]*len(linspaces)))
 
-    # finding mu / E(x1) of discrete distribution / pmf
-    # is implemented as a dot product
-    buffer0 = torch.zeros(len(x2), dtype=dt)
-    x1_marginal_pmf = torch.zeros(len(x1), dtype=dt)
-    fill_marginal_pmf_torch(pmf_cube_normed,
-        [x1, x2, x3], 0,
-        buffer0,
-        x1_marginal_pmf)
-    mu1 = torch.dot(x1_marginal_pmf, x1)
+    mus = torch.zeros((d))
+    marginals = []
+    deltas = []
 
-    buffer1 = torch.zeros(len(x3), dtype=dt)
-    x2_marginal_pmf = torch.zeros(len(x2), dtype=dt)
-    fill_marginal_pmf_torch(pmf_cube_normed,
-        [x2, x3, x1], 1,
-        buffer1,
-        x2_marginal_pmf)
-    mu2 = torch.dot(x2_marginal_pmf, x2)
+    for i in range(d):
+        # finding mu / E(x1) of discrete distribution / pmf
+        # is implemented as a dot product
+        marginal_pmf = get_marginal_pmf_torch(
+            pmf_cube, linspaces, (i+1) % d)
+        mus[i] = np.dot(marginal_pmf, linspaces[i])
 
-    buffer2 = torch.zeros(len(x1), dtype=dt)
-    x3_marginal_pmf = torch.zeros(len(x3), dtype=dt)
-    fill_marginal_pmf_torch(pmf_cube_normed,
-        [x3, x1, x2], 2,
-        buffer2,
-        x3_marginal_pmf)
-    mu3 = torch.dot(x3_marginal_pmf, x3)
+        marginals.append(marginal_pmf)
+        deltas.append(mesh_vectors[i] - mus[i])
 
-    mu = torch.cat((
-        mu1.reshape(1),
-        mu2.reshape(1),
-        mu3.reshape(1)
-    ))
-
-    dx = x_T - mu1
-    dy = y_T - mu2
-    dz = z_T - mu3
-
-    cov_xx = torch.sum(pmf_normed * dx * dx).reshape(1)
-    cov_xy = torch.sum(pmf_normed * dx * dy).reshape(1)
-    cov_xz = torch.sum(pmf_normed * dx * dz).reshape(1)
-    cov_yy = torch.sum(pmf_normed * dy * dy).reshape(1)
-    cov_yz = torch.sum(pmf_normed * dy * dz).reshape(1)
-    cov_zz = torch.sum(pmf_normed * dz * dz).reshape(1)
-
-    cov_matrix = torch.stack((
-        torch.cat((cov_xx, cov_xy, cov_xz)),
-        torch.cat((cov_xy, cov_yy, cov_yz)),
-        torch.cat((cov_xz, cov_yz, cov_zz))
-    ))
+    cov_matrix = torch.zeros((d, d))
+    for i in range(d):
+        for j in range(d):
+            cov_matrix[i][j] = np.sum(pmf_normed * deltas[i] * deltas[j])
 
     return mu, cov_matrix
 
@@ -212,17 +242,58 @@ def get_multivariate_truncated_pdf(x_T, y_T, z_T, mu, sigma, state_min, state_ma
 
     return trunc_pdf
 
-N = 50
+def sinkhorn_torch(K, c_tensor, a_tensor, b_tensor,
+    device,
+    delta=1e-1,
+    lam=1e-5):    
+    u_vec = torch.ones(a_tensor.shape[0], dtype=torch.float32).to(device)
+    v_vec = torch.ones(b_tensor.shape[0], dtype=torch.float32).to(device)
+
+    import ipdb; ipdb.set_trace()
+
+    u_trans = torch.matmul(K, v_vec) + lam  # add regularization to avoid divide 0
+    v_trans = torch.matmul(K.T, u_vec) + lam  # add regularization to avoid divide 0
+
+
+    err_1 = torch.sum(torch.abs(u_vec * u_trans - a_tensor))
+    err_2 = torch.sum(torch.abs(v_vec * v_trans - b_tensor))
+
+    while True:
+        if (err_1 + err_2).item() > delta:
+            u_vec = torch.div(a_tensor, u_trans)
+            v_trans = torch.matmul(K.T, u_vec) + lam
+
+            v_vec = torch.div(b_tensor, v_trans)
+            u_trans = torch.matmul(K, v_vec) + lam
+
+            err_1 = torch.sum(
+                torch.abs(u_vec * u_trans - a_tensor))
+            err_2 = torch.sum(
+                torch.abs(v_vec * v_trans - b_tensor))
+
+            # print("err_1 + err_2", (err_2 + err_1).item() > delta)
+        else:
+            # print("DONE!")
+            break
+
+    p_opt = torch.linalg.multi_dot([
+        torch.diag(v_vec),
+        K,
+        torch.diag(u_vec)])
+
+    return torch.dot(c_tensor, p_opt.view(-1))
+
+N = 20
 
 # must be floats
 state_min = -5.0
 state_max = 5.0
 
 mu_0 = 2.0
-sigma_0 = 1.0
+sigma_0 = 0.5
 
 mu_T = 0.0
-sigma_T = 1.5
+sigma_T = 0.5
 
 j1, j2, j3 =1,1,2 # axis-symmetric case
 q_statepenalty_gain = 0 # 0.5
