@@ -254,7 +254,7 @@ M = M.to(device)
 
 ######################################
 
-import ipdb; ipdb.set_trace()
+# import ipdb; ipdb.set_trace()
 
 def rho0_WASS_cuda0(y_true, y_pred):
     return sinkhorn_torch(M,

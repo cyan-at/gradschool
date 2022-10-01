@@ -249,11 +249,8 @@ def sinkhorn_torch(K, c_tensor, a_tensor, b_tensor,
     u_vec = torch.ones(a_tensor.shape[0], dtype=torch.float32).to(device)
     v_vec = torch.ones(b_tensor.shape[0], dtype=torch.float32).to(device)
 
-    import ipdb; ipdb.set_trace()
-
     u_trans = torch.matmul(K, v_vec) + lam  # add regularization to avoid divide 0
     v_trans = torch.matmul(K.T, u_vec) + lam  # add regularization to avoid divide 0
-
 
     err_1 = torch.sum(torch.abs(u_vec * u_trans - a_tensor))
     err_2 = torch.sum(torch.abs(v_vec * v_trans - b_tensor))
