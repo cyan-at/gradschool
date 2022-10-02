@@ -251,9 +251,14 @@ c_tensor = c_tensor.to(device)
 M = torch.exp(C_tensor).type(torch.FloatTensor)
 M = M.to(device)
 
-u_vec = torch.ones(rho0_tensor.shape[0], dtype=torch.float32).to(device)
-v_vec = torch.ones(rho0_tensor.shape[0], dtype=torch.float32).to(device)
-p_opt = torch.zeros_like(M)
+u_vec0 = torch.ones(rho0_tensor.shape[0], dtype=torch.float32).to(device)
+v_vec0 = torch.ones(rho0_tensor.shape[0], dtype=torch.float32).to(device)
+
+u_vecT = torch.ones(rho0_tensor.shape[0], dtype=torch.float32).to(device)
+v_vecT = torch.ones(rho0_tensor.shape[0], dtype=torch.float32).to(device)
+
+p_opt0 = torch.zeros_like(M)
+p_optT = torch.zeros_like(M)
 
 ######################################
 
@@ -264,9 +269,9 @@ def rho0_WASS_cuda0(y_true, y_pred):
         c_tensor,
         rho0_tensor,
         y_pred.view(-1),
-        # u_vec,
-        # v_vec,
-        p_opt,
+        u_vec0,
+        v_vec0,
+        p_opt0,
         device,
         delta=1e-1,
         lam=1e-6)
@@ -276,9 +281,9 @@ def rhoT_WASS_cuda0(y_true, y_pred):
         c_tensor,
         rhoT_tensor,
         y_pred.view(-1),
-        # u_vec,
-        # v_vec,
-        p_opt,
+        u_vecT,
+        v_vecT,
+        p_optT,
         device,
         delta=1e-1,
         lam=1e-6)
