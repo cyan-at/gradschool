@@ -251,7 +251,11 @@ def sinkhorn_torch(K,
     device,
     p_opt,
     delta=1e-1,
-    lam=1e-5):    
+    lam=1e-5):
+    u_vec.grad.zero_()
+    v_vec.grad.zero_()
+    p_opt.grad.zero_()
+
     u_vec = torch.ones(a_tensor.shape[0], dtype=torch.float32).to(device)
     v_vec = torch.ones(b_tensor.shape[0], dtype=torch.float32).to(device)
 
