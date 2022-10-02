@@ -236,6 +236,15 @@ rhoT_tensor = rhoT_tensor.to(device)
 
 ######################################
 
+linspace_tensors = []
+for i in range(d):
+    t = torch.from_numpy(
+        linspaces[i]).requires_grad_(False)
+    t = t.to(device)
+    linspace_tensors.append(t)
+
+######################################
+
 C = cdist(state, state, 'sqeuclidean')
 cvector = C.reshape((M)**2)
 
@@ -272,7 +281,13 @@ p_optT = torch.zeros_like(M).requires_grad_(True)
 # import ipdb; ipdb.set_trace()
 
 def rho0_WASS_cuda0(y_true, y_pred):
-    return sinkhorn_torch(M,
+    p1 = (y_pred<0).sum() # negative terms
+    pdf_support = get_pdf_support_torch(y_pred, linspace_tensors)
+    p2 = torch.abs(pdf_support - 1)
+
+    y_pred = torch.where(y_pred < 0, 0, y_pred)
+    y_pred = y_pred / torch.sum(torch.abs(y_pred))
+    w = sinkhorn_torch(M,
         c_tensor,
         rho0_tensor,
         y_pred.view(-1),
@@ -283,8 +298,14 @@ def rho0_WASS_cuda0(y_true, y_pred):
         delta=1e-1,
         lam=1e-6)
 
+    return p1 + p2 + w
+
 def rhoT_WASS_cuda0(y_true, y_pred):
-    return sinkhorn_torch(M,
+    p1 = (y_pred<0).sum() # negative terms
+    pdf_support = get_pdf_support_torch(y_pred, linspace_tensors)
+    p2 = torch.abs(pdf_support - 1)
+
+    w = sinkhorn_torch(M,
         c_tensor,
         rhoT_tensor,
         y_pred.view(-1),
@@ -294,6 +315,8 @@ def rhoT_WASS_cuda0(y_true, y_pred):
         device,
         delta=1e-1,
         lam=1e-6)
+
+    return p1 + p2 + w
 
 ######################################
 
