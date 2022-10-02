@@ -251,14 +251,21 @@ c_tensor = c_tensor.to(device)
 M = torch.exp(C_tensor).type(torch.FloatTensor)
 M = M.to(device)
 
-u_vec0 = torch.ones(rho0_tensor.shape[0], dtype=torch.float32).to(device)
-v_vec0 = torch.ones(rho0_tensor.shape[0], dtype=torch.float32).to(device)
+u_vec0 = torch.ones(rho0_tensor.shape[0], dtype=torch.float32).requires_grad_(True)
+u_vec0 = u_vec0.to(device)
+v_vec0 = torch.ones(rho0_tensor.shape[0], dtype=torch.float32).requires_grad_(True)
+v_vec0 = v_vec0.to(device)
 
-u_vecT = torch.ones(rho0_tensor.shape[0], dtype=torch.float32).to(device)
-v_vecT = torch.ones(rho0_tensor.shape[0], dtype=torch.float32).to(device)
+u_vecT = torch.ones(rho0_tensor.shape[0], dtype=torch.float32).requires_grad_(True)
+u_vecT = u_vecT.to(device)
+v_vecT = torch.ones(rho0_tensor.shape[0], dtype=torch.float32).requires_grad_(True)
+v_vecT = v_vecT.to(device)
 
-p_opt0 = torch.zeros_like(M)
-p_optT = torch.zeros_like(M)
+p_opt0 = torch.zeros_like(M).requires_grad_(True)
+p_opt0 = p_opt0.to(device)
+
+p_optT = torch.zeros_like(M).requires_grad_(True)
+p_optT = p_optT.to(device)
 
 ######################################
 
