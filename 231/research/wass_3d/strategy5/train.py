@@ -346,10 +346,11 @@ data = dde.data.TimePDE(
 # 5 outputs: 2 eq + 3 control vars
 net = dde.nn.FNN(
     [4] + [70] *3  + [2],
-    # "sigmoid",
-    # "zeros",
-    "tanh",
+    "sigmoid",
+    # "tanh",
+
     "Glorot normal"
+    # "zeros",
 )
 model = dde.Model(data, net)
 
