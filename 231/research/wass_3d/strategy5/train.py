@@ -299,7 +299,7 @@ def rho0_WASS_cuda0(y_true, y_pred):
         v_vec0,
         p_opt0,
         device,
-        delta=1e-1,
+        delta=5e-2,
         lam=1e-6)
 
     return p1 + p2 + w
@@ -322,7 +322,7 @@ def rhoT_WASS_cuda0(y_true, y_pred):
         v_vecT,
         p_optT,
         device,
-        delta=1e-1,
+        delta=5e-2,
         lam=1e-6)
 
     return p1 + p2 + w
