@@ -248,8 +248,8 @@ def sinkhorn_torch(K,
     b_tensor,
     u_vec,
     v_vec,
-    device,
     p_opt,
+    device,
     delta=1e-1,
     lam=1e-5):
     if u_vec.grad is not None:
