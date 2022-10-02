@@ -262,10 +262,10 @@ v_vecT = torch.ones(rho0_tensor.shape[0], dtype=torch.float32).requires_grad_(Tr
 v_vecT = v_vecT.to(device)
 
 p_opt0 = torch.zeros_like(M).requires_grad_(True)
-p_opt0 = p_opt0.to(device)
+# p_opt0 = p_opt0.to(device)
 
 p_optT = torch.zeros_like(M).requires_grad_(True)
-p_optT = p_optT.to(device)
+# p_optT = p_optT.to(device)
 
 ######################################
 
