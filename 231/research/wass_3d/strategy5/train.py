@@ -286,7 +286,10 @@ def rho0_WASS_cuda0(y_true, y_pred):
     p2 = torch.abs(pdf_support - 1)
 
     y_pred = torch.where(y_pred < 0, 0, y_pred)
-    y_pred = y_pred / torch.sum(torch.abs(y_pred))
+    s = torch.sum(torch.abs(y_pred))
+    if s > 1e-5:
+        y_pred = y_pred / s
+
     w = sinkhorn_torch(M,
         c_tensor,
         rho0_tensor,
@@ -304,6 +307,11 @@ def rhoT_WASS_cuda0(y_true, y_pred):
     p1 = (y_pred<0).sum() # negative terms
     pdf_support = get_pdf_support_torch(y_pred, linspace_tensors)
     p2 = torch.abs(pdf_support - 1)
+
+    y_pred = torch.where(y_pred < 0, 0, y_pred)
+    s = torch.sum(torch.abs(y_pred))
+    if s > 1e-5:
+        y_pred = y_pred / s
 
     w = sinkhorn_torch(M,
         c_tensor,
