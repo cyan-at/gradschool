@@ -257,7 +257,8 @@ c_tensor = torch.from_numpy(
     cvector
 ).requires_grad_(False).type(torch.FloatTensor)
 c_tensor = c_tensor.to(device)
-M = torch.exp(C_tensor).type(torch.FloatTensor)
+
+M = torch.exp(C_tensor).requires_grad_(False).type(torch.FloatTensor)
 M = M.to(device)
 
 u_vec0 = torch.ones(rho0_tensor.shape[0], dtype=torch.float32).requires_grad_(True)
