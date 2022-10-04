@@ -69,6 +69,8 @@ import scipy.linalg
 sys.path.insert(0,'..')
 from common import *
 
+from layers import *
+
 import argparse
 parser = argparse.ArgumentParser(description="")
 parser.add_argument('--N', type=int, default=20, help='')
@@ -101,6 +103,10 @@ mesh_vectors = []
 for i in range(d):
     mesh_vectors.append(meshes[i].reshape(M,1))
 state = np.hstack(tuple(mesh_vectors))
+state_tensor = torch.tensor(
+    state,
+    dtype=torch.float,
+    requires_grad=True)
 
 ######################################
 
@@ -184,15 +190,36 @@ def euler_pde(x, y):
 
 ######################################
 
-rho0_name = 'rho0_%.3f_%.3f__%.3f_%.3f__%d.dat' % (
-    mu_0, sigma_0,
-    state_min, state_max,
-    N)
-trunc_rho0_pdf = get_multivariate_truncated_pdf(
-    mesh_vectors[0],
-    mesh_vectors[1],
-    mesh_vectors[2],
-    mu_0, sigma_0, state_min, state_max, N, f, rho0_name)
+rv0 = multivariate_normal([mu_0]*d, sigma_0 * np.eye(d))
+rvT = multivariate_normal([mu_T]*d, sigma_T * np.eye(d))
+
+rho0=rv0.pdf(state)
+rho0 = np.float32(rho0)
+
+rhoT= rvT.pdf(state)
+rhoT = np.float32(rhoT)
+
+rho0_tensor = torch.from_numpy(
+    rho0,
+).requires_grad_(True)
+rho0_tensor = rho0_tensor.to(device)
+
+rhoT_tensor = torch.from_numpy(
+    rhoT
+).requires_grad_(False)
+rhoT_tensor = rhoT_tensor.to(device)
+
+######################################
+
+# rho0_name = 'rho0_%.3f_%.3f__%.3f_%.3f__%d.dat' % (
+#     mu_0, sigma_0,
+#     state_min, state_max,
+#     N)
+# trunc_rho0_pdf = get_multivariate_truncated_pdf(
+#     mesh_vectors[0],
+#     mesh_vectors[1],
+#     mesh_vectors[2],
+#     mu_0, sigma_0, state_min, state_max, N, f, rho0_name)
 time_0=np.hstack((
     mesh_vectors[0],
     mesh_vectors[1],
@@ -201,38 +228,30 @@ time_0=np.hstack((
 ))
 rho_0_BC = dde.icbc.PointSetBC(
     time_0,
-    trunc_rho0_pdf, component=1)
+    rho0[..., np.newaxis],
+    component=1)
 
 ######################################
 
-rhoT_name = 'rhoT_%.3f_%.3f__%.3f_%.3f__%d.dat' % (
-    mu_T, sigma_T,
-    state_min, state_max,
-    N)
-trunc_rhoT_pdf = get_multivariate_truncated_pdf(
-    mesh_vectors[0],
-    mesh_vectors[1],
-    mesh_vectors[2],
-    mu_T, sigma_T, state_min, state_max, N, f, rhoT_name)
+# rhoT_name = 'rhoT_%.3f_%.3f__%.3f_%.3f__%d.dat' % (
+#     mu_T, sigma_T,
+#     state_min, state_max,
+#     N)
+# trunc_rhoT_pdf = get_multivariate_truncated_pdf(
+#     mesh_vectors[0],
+#     mesh_vectors[1],
+#     mesh_vectors[2],
+#     mu_T, sigma_T, state_min, state_max, N, f, rhoT_name)
 time_t=np.hstack((
     mesh_vectors[0],
     mesh_vectors[1],
     mesh_vectors[2],
     T_t*np.ones((len(mesh_vectors[0]), 1))
 ))
-rho_T_BC = dde.icbc.PointSetBC(time_t, trunc_rhoT_pdf, component=1)
-
-######################################
-
-rho0_tensor = torch.from_numpy(
-    trunc_rho0_pdf
-).requires_grad_(False).type(torch.FloatTensor).view(-1)
-rho0_tensor = rho0_tensor.to(device)
-
-rhoT_tensor = torch.from_numpy(
-    trunc_rhoT_pdf
-).requires_grad_(False).type(torch.FloatTensor).view(-1)
-rhoT_tensor = rhoT_tensor.to(device)
+rho_T_BC = dde.icbc.PointSetBC(
+    time_t,
+    rhoT[..., np.newaxis],
+    component=1)
 
 ######################################
 
@@ -245,37 +264,10 @@ for i in range(d):
 
 ######################################
 
-C = cdist(state, state, 'sqeuclidean')
-cvector = C.reshape((M)**2)
+sinkhorn = SinkhornDistance(eps=0.1, max_iter=200)
 
-reg = 10e-1 # gamma, 10e-2, 5e-2
-C_tensor = torch.from_numpy(
-    -C / reg - 1
-).requires_grad_(False).type(torch.FloatTensor)
-C_tensor = C_tensor.to(device)
-c_tensor = torch.from_numpy(
-    cvector
-).requires_grad_(False).type(torch.FloatTensor)
-c_tensor = c_tensor.to(device)
-
-M = torch.exp(C_tensor).requires_grad_(False).type(torch.FloatTensor)
-M = M.to(device)
-
-u_vec0 = torch.ones(rho0_tensor.shape[0], dtype=torch.float32).requires_grad_(True)
-u_vec0 = u_vec0.to(device)
-v_vec0 = torch.ones(rho0_tensor.shape[0], dtype=torch.float32).requires_grad_(True)
-v_vec0 = v_vec0.to(device)
-
-u_vecT = torch.ones(rho0_tensor.shape[0], dtype=torch.float32).requires_grad_(True)
-u_vecT = u_vecT.to(device)
-v_vecT = torch.ones(rho0_tensor.shape[0], dtype=torch.float32).requires_grad_(True)
-v_vecT = v_vecT.to(device)
-
-p_opt0 = torch.zeros_like(M).requires_grad_(True)
-# p_opt0 = p_opt0.to(device)
-
-p_optT = torch.zeros_like(M).requires_grad_(True)
-# p_optT = p_optT.to(device)
+C = sinkhorn._cost_matrix(state_tensor, state_tensor)
+# C = cdist(state, state, 'sqeuclidean')
 
 ######################################
 
@@ -283,49 +275,27 @@ p_optT = torch.zeros_like(M).requires_grad_(True)
 
 def rho0_WASS_cuda0(y_true, y_pred):
     p1 = (y_pred<0).sum() # negative terms
-    pdf_support = get_pdf_support_torch(y_pred, linspace_tensors)
-    p2 = torch.abs(pdf_support - 1)
+
+    p2 = torch.abs(torch.sum(y_pred) - 1)
 
     y_pred = torch.where(y_pred < 0, 0, y_pred)
-    s = torch.sum(torch.abs(y_pred))
-    if s > 1e-5:
-        y_pred = y_pred / s
 
-    w = sinkhorn_torch(M,
-        c_tensor,
-        rho0_tensor,
-        y_pred.view(-1),
-        u_vec0,
-        v_vec0,
-        p_opt0,
-        device,
-        delta=5e-2,
-        lam=1e-6)
+    dist, _, _ = sinkhorn(C, y_pred, rho0_tensor)
+    # print("Sinkhorn distance: {:.3f}".format(dist.item()))
 
-    return p1 + p2 + w
+    return p1 + p2 + dist
 
 def rhoT_WASS_cuda0(y_true, y_pred):
     p1 = (y_pred<0).sum() # negative terms
-    pdf_support = get_pdf_support_torch(y_pred, linspace_tensors)
-    p2 = torch.abs(pdf_support - 1)
+
+    p2 = torch.abs(torch.sum(y_pred) - 1)
 
     y_pred = torch.where(y_pred < 0, 0, y_pred)
-    s = torch.sum(torch.abs(y_pred))
-    if s > 1e-5:
-        y_pred = y_pred / s
 
-    w = sinkhorn_torch(M,
-        c_tensor,
-        rhoT_tensor,
-        y_pred.view(-1),
-        u_vecT,
-        v_vecT,
-        p_optT,
-        device,
-        delta=5e-2,
-        lam=1e-6)
+    dist, _, _ = sinkhorn(C, y_pred, rhoT_tensor)
+    # print("Sinkhorn distance: {:.3f}".format(dist.item()))
 
-    return p1 + p2 + w
+    return p1 + p2 + dist
 
 ######################################
 
