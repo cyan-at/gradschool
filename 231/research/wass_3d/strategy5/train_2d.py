@@ -91,7 +91,7 @@ print("q: ", q_statepenalty_gain)
 
 ######################################
 
-d = 3
+d = 2
 M = N**d
 
 linspaces = []
@@ -120,20 +120,24 @@ def euler_pde(x, y):
 
     dy1_x = dde.grad.jacobian(y1, x, j=0)
     dy1_y = dde.grad.jacobian(y1, x, j=1)
-    dy1_z = dde.grad.jacobian(y1, x, j=2)
-    dy1_t = dde.grad.jacobian(y1, x, j=3)
+    # dy1_z = dde.grad.jacobian(y1, x, j=2)
+    dy1_z = 0.0
+    dy1_t = dde.grad.jacobian(y1, x, j=2)
     dy1_xx = dde.grad.hessian(y1, x, i=0, j=0)
     dy1_yy = dde.grad.hessian(y1, x, i=1, j=1)
-    dy1_zz = dde.grad.hessian(y1, x, i=2, j=2)
+    # dy1_zz = dde.grad.hessian(y1, x, i=2, j=2)
+    dy1_zz = 0.0
 
     dy2_x = dde.grad.jacobian(y2, x, j=0)
     dy2_y = dde.grad.jacobian(y2, x, j=1)
-    dy2_z = dde.grad.jacobian(y2, x, j=2)
-    dy2_t = dde.grad.jacobian(y2, x, j=3)
+    # dy2_z = dde.grad.jacobian(y2, x, j=2)
+    dy2_z = 0.0
+    dy2_t = dde.grad.jacobian(y2, x, j=2)
 
     dy2_xx = dde.grad.hessian(y2, x, i=0, j=0)
     dy2_yy = dde.grad.hessian(y2, x, i=1, j=1)
-    dy2_zz = dde.grad.hessian(y2, x, i=2, j=2)
+    # dy2_zz = dde.grad.hessian(y2, x, i=2, j=2)
+    dy2_zz = 0.0
 
     """Compute Jacobian matrix J: J[i][j] = dy_i / dx_j, where i = 0, ..., dim_y - 1 and
     j = 0, ..., dim_x - 1.
@@ -154,16 +158,18 @@ def euler_pde(x, y):
     - It will remember the gradients that have already been computed to avoid duplicate
       computation."""
 
-    f1=x[:, 1:2]*x[:, 2:3]*(j2-j3)/j1
-    f2=x[:, 0:1]*x[:, 2:3]*(j3-j1)/j2
-    f3=x[:, 0:1]*x[:, 1:2]*(j1-j2)/j3
+    f1=x[:, 1:2]*x[:, 1:2]*(j2-j3)/j1
+    f2=x[:, 0:1]*x[:, 0:1]*(j3-j1)/j2
+    # f3=x[:, 0:1]*x[:, 1:2]*(j1-j2)/j3
+    f3 = 0.0
     
     # d_f1dy1_y2_x=tf.gradients((f1+dy1_x)*y2, x)[0][:, 0:1]
     # d_f2dy1_y2_y=tf.gradients((f2+dy1_y)*y2, x)[0][:, 1:2]
     # d_f3dy1_y2_z=tf.gradients((f3+dy1_z)*y2, x)[0][:, 2:3]
     d_f1dy1_y2_x = dde.grad.jacobian((f1+dy1_x)*y2, x, j=0)
     d_f2dy1_y2_y = dde.grad.jacobian((f2+dy1_y)*y2, x, j=1)
-    d_f3dy1_y2_z = dde.grad.jacobian((f3+dy1_z)*y2, x, j=2)
+    # d_f3dy1_y2_z = dde.grad.jacobian((f3+dy1_z)*y2, x, j=2)
+    d_f3dy1_y2_z = 0.0
 
     # stay close to origin while searching, penalizes large state distance solutions
     q = q_statepenalty_gain*(
@@ -177,7 +183,7 @@ def euler_pde(x, y):
 
     dpsi_x = dde.grad.jacobian(psi, x, j=0)
     dpsi_y = dde.grad.jacobian(psi, x, j=1)
-    dpsi_z = dde.grad.jacobian(psi, x, j=2)
+    # dpsi_z = dde.grad.jacobian(psi, x, j=2)
 
     # TODO: verify this expression
     return [
@@ -201,7 +207,7 @@ rhoT = np.float32(rhoT)
 
 rho0_tensor = torch.from_numpy(
     rho0,
-).requires_grad_(False)
+).requires_grad_(True)
 rho0_tensor = rho0_tensor.to(device)
 
 rhoT_tensor = torch.from_numpy(
@@ -223,7 +229,7 @@ rhoT_tensor = rhoT_tensor.to(device)
 time_0=np.hstack((
     mesh_vectors[0],
     mesh_vectors[1],
-    mesh_vectors[2],
+    # mesh_vectors[2],
     T_0*np.ones((len(mesh_vectors[0]), 1))
 ))
 rho_0_BC = dde.icbc.PointSetBC(
@@ -245,7 +251,7 @@ rho_0_BC = dde.icbc.PointSetBC(
 time_t=np.hstack((
     mesh_vectors[0],
     mesh_vectors[1],
-    mesh_vectors[2],
+    # mesh_vectors[2],
     T_t*np.ones((len(mesh_vectors[0]), 1))
 ))
 rho_T_BC = dde.icbc.PointSetBC(
@@ -264,13 +270,10 @@ for i in range(d):
 
 ######################################
 
-sinkhorn = SinkhornDistance2(eps=0.1, max_iter=200)
+sinkhorn = SinkhornDistance(eps=0.1, max_iter=200)
 
-# C = sinkhorn._cost_matrix(state_tensor, state_tensor)
-C = cdist(state, state, 'sqeuclidean')
-C = torch.from_numpy(
-    C).requires_grad_(False)
-C = C.to(device)
+C = sinkhorn._cost_matrix(state_tensor, state_tensor)
+# C = cdist(state, state, 'sqeuclidean')
 
 ######################################
 
@@ -283,7 +286,7 @@ def rho0_WASS_cuda0(y_true, y_pred):
 
     y_pred = torch.where(y_pred < 0, 0, y_pred)
 
-    dist, _, _ = sinkhorn(C, y_pred.reshape(-1), rho0_tensor)
+    dist, _, _ = sinkhorn(C, y_pred, rho0_tensor)
     # print("Sinkhorn distance: {:.3f}".format(dist.item()))
 
     return p1 + p2 + dist
@@ -295,7 +298,7 @@ def rhoT_WASS_cuda0(y_true, y_pred):
 
     y_pred = torch.where(y_pred < 0, 0, y_pred)
 
-    dist, _, _ = sinkhorn(C, y_pred.reshape(-1), rhoT_tensor)
+    dist, _, _ = sinkhorn(C, y_pred, rhoT_tensor)
     # print("Sinkhorn distance: {:.3f}".format(dist.item()))
 
     return p1 + p2 + dist
@@ -303,8 +306,8 @@ def rhoT_WASS_cuda0(y_true, y_pred):
 ######################################
 
 geom=dde.geometry.geometry_3d.Cuboid(
-    [state_min, state_min, state_min],
-    [state_max, state_max, state_max])
+    [state_min]*d,
+    [state_max]*d)
 timedomain = dde.geometry.TimeDomain(0., T_t)
 geomtime = dde.geometry.GeometryXTime(geom, timedomain)
 
@@ -318,7 +321,7 @@ data = dde.data.TimePDE(
 # 4 inputs: x,y,z,t
 # 5 outputs: 2 eq + 3 control vars
 net = dde.nn.FNN(
-    [4] + [70] *3  + [2],
+    [3] + [70] *3  + [2],
     # "sigmoid",
     "tanh",
 

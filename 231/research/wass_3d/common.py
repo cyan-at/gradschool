@@ -251,7 +251,7 @@ def sinkhorn_torch(K,
     p_opt,
     device,
     delta=1e-1,
-    lam=1e-5):
+    lam=1e-6):
     if u_vec.grad is not None:
         u_vec.grad.zero_()
 
@@ -264,13 +264,13 @@ def sinkhorn_torch(K,
     u_vec = torch.ones(a_tensor.shape[0], dtype=torch.float32).to(device)
     v_vec = torch.ones(b_tensor.shape[0], dtype=torch.float32).to(device)
 
-    # import ipdb; ipdb.set_trace()
-
     u_trans = torch.matmul(K, v_vec) + lam  # add regularization to avoid divide 0
     v_trans = torch.matmul(K.T, u_vec) + lam  # add regularization to avoid divide 0
 
     err_1 = torch.sum(torch.abs(u_vec * u_trans - a_tensor))
     err_2 = torch.sum(torch.abs(v_vec * v_trans - b_tensor))
+
+    # import ipdb; ipdb.set_trace()
 
     while True:
         if (err_1 + err_2).item() > delta:
@@ -286,9 +286,13 @@ def sinkhorn_torch(K,
                 torch.abs(v_vec * v_trans - b_tensor))
 
             # print("err_1 + err_2", (err_2 + err_1).item() > delta)
+
+            # import ipdb; ipdb.set_trace()
         else:
             # print("DONE!")
             break
+
+    print(v_vec)
 
     p_opt = torch.linalg.multi_dot([
         torch.diag(v_vec),
@@ -300,7 +304,7 @@ def sinkhorn_torch(K,
 
     return w
 
-N = 20
+N = 15
 
 # must be floats
 state_min = -5.0
