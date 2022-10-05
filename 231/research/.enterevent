@@ -19,6 +19,8 @@ echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/' > $CONDA_PREFI
 
 pip3 install tensorflow --target=/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages
 
+pip install geomloss pot --target=/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages
+
 (tf) cyan3@scorpius:/usr/local/home/cyan3/Dev/jim/gradschool/231/research$ python3 -c "import tensorflow as tf; print(tf.reduce_sum(tf.random.normal([1000, 1000])))"
 2022-08-16 18:28:34.600557: I tensorflow/core/util/util.cc:169] oneDNN custom operations are on. You may see slightly different numerical results due to floating-point round-off errors from different computation orders. To turn them off, set the environment variable `TF_ENABLE_ONEDNN_OPTS=0`.
 2022-08-16 18:28:35.400232: I tensorflow/stream_executor/cuda/cuda_gpu_executor.cc:975] successful NUMA node read from SysFS had negative value (-1), but there must be at least one NUMA node, so returning NUMA node zero
@@ -84,7 +86,7 @@ pip install tensorflow tensorflow-gpu
 
 scp cyan3@vipersim01:/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/data/pde.py /home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/data/pde.py
 
-scp model.py cyan3@vipersim03.ndc.nasa.gov:~/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/model.py
+scp model.py cyan3@vipersim04.ndc.nasa.gov:~/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/model.py
 
 julia:
 
