@@ -238,7 +238,7 @@ def rho0_WASS_batch_cuda0(y_true, y_pred):
         rho0_temp_tensor)
     # print("Sinkhorn distance: {:.3f}".format(dist.item()))
 
-    return dist + p2 # + p1
+    return dist# + p2 # + p1
 
 def rhoT_WASS_batch_cuda0(y_true, y_pred):
     # p1 = (y_pred<0).sum() # negative terms
@@ -268,7 +268,7 @@ def rhoT_WASS_batch_cuda0(y_true, y_pred):
         rhoT_temp_tensor)
     # print("Sinkhorn distance: {:.3f}".format(dist.item()))
 
-    return dist + p2 # + p1
+    return dist#  + p2 # + p1
 
 class NonNeg_LastLayer_Model(dde.Model):
     def _train_sgd(self, iterations, display_every):
