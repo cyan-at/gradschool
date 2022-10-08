@@ -17,7 +17,7 @@ print(os.environ['DDE_BACKEND'])
 
 # Before running your code, run this shell command to tell torch that there are no GPUs:
 # https://stackoverflow.com/questions/53266350/how-to-tell-pytorch-to-not-use-the-gpu
-os.environ["CUDA_VISIBLE_DEVICES"] = ""
+# os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 import torch
 torch.set_printoptions(precision=3)
@@ -38,7 +38,7 @@ except:
 cuda0 = torch.device('cuda:0')
 cpu = torch.device('cpu')
 
-device = cpu
+device = cuda0
 
 import deepxde as dde
 import numpy as np
@@ -59,6 +59,9 @@ if dde.backend.backend_name == "pytorch":
 else:
     from deepxde.backend import tf
     exp = tf.exp
+from deepxde import backend as bkd
+from deepxde.backend import backend_name
+from deepxde.utils import get_num_args, run_if_all_none
 import cvxpy as cp
 import numpy as np
 from scipy.linalg import solve_discrete_are
@@ -82,6 +85,7 @@ parser.add_argument('--N', type=int, default=15, help='')
 parser.add_argument('--js', type=str, default="1,1,2", help='')
 parser.add_argument('--q', type=float, default=0.0, help='')
 parser.add_argument('--debug', type=int, default=False, help='')
+parser.add_argument('--batchsize', type=int, default=500, help='')
 args = parser.parse_args()
 
 if args.debug:
@@ -96,7 +100,7 @@ print("q: ", q_statepenalty_gain)
 
 ######################################
 
-d = 2
+d = 3
 M = N**d
 
 linspaces = []
@@ -141,7 +145,7 @@ rho0_tensor = rho0_tensor.to(device).requires_grad_(False)
 rhoT_tensor = torch.from_numpy(
     rhoT
 )
-rhoT_tensor = rhoT_tensor.to(device).requires_grad_(False)
+rhoT_tensor = rhoT_tensor.to(cpu).requires_grad_(False)
 
 ######################################
 
@@ -161,7 +165,9 @@ time_0=np.hstack((
 rho_0_BC = dde.icbc.PointSetBC(
     time_0,
     rho0[..., np.newaxis],
-    component=1)
+    batch_size=args.batchsize,
+    component=1,
+    shuffle=True)
 
 ######################################
 
@@ -181,42 +187,85 @@ time_t=np.hstack((
 rho_T_BC = dde.icbc.PointSetBC(
     time_t,
     rhoT[..., np.newaxis],
-    component=1)
+    batch_size=args.batchsize,
+    component=1,
+    shuffle=True)
 
 ######################################
 
-sinkhorn = SinkhornDistance(eps=0.1, max_iter=200)
+sinkhorn0 = SinkhornDistance(eps=0.1, max_iter=200)
+sinkhornT = SinkhornDistance(eps=0.1, max_iter=200) #.cpu()
 
 # C = sinkhorn._cost_matrix(state_tensor, state_tensor)
 C = cdist(state, state, 'sqeuclidean')
-C = torch.from_numpy(
+C_device = torch.from_numpy(
     C)
-C = C.to(device).requires_grad_(False)
+C_device = C_device.to(device).requires_grad_(False)
+
+C_cpu = torch.from_numpy(
+    C)
+C_cpu = C_cpu.to(cpu).requires_grad_(False)
 
 ######################################
 
 # import ipdb; ipdb.set_trace()
 
-def rho0_WASS_cuda0(y_true, y_pred):
+def rho0_WASS_batch_cuda0(y_true, y_pred):
     # p1 = (y_pred<0).sum() # negative terms
+
+    # print(y_pred.shape)
+    # print(y_true.shape)
+
+    rho0_temp_tensor = torch.from_numpy(
+        rho0[y_true],
+    )
+    rho0_temp_tensor = rho0_temp_tensor.to(device).requires_grad_(False)
+
+    C_temp = cdist(state[y_true, :], state[y_true, :], 'sqeuclidean')
+    C_temp_device = torch.from_numpy(
+        C_temp)
+    C_temp_device = C_temp_device.to(device).requires_grad_(False)
 
     p2 = torch.abs(torch.sum(y_pred) - 1)
 
     y_pred = torch.where(y_pred < 0, 0, y_pred)
 
-    dist, _, _ = sinkhorn(C, y_pred.reshape(-1), rho0_tensor)
+    # import ipdb; ipdb.set_trace()
+
+    dist, _, _ = sinkhorn0(
+        C_temp_device,
+        y_pred.reshape(-1),
+        rho0_temp_tensor)
     # print("Sinkhorn distance: {:.3f}".format(dist.item()))
 
     return dist + p2 # + p1
 
-def rhoT_WASS_cuda0(y_true, y_pred):
+def rhoT_WASS_batch_cuda0(y_true, y_pred):
     # p1 = (y_pred<0).sum() # negative terms
+
+    # print(y_pred.shape)
+    # print(y_true.shape)
+
+    rhoT_temp_tensor = torch.from_numpy(
+        rhoT[y_true],
+    )
+    rhoT_temp_tensor = rhoT_temp_tensor.to(device).requires_grad_(False)
+
+    C_temp = cdist(state[y_true, :], state[y_true, :], 'sqeuclidean')
+    C_temp_device = torch.from_numpy(
+        C_temp)
+    C_temp_device = C_temp_device.to(device).requires_grad_(False)
 
     p2 = torch.abs(torch.sum(y_pred) - 1)
 
     y_pred = torch.where(y_pred < 0, 0, y_pred)
 
-    dist, _, _ = sinkhorn(C, y_pred.reshape(-1), rhoT_tensor)
+    # import ipdb; ipdb.set_trace()
+
+    dist, _, _ = sinkhornT(
+        C_temp_device,
+        y_pred.reshape(-1),
+        rhoT_temp_tensor)
     # print("Sinkhorn distance: {:.3f}".format(dist.item()))
 
     return dist + p2 # + p1
@@ -253,6 +302,69 @@ class NonNeg_LastLayer_Model(dde.Model):
             if self.stop_training:
                 break
 
+class WASSPDE(dde.data.TimePDE):
+    def losses(self, targets, outputs, loss_fn, inputs, model, aux=None):
+        if dde.backend.backend_name in ["tensorflow.compat.v1", "tensorflow", "pytorch", "paddle"]:
+            outputs_pde = outputs
+        elif dde.backend.backend_name == "jax":
+            # JAX requires pure functions
+            outputs_pde = (outputs, aux[0])
+
+        f = []
+        if self.pde is not None:
+            if get_num_args(self.pde) == 2:
+                f = self.pde(inputs, outputs_pde)
+            elif get_num_args(self.pde) == 3:
+                if self.auxiliary_var_fn is None:
+                    if aux is None or len(aux) == 1:
+                        raise ValueError("Auxiliary variable function not defined.")
+                    f = self.pde(inputs, outputs_pde, unknowns=aux[1])
+                else:
+                    f = self.pde(inputs, outputs_pde, model.net.auxiliary_vars)
+            if not isinstance(f, (list, tuple)):
+                f = [f]
+
+        if not isinstance(loss_fn, (list, tuple)):
+            loss_fn = [loss_fn] * (len(f) + len(self.bcs))
+        elif len(loss_fn) != len(f) + len(self.bcs):
+            raise ValueError(
+                "There are {} errors, but only {} losses.".format(
+                    len(f) + len(self.bcs), len(loss_fn)
+                )
+            )
+
+        bcs_start = np.cumsum([0] + self.num_bcs)
+        bcs_start = list(map(int, bcs_start))
+        error_f = [fi[bcs_start[-1] :] for fi in f]
+        losses = [
+            loss_fn[i](bkd.zeros_like(error), error) for i, error in enumerate(error_f)
+        ]
+        for i, bc in enumerate(self.bcs):
+            beg, end = bcs_start[i], bcs_start[i + 1]
+            # The same BC points are used for training and testing.
+
+            fun = loss_fn[len(error_f) + i]
+            if "WASS_batch" in fun.__name__:
+                y_pred = outputs[beg:end, bc.component : bc.component + 1]
+                # y_true = bc.values[bc.batch_indices]
+                losses.append(fun(
+                    bc.batch_indices,
+                    y_pred,
+                ))
+            elif "WASS" in fun.__name__:
+                y_pred = outputs[beg:end, bc.component : bc.component + 1]
+                y_true = bc.values
+                losses.append(fun(
+                    y_true,
+                    y_pred,
+                ))
+            else:
+                error = bc.error(self.train_x, inputs, outputs, beg, end)
+                losses.append(fun(
+                    bkd.zeros_like(error),
+                    error))
+        return losses
+
 ######################################
 
 geom=dde.geometry.geometry_3d.Cuboid(
@@ -261,12 +373,18 @@ geom=dde.geometry.geometry_3d.Cuboid(
 timedomain = dde.geometry.TimeDomain(0., T_t)
 geomtime = dde.geometry.GeometryXTime(geom, timedomain)
 
-data = dde.data.TimePDE(
+data = WASSPDE(
     geomtime,
     euler_pdes[d],
     [rho_0_BC,rho_T_BC],
     num_domain=samples_between_initial_and_final,
-    num_initial=initial_and_final_samples)
+    num_initial=initial_and_final_samples,
+    # num_boundary=50,
+    # train_distribution="pseudo",
+    # num_initial=10,
+)
+
+# resampler = dde.callbacks.PDEResidualResampler(period=1)
 
 # 4 inputs: x,y,z,t
 # 5 outputs: 2 eq + 3 control vars
@@ -284,8 +402,8 @@ model = NonNeg_LastLayer_Model(data, net)
 
 loss_func=[
     "MSE","MSE",
-    rho0_WASS_cuda0,
-    rhoT_WASS_cuda0
+    rho0_WASS_batch_cuda0,
+    rhoT_WASS_batch_cuda0
 ]
 # loss functions are based on PDE + BC: 2 eq outputs, 2 BCs
 
@@ -294,7 +412,11 @@ de = 1
 losshistory, train_state = model.train(
     iterations=num_epochs,
     display_every=de,
-    callbacks=[earlystop_cb, modelcheckpt_cb])
+    callbacks=[
+        # resampler,
+        earlystop_cb,
+        modelcheckpt_cb
+    ])
 
 ######################################
 
