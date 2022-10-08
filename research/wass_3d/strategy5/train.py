@@ -73,7 +73,7 @@ from layers import *
 
 import argparse
 parser = argparse.ArgumentParser(description="")
-parser.add_argument('--N', type=int, default=20, help='')
+parser.add_argument('--N', type=int, default=15, help='')
 parser.add_argument('--js', type=str, default="1,1,2", help='')
 parser.add_argument('--q', type=float, default=0.0, help='')
 parser.add_argument('--debug', type=int, default=False, help='')
@@ -91,102 +91,31 @@ print("q: ", q_statepenalty_gain)
 
 ######################################
 
-d = 3
+d = 2
 M = N**d
 
 linspaces = []
 for i in range(d):
     linspaces.append(np.transpose(np.linspace(state_min, state_max, N)))
 
+linspace_tensors = []
+for i in range(d):
+    t = torch.from_numpy(
+        linspaces[i]).requires_grad_(False)
+    t = t.to(device)
+    linspace_tensors.append(t)
+
 meshes = np.meshgrid(*linspaces)
 mesh_vectors = []
 for i in range(d):
     mesh_vectors.append(meshes[i].reshape(M,1))
 state = np.hstack(tuple(mesh_vectors))
+
 state_tensor = torch.tensor(
     state,
     dtype=torch.float,
-    requires_grad=True)
-
-######################################
-
-def euler_pde(x, y):
-    """Euler system.
-    dy1_t = g(x)-1/2||Dy1_x||^2-<Dy1_x,f>-epsilon*Dy1_xx
-    dy2_t = -D.(y2*(f)+Dy1_x)+epsilon*Dy2_xx
-    All collocation-based residuals are defined here
-    """
-    y1, y2 = y[:, 0:1], y[:, 1:2]
-
-    dy1_x = dde.grad.jacobian(y1, x, j=0)
-    dy1_y = dde.grad.jacobian(y1, x, j=1)
-    dy1_z = dde.grad.jacobian(y1, x, j=2)
-    dy1_t = dde.grad.jacobian(y1, x, j=3)
-    dy1_xx = dde.grad.hessian(y1, x, i=0, j=0)
-    dy1_yy = dde.grad.hessian(y1, x, i=1, j=1)
-    dy1_zz = dde.grad.hessian(y1, x, i=2, j=2)
-
-    dy2_x = dde.grad.jacobian(y2, x, j=0)
-    dy2_y = dde.grad.jacobian(y2, x, j=1)
-    dy2_z = dde.grad.jacobian(y2, x, j=2)
-    dy2_t = dde.grad.jacobian(y2, x, j=3)
-
-    dy2_xx = dde.grad.hessian(y2, x, i=0, j=0)
-    dy2_yy = dde.grad.hessian(y2, x, i=1, j=1)
-    dy2_zz = dde.grad.hessian(y2, x, i=2, j=2)
-
-    """Compute Jacobian matrix J: J[i][j] = dy_i / dx_j, where i = 0, ..., dim_y - 1 and
-    j = 0, ..., dim_x - 1.
-    Use this function to compute first-order derivatives instead of ``tf.gradients()``
-    or ``torch.autograd.grad()``, because
-
-    - It is lazy evaluation, i.e., it only computes J[i][j] when needed.
-    - It will remember the gradients that have already been computed to avoid duplicate
-      computation.
-    """
-
-    """Compute Hessian matrix H: H[i][j] = d^2y / dx_i dx_j, where i,j=0,...,dim_x-1.
-
-    Use this function to compute second-order derivatives instead of ``tf.gradients()``
-    or ``torch.autograd.grad()``, because
-
-    - It is lazy evaluation, i.e., it only computes H[i][j] when needed.
-    - It will remember the gradients that have already been computed to avoid duplicate
-      computation."""
-
-    f1=x[:, 1:2]*x[:, 2:3]*(j2-j3)/j1
-    f2=x[:, 0:1]*x[:, 2:3]*(j3-j1)/j2
-    f3=x[:, 0:1]*x[:, 1:2]*(j1-j2)/j3
-    
-    # d_f1dy1_y2_x=tf.gradients((f1+dy1_x)*y2, x)[0][:, 0:1]
-    # d_f2dy1_y2_y=tf.gradients((f2+dy1_y)*y2, x)[0][:, 1:2]
-    # d_f3dy1_y2_z=tf.gradients((f3+dy1_z)*y2, x)[0][:, 2:3]
-    d_f1dy1_y2_x = dde.grad.jacobian((f1+dy1_x)*y2, x, j=0)
-    d_f2dy1_y2_y = dde.grad.jacobian((f2+dy1_y)*y2, x, j=1)
-    d_f3dy1_y2_z = dde.grad.jacobian((f3+dy1_z)*y2, x, j=2)
-
-    # stay close to origin while searching, penalizes large state distance solutions
-    q = q_statepenalty_gain*(
-        x[:, 0:1] * x[:, 0:1]\
-        + x[:, 1:2] * x[:, 1:2]\
-        + x[:, 2:3] * x[:, 2:3])
-    # also try
-    # q = 0 # minimum effort control
-
-    psi = -dy1_t + q - .5*(dy1_x*dy1_x+dy1_y*dy1_y+dy1_z*dy1_z) - (dy1_x*f1 + dy1_y*f2 + dy1_z*f3) - epsilon*(dy1_xx+dy1_yy+dy1_zz)
-
-    dpsi_x = dde.grad.jacobian(psi, x, j=0)
-    dpsi_y = dde.grad.jacobian(psi, x, j=1)
-    dpsi_z = dde.grad.jacobian(psi, x, j=2)
-
-    # TODO: verify this expression
-    return [
-        psi,
-        -dy2_t-(d_f1dy1_y2_x+d_f2dy1_y2_y+d_f3dy1_y2_z)+epsilon*(dy2_xx+dy2_yy+dy2_zz),
-        #U1 - dpsi_x,
-        #U2 - dpsi_y,
-        #U3 - dpsi_z,
-    ]
+    requires_grad=True,
+    device=device)
 
 ######################################
 
@@ -201,13 +130,13 @@ rhoT = np.float32(rhoT)
 
 rho0_tensor = torch.from_numpy(
     rho0,
-).requires_grad_(False)
-rho0_tensor = rho0_tensor.to(device)
+)
+rho0_tensor = rho0_tensor.to(device).requires_grad_(False)
 
 rhoT_tensor = torch.from_numpy(
     rhoT
-).requires_grad_(False)
-rhoT_tensor = rhoT_tensor.to(device)
+)
+rhoT_tensor = rhoT_tensor.to(device).requires_grad_(False)
 
 ######################################
 
@@ -221,9 +150,7 @@ rhoT_tensor = rhoT_tensor.to(device)
 #     mesh_vectors[2],
 #     mu_0, sigma_0, state_min, state_max, N, f, rho0_name)
 time_0=np.hstack((
-    mesh_vectors[0],
-    mesh_vectors[1],
-    mesh_vectors[2],
+    state,
     T_0*np.ones((len(mesh_vectors[0]), 1))
 ))
 rho_0_BC = dde.icbc.PointSetBC(
@@ -243,9 +170,7 @@ rho_0_BC = dde.icbc.PointSetBC(
 #     mesh_vectors[2],
 #     mu_T, sigma_T, state_min, state_max, N, f, rhoT_name)
 time_t=np.hstack((
-    mesh_vectors[0],
-    mesh_vectors[1],
-    mesh_vectors[2],
+    state,
     T_t*np.ones((len(mesh_vectors[0]), 1))
 ))
 rho_T_BC = dde.icbc.PointSetBC(
@@ -255,29 +180,20 @@ rho_T_BC = dde.icbc.PointSetBC(
 
 ######################################
 
-linspace_tensors = []
-for i in range(d):
-    t = torch.from_numpy(
-        linspaces[i]).requires_grad_(False)
-    t = t.to(device)
-    linspace_tensors.append(t)
-
-######################################
-
-sinkhorn = SinkhornDistance2(eps=0.1, max_iter=200)
+sinkhorn = SinkhornDistance(eps=0.1, max_iter=200)
 
 # C = sinkhorn._cost_matrix(state_tensor, state_tensor)
 C = cdist(state, state, 'sqeuclidean')
 C = torch.from_numpy(
-    C).requires_grad_(False)
-C = C.to(device)
+    C)
+C = C.to(device).requires_grad_(False)
 
 ######################################
 
 # import ipdb; ipdb.set_trace()
 
 def rho0_WASS_cuda0(y_true, y_pred):
-    p1 = (y_pred<0).sum() # negative terms
+    # p1 = (y_pred<0).sum() # negative terms
 
     p2 = torch.abs(torch.sum(y_pred) - 1)
 
@@ -286,10 +202,10 @@ def rho0_WASS_cuda0(y_true, y_pred):
     dist, _, _ = sinkhorn(C, y_pred.reshape(-1), rho0_tensor)
     # print("Sinkhorn distance: {:.3f}".format(dist.item()))
 
-    return p1 + p2 + dist
+    return dist + p2 # + p1
 
 def rhoT_WASS_cuda0(y_true, y_pred):
-    p1 = (y_pred<0).sum() # negative terms
+    # p1 = (y_pred<0).sum() # negative terms
 
     p2 = torch.abs(torch.sum(y_pred) - 1)
 
@@ -298,19 +214,51 @@ def rhoT_WASS_cuda0(y_true, y_pred):
     dist, _, _ = sinkhorn(C, y_pred.reshape(-1), rhoT_tensor)
     # print("Sinkhorn distance: {:.3f}".format(dist.item()))
 
-    return p1 + p2 + dist
+    return dist + p2 # + p1
+
+class NonNeg_LastLayer_Model(dde.Model):
+    def _train_sgd(self, iterations, display_every):
+        print("NonNeg_LastLayer_Model training")
+        for i in range(iterations):
+            self.callbacks.on_epoch_begin()
+            self.callbacks.on_batch_begin()
+
+            self.train_state.set_data_train(
+                *self.data.train_next_batch(self.batch_size)
+            )
+            self._train_step(
+                self.train_state.X_train,
+                self.train_state.y_train,
+                self.train_state.train_aux_vars,
+            )
+
+            self.train_state.epoch += 1
+            self.train_state.step += 1
+            if self.train_state.step % display_every == 0 or i + 1 == iterations:
+                self._test()
+
+            self.callbacks.on_batch_end()
+            self.callbacks.on_epoch_end()
+
+            # print("hello")
+            # clamped_weights = self.net.linears[-1].weight[1].clamp(0.0, 1.0)
+            clamped_weights = self.net.linears[-1].weight[1].clamp_min(0.0)
+            self.net.linears[-1].weight.data[1] = clamped_weights
+
+            if self.stop_training:
+                break
 
 ######################################
 
 geom=dde.geometry.geometry_3d.Cuboid(
-    [state_min, state_min, state_min],
-    [state_max, state_max, state_max])
+    [state_min]*d,
+    [state_max]*d)
 timedomain = dde.geometry.TimeDomain(0., T_t)
 geomtime = dde.geometry.GeometryXTime(geom, timedomain)
 
 data = dde.data.TimePDE(
     geomtime,
-    euler_pde,
+    euler_pdes[d],
     [rho_0_BC,rho_T_BC],
     num_domain=samples_between_initial_and_final,
     num_initial=initial_and_final_samples)
@@ -318,95 +266,14 @@ data = dde.data.TimePDE(
 # 4 inputs: x,y,z,t
 # 5 outputs: 2 eq + 3 control vars
 net = dde.nn.FNN(
-    [4] + [70] *3  + [2],
-    # "sigmoid",
-    "tanh",
+    [d+1] + [70] *3  + [2],
+    "sigmoid",
+    # "tanh",
 
     "Glorot normal"
     # "zeros",
 )
-model = dde.Model(data, net)
-
-######################################
-
-ck_path = "%s/%s_model" % (os.path.abspath("./"), id_prefix)
-class EarlyStoppingFixed(dde.callbacks.EarlyStopping):
-    def on_epoch_end(self):
-        current = self.get_monitor_value()
-        if self.monitor_op(current - self.min_delta, self.best):
-            self.best = current
-            # must meet baseline first
-            self.wait += 1
-            if self.wait >= self.patience:
-                self.stopped_epoch = self.model.train_state.epoch
-                self.model.stop_training = True
-        else:
-            self.wait = 0
-                
-    def on_train_end(self):
-        if self.stopped_epoch > 0:
-            print("Epoch {}: early stopping".format(self.stopped_epoch))
-        
-        self.model.save(ck_path, verbose=True)
-
-    def get_monitor_value(self):
-        if self.monitor == "train loss" or self.monitor == "loss_train":
-            data = self.model.train_state.loss_train
-        elif self.monitor == "test loss" or self.monitor == "loss_test":
-            data = self.model.train_state.loss_test
-        else:
-            raise ValueError("The specified monitor function is incorrect.", self.monitor)
-
-        result = max(data)
-        if min(data) < 1e-50:
-            print("likely a numerical error")
-            # numerical error
-            return 1.0
-
-        return result
-earlystop_cb = EarlyStoppingFixed(baseline=1e-3, patience=0)
-
-class ModelCheckpoint2(dde.callbacks.ModelCheckpoint):
-    def on_epoch_end(self):
-        current = self.get_monitor_value()
-        if self.monitor_op(current, self.best) and current < 1e-1:
-            save_path = self.model.save(self.filepath, verbose=0)
-            print(
-                "Epoch {}: {} improved from {:.2e} to {:.2e}, saving model to {} ...\n".format(
-                    self.model.train_state.epoch,
-                    self.monitor,
-                    self.best,
-                    current,
-                    save_path,
-                ))
-
-            test_path = save_path.replace(".pt", "-%d.dat" % (
-                self.model.train_state.epoch))
-            test = np.hstack((
-                self.model.train_state.X_test,
-                self.model.train_state.y_pred_test))
-            np.savetxt(test_path, test, header="x, y_pred")
-            print("saved test data to ", test_path)
-
-            self.best = current
-
-    def get_monitor_value(self):
-        if self.monitor == "train loss" or self.monitor == "loss_train":
-            data = self.model.train_state.loss_train
-        elif self.monitor == "test loss" or self.monitor == "loss_test":
-            data = self.model.train_state.loss_test
-        else:
-            raise ValueError("The specified monitor function is incorrect.", self.monitor)
-
-        result = max(data)
-        if min(data) < 1e-50:
-            print("likely a numerical error")
-            # numerical error
-            return 1.0
-
-        return result
-modelcheckpt_cb = ModelCheckpoint2(
-    ck_path, verbose=True, save_better_only=True, period=1)
+model = NonNeg_LastLayer_Model(data, net)
 
 ######################################
 

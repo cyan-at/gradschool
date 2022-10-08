@@ -5,6 +5,13 @@ import numpy as np, os, time, sys
 
 import torch
 
+os.environ['DDE_BACKEND'] = "pytorch" # v2
+os.environ['XLA_FLAGS'] = "--xla_gpu_cuda_data_dir=/usr/local/home/cyan3/miniforge/envs/tf"
+# https://stackoverflow.com/questions/68614547/tensorflow-libdevice-not-found-why-is-it-not-found-in-the-searched-path
+# this directory has /nvvm/libdevice/libdevice.10.bc
+print(os.environ['DDE_BACKEND'])
+import deepxde as dde
+
 def pdf3d(x,y,z,rv):
     return rv.pdf(np.hstack((x, y, z)))
 
@@ -382,3 +389,327 @@ def plot_rho_bc(label, test_ti, mu, sigma, ax):
 
     return s1, s2
 '''
+
+def euler_pde_1(x, y):
+    """Euler system.
+    dy1_t = g(x)-1/2||Dy1_x||^2-<Dy1_x,f>-epsilon*Dy1_xx
+    dy2_t = -D.(y2*(f)+Dy1_x)+epsilon*Dy2_xx
+    All collocation-based residuals are defined here
+    """
+    y1, y2 = y[:, 0:1], y[:, 1:2]
+
+    dy1_x = dde.grad.jacobian(y1, x, j=0)
+    # dy1_y = dde.grad.jacobian(y1, x, j=1)
+    # dy1_z = dde.grad.jacobian(y1, x, j=2)
+    dy1_y = 0.0
+    dy1_z = 0.0
+    dy1_t = dde.grad.jacobian(y1, x, j=1)
+
+    dy1_xx = dde.grad.hessian(y1, x, i=0, j=0)
+    # dy1_yy = dde.grad.hessian(y1, x, i=1, j=1)
+    # dy1_zz = dde.grad.hessian(y1, x, i=2, j=2)
+    dy1_yy = 0.0
+    dy1_zz = 0.0
+
+    dy2_x = dde.grad.jacobian(y2, x, j=0)
+    # dy2_y = dde.grad.jacobian(y2, x, j=1)
+    # dy2_z = dde.grad.jacobian(y2, x, j=2)
+    # dy2_y = 0.0
+    dy2_z = 0.0
+    dy2_t = dde.grad.jacobian(y2, x, j=1)
+
+    dy2_xx = dde.grad.hessian(y2, x, i=0, j=0)
+    # dy2_yy = dde.grad.hessian(y2, x, i=1, j=1)
+    # dy2_zz = dde.grad.hessian(y2, x, i=2, j=2)
+    dy2_yy = 0.0
+    dy2_zz = 0.0
+
+    """Compute Jacobian matrix J: J[i][j] = dy_i / dx_j, where i = 0, ..., dim_y - 1 and
+    j = 0, ..., dim_x - 1.
+    Use this function to compute first-order derivatives instead of ``tf.gradients()``
+    or ``torch.autograd.grad()``, because
+
+    - It is lazy evaluation, i.e., it only computes J[i][j] when needed.
+    - It will remember the gradients that have already been computed to avoid duplicate
+      computation.
+    """
+
+    """Compute Hessian matrix H: H[i][j] = d^2y / dx_i dx_j, where i,j=0,...,dim_x-1.
+
+    Use this function to compute second-order derivatives instead of ``tf.gradients()``
+    or ``torch.autograd.grad()``, because
+
+    - It is lazy evaluation, i.e., it only computes H[i][j] when needed.
+    - It will remember the gradients that have already been computed to avoid duplicate
+      computation."""
+
+    f1=1.0*1.0*(j2-j3)/j1
+    # f1=x[:, 1:2]*1.0*(j2-j3)/j1
+    f2=x[:, 0:1]*1.0*(j3-j1)/j2
+    # f1=x[:, 1:2]*x[:, 2:3]*(j2-j3)/j1
+    # f2=x[:, 0:1]*x[:, 2:3]*(j3-j1)/j2
+    # f3=x[:, 0:1]*x[:, 1:2]*(j1-j2)/j3
+    f3=x[:, 0:1]*1.0*(j1-j2)/j3
+
+    # d_f1dy1_y2_x=tf.gradients((f1+dy1_x)*y2, x)[0][:, 0:1]
+    # d_f2dy1_y2_y=tf.gradients((f2+dy1_y)*y2, x)[0][:, 1:2]
+    # d_f3dy1_y2_z=tf.gradients((f3+dy1_z)*y2, x)[0][:, 2:3]
+    d_f1dy1_y2_x = dde.grad.jacobian((f1+dy1_x)*y2, x, j=0)
+    d_f2dy1_y2_y = dde.grad.jacobian((f2+dy1_y)*y2, x, j=1)
+    d_f3dy1_y2_z = dde.grad.jacobian((f3+dy1_z)*y2, x, j=2)
+
+    # stay close to origin while searching, penalizes large state distance solutions
+    q = q_statepenalty_gain*(
+        x[:, 0:1] * x[:, 0:1]\
+        + x[:, 1:2] * x[:, 1:2]\
+        + x[:, 2:3] * x[:, 2:3])
+    # also try
+    # q = 0 # minimum effort control
+
+    psi = -dy1_t + q - .5*(dy1_x*dy1_x+dy1_y*dy1_y+dy1_z*dy1_z) - (dy1_x*f1 + dy1_y*f2 + dy1_z*f3) - epsilon*(dy1_xx+dy1_yy+dy1_zz)
+
+    # TODO: verify this expression
+    return [
+        psi,
+        -dy2_t-(d_f1dy1_y2_x+d_f2dy1_y2_y+d_f3dy1_y2_z)+epsilon*(dy2_xx+dy2_yy+dy2_zz),
+    ]
+
+def euler_pde_2(x, y):
+    """Euler system.
+    dy1_t = g(x)-1/2||Dy1_x||^2-<Dy1_x,f>-epsilon*Dy1_xx
+    dy2_t = -D.(y2*(f)+Dy1_x)+epsilon*Dy2_xx
+    All collocation-based residuals are defined here
+    """
+    y1, y2 = y[:, 0:1], y[:, 1:2]
+
+    dy1_x = dde.grad.jacobian(y1, x, j=0)
+    dy1_y = dde.grad.jacobian(y1, x, j=1)
+    # dy1_z = dde.grad.jacobian(y1, x, j=2)
+    # dy1_y = 0.0
+    dy1_z = 0.0
+    dy1_t = dde.grad.jacobian(y1, x, j=2)
+
+    dy1_xx = dde.grad.hessian(y1, x, i=0, j=0)
+    dy1_yy = dde.grad.hessian(y1, x, i=1, j=1)
+    # dy1_zz = dde.grad.hessian(y1, x, i=2, j=2)
+    # dy1_yy = 0.0
+    dy1_zz = 0.0
+
+    dy2_x = dde.grad.jacobian(y2, x, j=0)
+    dy2_y = dde.grad.jacobian(y2, x, j=1)
+    # dy2_z = dde.grad.jacobian(y2, x, j=2)
+    # dy2_y = 0.0
+    dy2_z = 0.0
+    dy2_t = dde.grad.jacobian(y2, x, j=2)
+
+    dy2_xx = dde.grad.hessian(y2, x, i=0, j=0)
+    dy2_yy = dde.grad.hessian(y2, x, i=1, j=1)
+    # dy2_zz = dde.grad.hessian(y2, x, i=2, j=2)
+    # dy2_yy = 0.0
+    dy2_zz = 0.0
+
+    """Compute Jacobian matrix J: J[i][j] = dy_i / dx_j, where i = 0, ..., dim_y - 1 and
+    j = 0, ..., dim_x - 1.
+    Use this function to compute first-order derivatives instead of ``tf.gradients()``
+    or ``torch.autograd.grad()``, because
+
+    - It is lazy evaluation, i.e., it only computes J[i][j] when needed.
+    - It will remember the gradients that have already been computed to avoid duplicate
+      computation.
+    """
+
+    """Compute Hessian matrix H: H[i][j] = d^2y / dx_i dx_j, where i,j=0,...,dim_x-1.
+
+    Use this function to compute second-order derivatives instead of ``tf.gradients()``
+    or ``torch.autograd.grad()``, because
+
+    - It is lazy evaluation, i.e., it only computes H[i][j] when needed.
+    - It will remember the gradients that have already been computed to avoid duplicate
+      computation."""
+
+    f1=x[:, 1:2]*1.0*(j2-j3)/j1
+    f2=x[:, 0:1]*1.0*(j3-j1)/j2
+    # f1=x[:, 1:2]*x[:, 2:3]*(j2-j3)/j1
+    # f2=x[:, 0:1]*x[:, 2:3]*(j3-j1)/j2
+    f3=x[:, 0:1]*x[:, 1:2]*(j1-j2)/j3
+    
+    # d_f1dy1_y2_x=tf.gradients((f1+dy1_x)*y2, x)[0][:, 0:1]
+    # d_f2dy1_y2_y=tf.gradients((f2+dy1_y)*y2, x)[0][:, 1:2]
+    # d_f3dy1_y2_z=tf.gradients((f3+dy1_z)*y2, x)[0][:, 2:3]
+    d_f1dy1_y2_x = dde.grad.jacobian((f1+dy1_x)*y2, x, j=0)
+    d_f2dy1_y2_y = dde.grad.jacobian((f2+dy1_y)*y2, x, j=1)
+    d_f3dy1_y2_z = dde.grad.jacobian((f3+dy1_z)*y2, x, j=2)
+
+    # stay close to origin while searching, penalizes large state distance solutions
+    q = q_statepenalty_gain*(
+        x[:, 0:1] * x[:, 0:1]\
+        + x[:, 1:2] * x[:, 1:2]\
+        + x[:, 2:3] * x[:, 2:3])
+    # also try
+    # q = 0 # minimum effort control
+
+    psi = -dy1_t + q - .5*(dy1_x*dy1_x+dy1_y*dy1_y+dy1_z*dy1_z) - (dy1_x*f1 + dy1_y*f2 + dy1_z*f3) - epsilon*(dy1_xx+dy1_yy+dy1_zz)
+
+    # TODO: verify this expression
+    return [
+        psi,
+        -dy2_t-(d_f1dy1_y2_x+d_f2dy1_y2_y+d_f3dy1_y2_z)+epsilon*(dy2_xx+dy2_yy+dy2_zz),
+    ]
+
+def euler_pde_3(x, y):
+    """Euler system.
+    dy1_t = g(x)-1/2||Dy1_x||^2-<Dy1_x,f>-epsilon*Dy1_xx
+    dy2_t = -D.(y2*(f)+Dy1_x)+epsilon*Dy2_xx
+    All collocation-based residuals are defined here
+    """
+    y1, y2 = y[:, 0:1], y[:, 1:2]
+
+    dy1_x = dde.grad.jacobian(y1, x, j=0)
+    dy1_y = dde.grad.jacobian(y1, x, j=1)
+    dy1_z = dde.grad.jacobian(y1, x, j=2)
+    dy1_t = dde.grad.jacobian(y1, x, j=3)
+    dy1_xx = dde.grad.hessian(y1, x, i=0, j=0)
+    dy1_yy = dde.grad.hessian(y1, x, i=1, j=1)
+    dy1_zz = dde.grad.hessian(y1, x, i=2, j=2)
+
+    dy2_x = dde.grad.jacobian(y2, x, j=0)
+    dy2_y = dde.grad.jacobian(y2, x, j=1)
+    dy2_z = dde.grad.jacobian(y2, x, j=2)
+    dy2_t = dde.grad.jacobian(y2, x, j=3)
+
+    dy2_xx = dde.grad.hessian(y2, x, i=0, j=0)
+    dy2_yy = dde.grad.hessian(y2, x, i=1, j=1)
+    dy2_zz = dde.grad.hessian(y2, x, i=2, j=2)
+
+    """Compute Jacobian matrix J: J[i][j] = dy_i / dx_j, where i = 0, ..., dim_y - 1 and
+    j = 0, ..., dim_x - 1.
+    Use this function to compute first-order derivatives instead of ``tf.gradients()``
+    or ``torch.autograd.grad()``, because
+
+    - It is lazy evaluation, i.e., it only computes J[i][j] when needed.
+    - It will remember the gradients that have already been computed to avoid duplicate
+      computation.
+    """
+
+    """Compute Hessian matrix H: H[i][j] = d^2y / dx_i dx_j, where i,j=0,...,dim_x-1.
+
+    Use this function to compute second-order derivatives instead of ``tf.gradients()``
+    or ``torch.autograd.grad()``, because
+
+    - It is lazy evaluation, i.e., it only computes H[i][j] when needed.
+    - It will remember the gradients that have already been computed to avoid duplicate
+      computation."""
+
+    f1=x[:, 1:2]*x[:, 2:3]*(j2-j3)/j1
+    f2=x[:, 0:1]*x[:, 2:3]*(j3-j1)/j2
+    f3=x[:, 0:1]*x[:, 1:2]*(j1-j2)/j3
+    
+    # d_f1dy1_y2_x=tf.gradients((f1+dy1_x)*y2, x)[0][:, 0:1]
+    # d_f2dy1_y2_y=tf.gradients((f2+dy1_y)*y2, x)[0][:, 1:2]
+    # d_f3dy1_y2_z=tf.gradients((f3+dy1_z)*y2, x)[0][:, 2:3]
+    d_f1dy1_y2_x = dde.grad.jacobian((f1+dy1_x)*y2, x, j=0)
+    d_f2dy1_y2_y = dde.grad.jacobian((f2+dy1_y)*y2, x, j=1)
+    d_f3dy1_y2_z = dde.grad.jacobian((f3+dy1_z)*y2, x, j=2)
+
+    # stay close to origin while searching, penalizes large state distance solutions
+    q = q_statepenalty_gain*(
+        x[:, 0:1] * x[:, 0:1]\
+        + x[:, 1:2] * x[:, 1:2]\
+        + x[:, 2:3] * x[:, 2:3])
+    # also try
+    # q = 0 # minimum effort control
+
+    psi = -dy1_t + q - .5*(dy1_x*dy1_x+dy1_y*dy1_y+dy1_z*dy1_z) - (dy1_x*f1 + dy1_y*f2 + dy1_z*f3) - epsilon*(dy1_xx+dy1_yy+dy1_zz)
+
+    # TODO: verify this expression
+    return [
+        psi,
+        -dy2_t-(d_f1dy1_y2_x+d_f2dy1_y2_y+d_f3dy1_y2_z)+epsilon*(dy2_xx+dy2_yy+dy2_zz),
+    ]
+
+euler_pdes = {
+    1 : euler_pde_1,
+    2 : euler_pde_2,
+    3 : euler_pde_3
+}
+
+######################################
+
+ck_path = "%s/%s_model" % (os.path.abspath("./"), id_prefix)
+class EarlyStoppingFixed(dde.callbacks.EarlyStopping):
+    def on_epoch_end(self):
+        current = self.get_monitor_value()
+        if self.monitor_op(current - self.min_delta, self.best):
+            self.best = current
+            # must meet baseline first
+            self.wait += 1
+            if self.wait >= self.patience:
+                self.stopped_epoch = self.model.train_state.epoch
+                self.model.stop_training = True
+        else:
+            self.wait = 0
+                
+    def on_train_end(self):
+        if self.stopped_epoch > 0:
+            print("Epoch {}: early stopping".format(self.stopped_epoch))
+        
+        self.model.save(ck_path, verbose=True)
+
+    def get_monitor_value(self):
+        if self.monitor == "train loss" or self.monitor == "loss_train":
+            data = self.model.train_state.loss_train
+        elif self.monitor == "test loss" or self.monitor == "loss_test":
+            data = self.model.train_state.loss_test
+        else:
+            raise ValueError("The specified monitor function is incorrect.", self.monitor)
+
+        result = max(data)
+        if min(data) < 1e-50:
+            print("likely a numerical error")
+            # numerical error
+            return 1.0
+
+        return result
+earlystop_cb = EarlyStoppingFixed(baseline=1e-3, patience=0)
+
+class ModelCheckpoint2(dde.callbacks.ModelCheckpoint):
+    def on_epoch_end(self):
+        current = self.get_monitor_value()
+        if self.monitor_op(current, self.best) and current < 1e-1:
+            save_path = self.model.save(self.filepath, verbose=0)
+            print(
+                "Epoch {}: {} improved from {:.2e} to {:.2e}, saving model to {} ...\n".format(
+                    self.model.train_state.epoch,
+                    self.monitor,
+                    self.best,
+                    current,
+                    save_path,
+                ))
+
+            test_path = save_path.replace(".pt", "-%d.dat" % (
+                self.model.train_state.epoch))
+            test = np.hstack((
+                self.model.train_state.X_test,
+                self.model.train_state.y_pred_test))
+            np.savetxt(test_path, test, header="x, y_pred")
+            print("saved test data to ", test_path)
+
+            self.best = current
+
+    def get_monitor_value(self):
+        if self.monitor == "train loss" or self.monitor == "loss_train":
+            data = self.model.train_state.loss_train
+        elif self.monitor == "test loss" or self.monitor == "loss_test":
+            data = self.model.train_state.loss_test
+        else:
+            raise ValueError("The specified monitor function is incorrect.", self.monitor)
+
+        result = max(data)
+        if min(data) < 1e-50:
+            print("likely a numerical error")
+            # numerical error
+            return 1.0
+
+        return result
+modelcheckpt_cb = ModelCheckpoint2(
+    ck_path, verbose=True, save_better_only=True, period=1)
