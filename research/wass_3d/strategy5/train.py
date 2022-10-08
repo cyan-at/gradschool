@@ -300,11 +300,10 @@ class NonNeg_LastLayer_Model(dde.Model):
             self.callbacks.on_batch_end()
             self.callbacks.on_epoch_end()
 
-            # print("hello")
             # clamped_weights = self.net.linears[-1].weight[1].clamp(0.0, 1.0)
 
-            # clamped_weights = self.net.linears[-1].weight[1].clamp_min(0.0)
-            # self.net.linears[-1].weight.data[1] = clamped_weights
+            clamped_weights = self.net.linears[-1].weight[1].clamp_min(0.0)
+            self.net.linears[-1].weight.data[1] = clamped_weights
 
             if self.stop_training:
                 break
@@ -403,7 +402,9 @@ net = dde.nn.FNN(
     "Glorot normal"
     # "zeros",
 )
-model = NonNeg_LastLayer_Model(data, net)
+
+model = dde.Model(data, net)
+# model = NonNeg_LastLayer_Model(data, net)
 
 ######################################
 
