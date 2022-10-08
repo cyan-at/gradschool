@@ -15,15 +15,19 @@ os.environ['XLA_FLAGS'] = "--xla_gpu_cuda_data_dir=/usr/local/home/cyan3/minifor
 
 print(os.environ['DDE_BACKEND'])
 
+# Before running your code, run this shell command to tell torch that there are no GPUs:
+# https://stackoverflow.com/questions/53266350/how-to-tell-pytorch-to-not-use-the-gpu
+os.environ["CUDA_VISIBLE_DEVICES"] = ""
+
 import torch
 torch.set_printoptions(precision=3)
 torch.set_printoptions(sci_mode=False)
-print(torch.cuda.is_available())
-print(torch.cuda.device_count())
-print(torch.cuda.get_device_name(0))
-print(torch.version.cuda)
-print(torch.cuda.current_device())
-torch.cuda.set_device(0)
+# print(torch.cuda.is_available())
+# print(torch.cuda.device_count())
+# print(torch.cuda.get_device_name(0))
+# print(torch.version.cuda)
+# print(torch.cuda.current_device())
+# torch.cuda.set_device(0)
 
 # https://pytorch.org/tutorials/recipes/recipes/tuning_guide.html
 try:
@@ -33,7 +37,8 @@ except:
 
 cuda0 = torch.device('cuda:0')
 cpu = torch.device('cpu')
-device = cuda0
+
+device = cpu
 
 import deepxde as dde
 import numpy as np
