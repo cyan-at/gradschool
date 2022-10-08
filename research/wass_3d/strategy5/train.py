@@ -211,7 +211,7 @@ C_cpu = C_cpu.to(cpu).requires_grad_(False)
 # import ipdb; ipdb.set_trace()
 
 def rho0_WASS_batch_cuda0(y_true, y_pred):
-    # p1 = (y_pred<0).sum() # negative terms
+    p1 = (y_pred<0).sum() # negative terms
 
     # print(y_pred.shape)
     # print(y_true.shape)
@@ -226,11 +226,13 @@ def rho0_WASS_batch_cuda0(y_true, y_pred):
         C_temp)
     C_temp_device = C_temp_device.to(device).requires_grad_(False)
 
-    p2 = torch.abs(torch.sum(y_pred) - 1)
-
     y_pred = torch.where(y_pred < 0, 0, y_pred)
 
-    # import ipdb; ipdb.set_trace()
+    s = torch.sum(y_pred)
+    p2 = torch.abs(s - 1)
+
+    if s > 1e-3:
+        y_pred /= s # into pmf
 
     dist, _, _ = sinkhorn0(
         C_temp_device,
@@ -238,10 +240,10 @@ def rho0_WASS_batch_cuda0(y_true, y_pred):
         rho0_temp_tensor)
     # print("Sinkhorn distance: {:.3f}".format(dist.item()))
 
-    return dist# + p2 # + p1
+    return dist + p2 + p1
 
 def rhoT_WASS_batch_cuda0(y_true, y_pred):
-    # p1 = (y_pred<0).sum() # negative terms
+    p1 = (y_pred<0).sum() # negative terms
 
     # print(y_pred.shape)
     # print(y_true.shape)
@@ -256,9 +258,13 @@ def rhoT_WASS_batch_cuda0(y_true, y_pred):
         C_temp)
     C_temp_device = C_temp_device.to(device).requires_grad_(False)
 
-    p2 = torch.abs(torch.sum(y_pred) - 1)
-
     y_pred = torch.where(y_pred < 0, 0, y_pred)
+
+    s = torch.sum(y_pred)
+    p2 = torch.abs(s - 1)
+
+    if s > 1e-3:
+        y_pred /= s # into pmf
 
     # import ipdb; ipdb.set_trace()
 
@@ -268,7 +274,7 @@ def rhoT_WASS_batch_cuda0(y_true, y_pred):
         rhoT_temp_tensor)
     # print("Sinkhorn distance: {:.3f}".format(dist.item()))
 
-    return dist#  + p2 # + p1
+    return dist + p2 + p1
 
 class NonNeg_LastLayer_Model(dde.Model):
     def _train_sgd(self, iterations, display_every):
@@ -296,8 +302,9 @@ class NonNeg_LastLayer_Model(dde.Model):
 
             # print("hello")
             # clamped_weights = self.net.linears[-1].weight[1].clamp(0.0, 1.0)
-            clamped_weights = self.net.linears[-1].weight[1].clamp_min(0.0)
-            self.net.linears[-1].weight.data[1] = clamped_weights
+
+            # clamped_weights = self.net.linears[-1].weight[1].clamp_min(0.0)
+            # self.net.linears[-1].weight.data[1] = clamped_weights
 
             if self.stop_training:
                 break
@@ -390,8 +397,8 @@ data = WASSPDE(
 # 5 outputs: 2 eq + 3 control vars
 net = dde.nn.FNN(
     [d+1] + [70] *3  + [2],
-    "sigmoid",
-    # "tanh",
+    # "sigmoid",
+    "tanh",
 
     "Glorot normal"
     # "zeros",
