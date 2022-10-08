@@ -1940,6 +1940,30 @@ change it to an approximate problem, solve it exactly
 talk to ece, withdraw LOA for winter have abhishek cover tuition if possible
 
 #########################################################
+
+vs01:
+sigmoid, not batched, d=2, + p2
+
+vs08:
+sigmoid, batched, d=3, + p2
+
+vs04:
+sigmoid, batched, d=3, no p2
+
+batch=500 is the max you can do with d=3, N=15
+
+concerns:
+sigmoid activation causes 'zero-solution' to the planck equation, it starts out e-5, so it is not correct
+
+does batching preserve outcome correctness?
+
+does sigmoid preserve correctness?
+
+###############################################
+
+vs07:
+tanh, batched, d=3, p1+p2
+
 #########################################################
 #########################################################
 #########################################################
@@ -2055,6 +2079,8 @@ how useful is math to reality? or is the math dept the best place to find 'usefu
 pagerank, k-space, etc. gradient descent, iterative methods, computational geometery
 
 how do you shape your curiosity? do you have any direction you want to go in, and what shaped that direction? was it related to your background at all?
+
+how do you come across new maths? like wasserstein distance (a very useful tool for wasserstein). can you come across useful math without devoting full-time to it?
 
 #########################################################
 
