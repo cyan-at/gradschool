@@ -1965,7 +1965,17 @@ vs07:
 tanh, batched, d=3, p1+p2
 
 #########################################################
+
+run in ipython, so you can CONTINUE training after you finish if it's not good enough
+
 #########################################################
+
+torch.matmul(t, s)
+torch.einsum('ij, j->i', t, s)
+
+torch.matmul(t.t(), s)
+torch.einsum('ji, j->i', t, s)
+
 #########################################################
 #########################################################
 #########################################################
@@ -2403,3 +2413,47 @@ https://login.microsoftonline.com/common/oauth2/authorize?client_id=00000002-000
 https://docs.google.com/spreadsheets/d/1MG4PqBMiFMIlG9CeMuyddmCjwkTpC23EEIAEkpXbL8A/edit#gid=2038720634
 https://mail.google.com/mail/u/0/#inbox
 https://www.google.com/search?q=torch+clamp+output+to+sum+of+1&oq=torch+clamp+output+to+sum+of+1&aqs=chrome..69i57.13668j0j7&sourceid=chrome&ie=UTF-8
+
+http://localhost:8888/notebooks/sinkhorn.ipynb#
+http://localhost:8889/notebooks/sinkhorn_stable.ipynb
+https://stackoverflow.com/questions/14908576/how-to-remove-frame-from-matplotlib-pyplot-figure-vs-matplotlib-figure-frame
+https://www.youtube.com/watch?v=BfOjrQAhG4M
+https://discuss.pytorch.org/t/no-gradient-on-cuda/144807
+https://discuss.pytorch.org/t/gradients-have-different-shape-for-cuda-and-cpu/89878
+https://stackoverflow.com/questions/72385812/speed-up-multiplication-of-matrix-by-transposed
+https://medium.com/@ml_kid/pro-tip-matrix-transpose-in-pytorch-lesson-4-62bcd9efea52
+https://pytorch.org/docs/stable/generated/torch.logsumexp.html
+https://pytorch.org/docs/stable/generated/torch.transpose.html#torch.transpose
+https://stackoverflow.com/questions/57512113/how-to-take-a-transpose-for-each-matrix-in-a-batch-in-pytorch
+https://pytorch.org/docs/stable/generated/torch.as_strided.html
+https://pytorch.org/docs/stable/generated/torch.einsum.html
+https://stackoverflow.com/questions/45896939/using-python-numpy-einsum-to-obtain-dot-product-between-2-matrices
+https://pytorch.org/docs/stable/generated/torch.tensordot.html
+https://discuss.pytorch.org/t/how-to-cast-a-tensor-to-another-type/2713/5
+https://www.youtube.com/watch?v=TRGHIN2PGIA
+https://pytorch.org/docs/stable/generated/torch.matmul.html
+https://discuss.pytorch.org/t/how-to-do-elementwise-multiplication-of-two-vectors/13182
+http://localhost:8888/notebooks/memory_test.ipynb
+https://pytorch.org/docs/stable/generated/torch.set_printoptions.html
+https://docs.scipy.org/doc/scipy/reference/generated/scipy.spatial.distance.cdist.html
+https://ajcr.net/Basic-guide-to-einsum/
+https://www.google.com/search?q=logsumexp&oq=logsumexp&aqs=chrome.0.69i59l4j69i61j69i60l2.1948j0j7&sourceid=chrome&ie=UTF-8
+https://gregorygundersen.com/blog/2020/02/09/log-sum-exp/
+https://www.google.com/search?q=torch.exp+nan&oq=torch.exp+nan&aqs=chrome..69i57.2280j0j7&sourceid=chrome&ie=UTF-8
+https://www.google.com/search?q=torch+avoid+nan+values&sxsrf=ALiCzsYs0ozGxQmqd6tloIQVVxbHhAKM_g%3A1665180631688&ei=16NAY-rPKZnhkPIP3sGowAg&ved=0ahUKEwiql6egkc_6AhWZMEQIHd4gCogQ4dUDCA4&uact=5&oq=torch+avoid+nan+values&gs_lcp=Cgdnd3Mtd2l6EAMyBQghEKABMgUIIRCgATIFCCEQqwI6CggAEEcQ1gQQsAM6BAgjECc6BAgAEEM6BQgAEJECOgoIABCxAxCDARBDOgsIABCxAxCDARCRAjoLCAAQgAQQsQMQgwE6BQgAEIAEOgcIABCABBAKOgoIABCABBCHAhAUOggIABAeEA8QFjoGCAAQHhAWOgUIABCGA0oECEEYAEoECEYYAFCdB1ioH2CgIGgDcAF4AIABsAGIAb0VkgEEMC4yMZgBAKABAcgBCMABAQ&sclient=gws-wiz
+https://pytorch.org/docs/stable/tensors.html
+https://www.google.com/search?q=pytorch+zero+tensor+grad&sxsrf=ALiCzsaL4eksv1zJjVIsRRwy69LYpfqzcg%3A1665191237589&ei=Rc1AY-rXI9nXkPIP_uy9uAo&ved=0ahUKEwiqjszhuM_6AhXZK0QIHX52D6cQ4dUDCA4&uact=5&oq=pytorch+zero+tensor+grad&gs_lcp=Cgdnd3Mtd2l6EAMyBggAEB4QFjIFCAAQhgMyBQgAEIYDMgUIABCGAzIFCAAQhgM6CggAEEcQ1gQQsAM6BwgAELADEEM6BAgjECc6BAgAEEM6CggAELEDEIMBEEM6BQgAEJECOgsIABCABBCxAxCDAToKCAAQgAQQhwIQFDoFCAAQgAQ6BwgAEIAEEAo6BQghEKABOgUIIRCrAjoICCEQHhAWEB06BQgAEKIEOgcIIRCgARAKSgQIQRgASgQIRhgAUMAFWNo1YN02aAtwAHgAgAHUAYgBohmSAQYyMi45LjGYAQCgAQHIAQrAAQE&sclient=gws-wiz
+https://pytorch.org/docs/stable/generated/torch.optim.Optimizer.zero_grad.html
+https://stackoverflow.com/questions/70956960/shall-i-use-grad-zero-in-pytorch-with-or-without-gradient-tracking
+https://stackoverflow.com/questions/54648053/how-to-set-gradients-to-zero-without-optimizer
+http://localhost:8889/notebooks/sinkhorn_stable.ipynb
+https://pytorch.org/tutorials/recipes/recipes/tuning_guide.html
+https://stackoverflow.com/questions/53266350/how-to-tell-pytorch-to-not-use-the-gpu
+https://pytorch.org/docs/stable/generated/torch.nn.Module.html
+https://pytorch.org/tutorials/recipes/recipes/save_load_across_devices.html
+
+https://stackoverflow.com/questions/36367986/how-to-make-inline-plots-in-jupyter-notebook-larger
+https://jakevdp.github.io/PythonDataScienceHandbook/04.12-three-dimensional-plotting.html
+https://www.tutorialspoint.com/plotting-an-imshow-image-in-3d-in-matplotlib
+https://gist.github.com/WetHat/1d6cd0f7309535311a539b42cccca89c
+https://matplotlib.org/stable/api/_as_gen/matplotlib.patches.FancyArrowPatch.html
