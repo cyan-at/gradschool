@@ -1944,6 +1944,18 @@ talk to ece, withdraw LOA for winter have abhishek cover tuition if possible
 vs01:
 sigmoid, not batched, d=2, + p2
 
+Best model at step 94993:
+  train loss: 4.99e-02
+  test loss: 4.99e-02
+  test metric: []
+
+'train' took 54145.762730 s
+
+Saving loss history to /usr/local/home/cyan3/Desktop/gradschool/research/wass_3d/strategy5/loss.dat ...
+Saving training data to /usr/local/home/cyan3/Desktop/gradschool/research/wass_3d/strategy5/train.dat ...
+Saving test data to /usr/local/home/cyan3/Desktop/gradschool/research/wass_3d/strategy5/test.dat ...
+/usr/local/home/cyan3/Desktop/gradschool/research/wass_3d/strategy5/wass_3d_model-100000.pt
+
 vs08:
 sigmoid, batched, d=3, + p2
 
