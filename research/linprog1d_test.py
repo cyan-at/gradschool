@@ -26,13 +26,6 @@ A = np.concatenate(
     ), axis=0)
 # 2*nSample
 
-def pdf1d_T(x):
-    mu = 5.
-    sigma = .1
-    a, b = (0. - mu) / sigma, (6. - mu) / sigma
-    rho_T=truncnorm.pdf(x, a, b, loc = mu, scale = sigma)
-    return rho_T
-
 def pdf1d_0(x):
     sigma = .08
     mu=0.5 
@@ -43,6 +36,13 @@ def pdf1d_0(x):
     a, b = (0. - mu) / sigma, (6. - mu) / sigma
     rho_0=truncnorm.pdf(x, a, b, loc = mu, scale = sigma)
     return rho_0
+
+def pdf1d_T(x):
+    mu = 5.
+    sigma = .1
+    a, b = (0. - mu) / sigma, (6. - mu) / sigma
+    rho_T=truncnorm.pdf(x, a, b, loc = mu, scale = sigma)
+    return rho_T
 
 x_T = np.transpose(np.linspace(0., 6., N))
 rho_0=pdf1d_0(x_T).reshape(len(x_T),1)
