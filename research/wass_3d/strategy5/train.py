@@ -223,7 +223,10 @@ def get_model(d, N):
             # this is BETTER than checking if max is negative
             # because pinn could output a very small
             # positive value, and overcome that case
-            return -y_pred_proxy
+            if y_pred_proxy < 0.0:
+                return -y_pred_proxy
+            else:
+                return 1 - y_pred_proxy
 
         # if s > 1e-2:
         #     y_pred /= s # into pmf
@@ -269,7 +272,10 @@ def get_model(d, N):
             # this is BETTER than checking if max is negative
             # because pinn could output a very small
             # positive value, and overcome that case
-            return -y_pred_proxy
+            if y_pred_proxy < 0.0:
+                return -y_pred_proxy
+            else:
+                return 1 - y_pred_proxy
 
         # if s > 1e-3:
         #     y_pred /= s # into pmf
