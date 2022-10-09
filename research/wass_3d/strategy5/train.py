@@ -226,6 +226,8 @@ def get_model(d, N):
             if y_pred_proxy < 0.0:
                 return -y_pred_proxy
             else:
+                # for the sigmoid case where output is always non-negative
+                # this steers the pinn to outputing a higher sum
                 return 1 - y_pred_proxy
 
         # if s > 1e-2:
@@ -275,6 +277,8 @@ def get_model(d, N):
             if y_pred_proxy < 0.0:
                 return -y_pred_proxy
             else:
+                # for the sigmoid case where output is always non-negative
+                # this steers the pinn to outputing a higher sum
                 return 1 - y_pred_proxy
 
         # if s > 1e-3:
