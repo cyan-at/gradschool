@@ -193,7 +193,7 @@ def get_model(d, N):
     def rho0_WASS_batch_cuda0(y_true, y_pred):
         n = torch.numel(y_pred)
 
-        p1 = (y_pred<0).sum() / n # negative terms
+        p1 = (y_pred<0).sum()  # negative terms
 
         # print(y_pred.shape)
         # print(y_true.shape)
@@ -207,17 +207,21 @@ def get_model(d, N):
         C_temp_device = torch.from_numpy(
             C_temp)
         C_temp_device = C_temp_device.to(device).requires_grad_(False)
+    
+        y_pred_max = -torch.max(y_pred)
 
         y_pred = torch.where(y_pred < 0, 0, y_pred)
 
         s = torch.sum(y_pred)
-        p2 = torch.abs(s - 1) / n
+        p2 = torch.abs(s - 1)
 
-        if s < 1e-3:
+        print(s)
+        if s < 1e-2:
             # mostly negative, then do not compute
             # wass distance
             # to avoid getting 'stuck' in 0 gradient
-            return p2 + p1
+            return y_pred_max
+
         # if s > 1e-2:
         #     y_pred /= s # into pmf
 
@@ -227,12 +231,12 @@ def get_model(d, N):
             rho0_temp_tensor)
         # print("Sinkhorn distance: {:.3f}".format(dist.item()))
 
-        return dist + p2 + p1
+        return dist + p2 / n + p1 / n
 
     def rhoT_WASS_batch_cuda0(y_true, y_pred):
         n = torch.numel(y_pred)
 
-        p1 = (y_pred<0).sum() / n # negative terms
+        p1 = (y_pred<0).sum()  # negative terms
 
         # print(y_pred.shape)
         # print(y_true.shape)
@@ -247,16 +251,19 @@ def get_model(d, N):
             C_temp)
         C_temp_device = C_temp_device.to(device).requires_grad_(False)
 
+        y_pred_max = -torch.max(y_pred)
+
         y_pred = torch.where(y_pred < 0, 0, y_pred)
 
         s = torch.sum(y_pred)
-        p2 = torch.abs(s - 1) / n
+        p2 = torch.abs(s - 1)
 
-        if s < 1e-3:
+        print(s)
+        if s < 1e-2:
             # mostly negative, then do not compute
             # wass distance
             # to avoid getting 'stuck' in 0 gradient
-            return p2 + p1
+            return y_pred_max
 
         # if s > 1e-3:
         #     y_pred /= s # into pmf
@@ -269,7 +276,7 @@ def get_model(d, N):
             rhoT_temp_tensor)
         # print("Sinkhorn distance: {:.3f}".format(dist.item()))
 
-        return dist + p2 + p1
+        return dist + p2 / n + p1 / n
 
     ######################################
 
