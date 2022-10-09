@@ -215,7 +215,7 @@ def get_model(d, N):
         s = torch.sum(y_pred)
         p2 = torch.abs(s - 1)
 
-        print(s)
+        # print(s)
         if s < 1e-2:
             # mostly negative, then do not compute
             # wass distance
@@ -258,7 +258,7 @@ def get_model(d, N):
         s = torch.sum(y_pred)
         p2 = torch.abs(s - 1)
 
-        print(s)
+        # print(s)
         if s < 1e-2:
             # mostly negative, then do not compute
             # wass distance
