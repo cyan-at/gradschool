@@ -211,9 +211,13 @@ def get_model(d, N):
         y_pred = torch.where(y_pred < 0, 0, y_pred)
 
         s = torch.sum(y_pred)
-
         p2 = torch.abs(s - 1) / n
 
+        if s < 1e-3:
+            # mostly negative, then do not compute
+            # wass distance
+            # to avoid getting 'stuck' in 0 gradient
+            return p2 + p1
         # if s > 1e-2:
         #     y_pred /= s # into pmf
 
@@ -247,6 +251,12 @@ def get_model(d, N):
 
         s = torch.sum(y_pred)
         p2 = torch.abs(s - 1) / n
+
+        if s < 1e-3:
+            # mostly negative, then do not compute
+            # wass distance
+            # to avoid getting 'stuck' in 0 gradient
+            return p2 + p1
 
         # if s > 1e-3:
         #     y_pred /= s # into pmf
