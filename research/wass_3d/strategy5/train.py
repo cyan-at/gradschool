@@ -191,7 +191,9 @@ def get_model(d, N):
     # import ipdb; ipdb.set_trace()
 
     def rho0_WASS_batch_cuda0(y_true, y_pred):
-        p1 = (y_pred<0).sum() # negative terms
+        n = torch.numel(y_pred)
+
+        p1 = (y_pred<0).sum() / n # negative terms
 
         # print(y_pred.shape)
         # print(y_true.shape)
@@ -209,10 +211,11 @@ def get_model(d, N):
         y_pred = torch.where(y_pred < 0, 0, y_pred)
 
         s = torch.sum(y_pred)
-        p2 = torch.abs(s - 1)
 
-        if s > 1e-3:
-            y_pred /= s # into pmf
+        p2 = torch.abs(s - 1) / n
+
+        # if s > 1e-2:
+        #     y_pred /= s # into pmf
 
         dist, _, _ = sinkhorn0(
             C_temp_device,
@@ -220,10 +223,12 @@ def get_model(d, N):
             rho0_temp_tensor)
         # print("Sinkhorn distance: {:.3f}".format(dist.item()))
 
-        return dist + p2# + p1
+        return dist + p2 + p1
 
     def rhoT_WASS_batch_cuda0(y_true, y_pred):
-        p1 = (y_pred<0).sum() # negative terms
+        n = torch.numel(y_pred)
+
+        p1 = (y_pred<0).sum() / n # negative terms
 
         # print(y_pred.shape)
         # print(y_true.shape)
@@ -241,10 +246,10 @@ def get_model(d, N):
         y_pred = torch.where(y_pred < 0, 0, y_pred)
 
         s = torch.sum(y_pred)
-        p2 = torch.abs(s - 1)
+        p2 = torch.abs(s - 1) / n
 
-        if s > 1e-3:
-            y_pred /= s # into pmf
+        # if s > 1e-3:
+        #     y_pred /= s # into pmf
 
         # import ipdb; ipdb.set_trace()
 
@@ -254,7 +259,7 @@ def get_model(d, N):
             rhoT_temp_tensor)
         # print("Sinkhorn distance: {:.3f}".format(dist.item()))
 
-        return dist + p2# + p1
+        return dist + p2 + p1
 
     ######################################
 
@@ -281,15 +286,15 @@ def get_model(d, N):
     # 5 outputs: 2 eq + 3 control vars
     net = dde.nn.FNN(
         [d+1] + [70] *3  + [2],
-        "sigmoid",
-        # "tanh",
+        # "sigmoid",
+        "tanh",
 
         "Glorot normal"
         # "zeros",
     )
 
-    # model = dde.Model(data, net)
-    model = NonNeg_LastLayer_Model(data, net)
+    model = dde.Model(data, net)
+    # model = NonNeg_LastLayer_Model(data, net)
 
     ######################################
 
