@@ -215,10 +215,14 @@ def get_model(d, N):
         s = torch.sum(y_pred)
         p2 = torch.abs(s - 1)
 
-        # print(s)
-        if y_pred_max < 0.0:
-            # if all negative, then more negative
-            # the max, the larger the cost
+        if s < 1e-3:
+            # mostly negative, then do not compute
+            # wass distance
+            # to avoid getting 'stuck' in 0 gradient
+            
+            # this is BETTER than checking if max is negative
+            # because pinn could output a very small
+            # positive value, and overcome that case
             return -y_pred_max
 
         # if s > 1e-2:
@@ -257,10 +261,14 @@ def get_model(d, N):
         s = torch.sum(y_pred)
         p2 = torch.abs(s - 1)
 
-        # print(s)
-        if y_pred_max < 0.0:
-            # if all negative, then more negative
-            # the max, the larger the cost
+        if s < 1e-3:
+            # mostly negative, then do not compute
+            # wass distance
+            # to avoid getting 'stuck' in 0 gradient
+            
+            # this is BETTER than checking if max is negative
+            # because pinn could output a very small
+            # positive value, and overcome that case
             return -y_pred_max
 
         # if s > 1e-3:
