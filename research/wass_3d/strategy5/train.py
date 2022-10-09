@@ -219,7 +219,7 @@ def get_model(d, N):
         if y_pred_max < 0.0:
             # if all negative, then more negative
             # the max, the larger the cost
-            return y_pred_max
+            return -y_pred_max
 
         # if s > 1e-2:
         #     y_pred /= s # into pmf
@@ -261,7 +261,7 @@ def get_model(d, N):
         if y_pred_max < 0.0:
             # if all negative, then more negative
             # the max, the larger the cost
-            return y_pred_max
+            return -y_pred_max
 
         # if s > 1e-3:
         #     y_pred /= s # into pmf
