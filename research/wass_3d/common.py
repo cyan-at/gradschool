@@ -16,6 +16,8 @@ from deepxde import backend as bkd
 from deepxde.backend import backend_name
 from deepxde.utils import get_num_args, run_if_all_none
 
+import matplotlib.pyplot as plt
+
 def pdf3d(x,y,z,rv):
     return rv.pdf(np.hstack((x, y, z)))
 
@@ -840,3 +842,13 @@ class WASSPDE(dde.data.TimePDE):
                     bkd.zeros_like(error),
                     error))
         return losses
+
+def on_press_saveplot(event, fname):
+    print('press', event.key)
+    sys.stdout.flush()
+    if event.key == 'x':
+        # visible = xl.get_visible()
+        # xl.set_visible(not visible)
+        # fig.canvas.draw()
+        plt.savefig(fname, dpi=500, bbox_inches='tight')
+        print("saved figure", fname)

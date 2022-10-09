@@ -134,9 +134,9 @@ if __name__ == '__main__':
     if os.path.exists(args.modelpt):
         print("loading model")
 
-        d = 2; N = 15;
+        d = 3; N = 15;
         M = N**d
-        batchsize = M
+        batchsize = 500
 
         # instead of using test output, use model and 
         # generate / predict a new output
@@ -154,7 +154,7 @@ if __name__ == '__main__':
         else:
             print("keeping input on cpu")
 
-        model, meshes = get_model(d, N)
+        model, meshes = get_model(d, N, batchsize)
         model.restore(args.modelpt)
 
         # output = model.predict(inputs)
@@ -208,7 +208,7 @@ if __name__ == '__main__':
     tt = test[2*batchsize:, :]
 
     print(tt.shape)
-
+    '''
     dphi_dinput_t0 = dphi_dinput[:batchsize, :]
     dphi_dinput_tT = dphi_dinput[batchsize:2*batchsize, :]
     dphi_dinput_tt = dphi_dinput[2*batchsize:, :]
@@ -244,11 +244,31 @@ if __name__ == '__main__':
       dphi_dinput_tt[:, 1],
       (grid_x1, grid_x2, grid_t),
       method='nearest')
-
+    '''
     ########################################################
 
-    rho0 = t0[:, -1]
+    rho0 = t0[:batchsize, -1]
     rhoT = tT[:, -1]
+
+    x_1_ = np.linspace(state_min, state_max, N)
+    x_2_ = np.linspace(state_min, state_max, N)
+    x_3_ = np.linspace(state_min, state_max, N)
+    grid_x1, grid_x2, grid_x3 = np.meshgrid(
+        x_1_,
+        x_2_,
+        x_3_, copy=False) # each is NxNxN
+
+    RHO_0 = gd(
+      (t0[:, 0], t0[:, 1], t0[:, 2]),
+      t0[:, -1],
+      (grid_x1, grid_x2, grid_x3),
+      method='nearest')
+
+    RHO_T = gd(
+      (tT[:, 0], tT[:, 1], tT[:, 2]),
+      tT[:, -1],
+      (grid_x1, grid_x2, grid_x3),
+      method='nearest')
 
     ########################################################
 
@@ -256,8 +276,38 @@ if __name__ == '__main__':
 
     ########################################################
 
-    ax1 = fig.add_subplot(1, 3, 1, projection='3d')
+    ax1 = fig.add_subplot(1, 2, 1, projection='3d')
 
+    sc1=ax1.scatter(
+        grid_x1,
+        grid_x2,
+        grid_x3,
+        c=RHO_0,
+        s=np.abs(RHO_0*1000),
+        cmap=cm.jet,
+        alpha=1.0)
+    plt.colorbar(sc1, shrink=0.25)
+    ax1.set_title('rho0: mu={}, sigma={}'.format(mu_0, sigma_0))
+    ax1.set_xlabel('x')
+    ax1.set_ylabel('y')
+    ax1.set_zlabel('z')
+
+    ax2 = fig.add_subplot(1, 2, 2, projection='3d')
+    sc2=ax2.scatter(
+        grid_x1,
+        grid_x2,
+        grid_x3,
+        c=RHO_T,
+        s=np.abs(RHO_T*1000),
+        cmap=cm.jet,
+        alpha=1.0)
+    plt.colorbar(sc2, shrink=0.25)
+    ax2.set_title('rhoT: mu={}, sigma={}'.format(mu_T, sigma_T))
+    ax2.set_xlabel('x')
+    ax2.set_ylabel('y')
+    ax2.set_zlabel('z')
+
+    '''
     z1 = T_0
     z2 = T_t
 
@@ -378,14 +428,15 @@ if __name__ == '__main__':
     ax3.set_ylabel('y')
     ax3.set_zlabel('t')
     ax3.set_title('dphi_dy')
+    '''
 
     ########################################################
 
     title_str = args.modelpt
     title_str += "\n"
-    title_str += "N=15, d=2, batch=full, sigmoid + clamped weights"
+    title_str += "N=15, d=3, batch=500 + nearest, sigmoid + clamped weights"
     title_str += "\n"
-    title_str += "99875     [5.95e-08, 5.44e-04, 2.50e-02, 2.51e-02]    [5.95e-08, 5.44e-04, 2.50e-02, 2.51e-02]    []"
+    # title_str += "99875     [5.95e-08, 5.44e-04, 2.50e-02, 2.51e-02]    [5.95e-08, 5.44e-04, 2.50e-02, 2.51e-02]    []"
 
     plt.suptitle(title_str)
 
@@ -411,7 +462,7 @@ if __name__ == '__main__':
     #     manager.frame.Maximize(True)
     # except:
     #     pass
-    fig.canvas.mpl_connect('key_press_event', lambda e: on_press_saveplot(e, 'rhoopt_dphidx_dphidy.png'))
+
+    fig.canvas.mpl_connect('key_press_event', lambda e: on_press_saveplot(e, 'rho_opt_bc.png'))
 
     plt.show()
-
