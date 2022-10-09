@@ -315,15 +315,15 @@ def get_model(d, N):
     # 5 outputs: 2 eq + 3 control vars
     net = dde.nn.FNN(
         [d+1] + [70] *3  + [2],
-        # "sigmoid",
-        "tanh",
+        "sigmoid",
+        # "tanh",
 
         "Glorot normal"
         # "zeros",
     )
 
-    model = dde.Model(data, net)
-    # model = NonNeg_LastLayer_Model(data, net)
+    # model = dde.Model(data, net)
+    model = NonNeg_LastLayer_Model(data, net)
 
     ######################################
 
