@@ -126,6 +126,8 @@ if __name__ == '__main__':
         type=int, default=0)
     parser.add_argument('--diff_on_cpu',
         type=int, default=1)
+    parser.add_argument('--fullstate',
+        type=int, default=1)
 
     args = parser.parse_args()
 
@@ -144,6 +146,29 @@ if __name__ == '__main__':
 
         inputs = np.float32(inputs)
 
+        if args.fullstate > 0:
+            linspaces = []
+            for i in range(d):
+                linspaces.append(np.transpose(np.linspace(state_min, state_max, N)))
+            meshes = np.meshgrid(*linspaces)
+            rest = inputs[2*batchsize:, :]
+            mesh_vectors = []
+            for i in range(d):
+                mesh_vectors.append(meshes[i].reshape(M,1))
+            state = np.hstack(tuple(mesh_vectors))
+            time_0=np.hstack((
+                state,
+                T_0*np.ones((len(mesh_vectors[0]), 1))
+            ))
+            time_t=np.hstack((
+                state,
+                T_t*np.ones((len(mesh_vectors[0]), 1))
+            ))
+            inputs = np.vstack((time_0, time_t, rest))
+            inputs = np.float32(inputs)
+            batchsize = N**d
+
+        '''
         inputs_tensor = torch.from_numpy(
             inputs).requires_grad_(True)
         inputs_tensor = inputs_tensor.requires_grad_(True)
@@ -153,11 +178,22 @@ if __name__ == '__main__':
             inputs_tensor = inputs_tensor.type(torch.FloatTensor).to(cuda0).requires_grad_(True)
         else:
             print("keeping input on cpu")
+        '''
 
         model, meshes = get_model(d, N, batchsize)
         model.restore(args.modelpt)
 
         # output = model.predict(inputs)
+
+        inputs_tensor = torch.from_numpy(
+            inputs).requires_grad_(True)
+        inputs_tensor = inputs_tensor.requires_grad_(True)
+
+        if args.diff_on_cpu == 0:
+            print("moving input to cuda")
+            inputs_tensor = inputs_tensor.type(torch.FloatTensor).to(cuda0).requires_grad_(True)
+        else:
+            print("keeping input on cpu")
 
         # move the MODEL to the cpu
         # to compute the gradient there, not on CUDA
@@ -186,7 +222,7 @@ if __name__ == '__main__':
 
         # import ipdb; ipdb.set_trace()
 
-        dphi_dinput_fname = args.modelpt.replace(".pt", "_dphi_dinput.txt")
+        dphi_dinput_fname = args.modelpt.replace(".pt", "_dphi_dinput_%d.txt" % (batchsize))
         np.savetxt(
             dphi_dinput_fname,
             dphi_dinput)
@@ -207,44 +243,6 @@ if __name__ == '__main__':
     tT = test[batchsize:2*batchsize, :]
     tt = test[2*batchsize:, :]
 
-    print(tt.shape)
-    '''
-    dphi_dinput_t0 = dphi_dinput[:batchsize, :]
-    dphi_dinput_tT = dphi_dinput[batchsize:2*batchsize, :]
-    dphi_dinput_tt = dphi_dinput[2*batchsize:, :]
-
-    ########################################################
-
-    source_x1 = t0[:, 0]
-    source_x2 = t0[:, 1]
-
-    dphi_dinput_t0_dx = dphi_dinput_t0[:, 0]
-    dphi_dinput_t0_dy = dphi_dinput_t0[:, 1]
-
-    dphi_dinput_tT_dx = dphi_dinput_tT[:, 0]
-    dphi_dinput_tT_dy = dphi_dinput_tT[:, 1]
-
-    x_1_ = np.linspace(state_min, state_max, N)
-    x_2_ = np.linspace(state_min, state_max, N)
-    t_ = np.linspace(T_0, T_t, N)
-    grid_x1, grid_x2, grid_t = np.meshgrid(
-        x_1_,
-        x_2_,
-        t_, copy=False) # each is NxNxN
-
-    # import ipdb; ipdb.set_trace()
-    PSI = gd(
-      (tt[:, 0], tt[:, 1], tt[:, 2]),
-      dphi_dinput_tt[:, 0],
-      (grid_x1, grid_x2, grid_t),
-      method='nearest')
-
-    PSI2 = gd(
-      (tt[:, 0], tt[:, 1], tt[:, 2]),
-      dphi_dinput_tt[:, 1],
-      (grid_x1, grid_x2, grid_t),
-      method='nearest')
-    '''
     ########################################################
 
     rho0 = t0[:batchsize, -1]
@@ -276,7 +274,7 @@ if __name__ == '__main__':
 
     ########################################################
 
-    ax1 = fig.add_subplot(1, 2, 1, projection='3d')
+    ax1 = fig.add_subplot(1, 3, 1, projection='3d')
 
     sc1=ax1.scatter(
         grid_x1,
@@ -292,7 +290,7 @@ if __name__ == '__main__':
     ax1.set_ylabel('y')
     ax1.set_zlabel('z')
 
-    ax2 = fig.add_subplot(1, 2, 2, projection='3d')
+    ax2 = fig.add_subplot(1, 3, 2, projection='3d')
     sc2=ax2.scatter(
         grid_x1,
         grid_x2,
@@ -306,6 +304,42 @@ if __name__ == '__main__':
     ax2.set_xlabel('x')
     ax2.set_ylabel('y')
     ax2.set_zlabel('z')
+
+    ########################################################
+
+    dphi_dinput_t0 = dphi_dinput[:batchsize, :]
+    dphi_dinput_tT = dphi_dinput[batchsize:2*batchsize, :]
+    dphi_dinput_tt = dphi_dinput[2*batchsize:, :]
+    print(
+        np.max(dphi_dinput_t0),
+        np.max(dphi_dinput_tT),
+        np.max(dphi_dinput_tt)
+    )
+
+    dphi_dinput_t0_l2_norm = np.sqrt(dphi_dinput_t0[:, 0]**2 + dphi_dinput_t0[:, 1]**2 + dphi_dinput_t0[:, 2]**2)
+
+    DPHI_DINPUT_T0_L2_NORM = gd(
+      (t0[:, 0], t0[:, 1], t0[:, 2]),
+      dphi_dinput_t0_l2_norm,
+      (grid_x1, grid_x2, grid_x3),
+      method='nearest')
+
+    ########################################################
+
+    ax3 = fig.add_subplot(1, 3, 3, projection='3d')
+    sc3=ax3.scatter(
+        grid_x1,
+        grid_x2,
+        grid_x3,
+        c=DPHI_DINPUT_T0_L2_NORM,
+        s=np.abs(DPHI_DINPUT_T0_L2_NORM*1000),
+        cmap=cm.jet,
+        alpha=1.0)
+    plt.colorbar(sc3, shrink=0.25)
+    ax3.set_title('dphi_dinput_t0 l2_norm')
+    ax3.set_xlabel('x')
+    ax3.set_ylabel('y')
+    ax3.set_zlabel('z')
 
     '''
     z1 = T_0
@@ -434,35 +468,15 @@ if __name__ == '__main__':
 
     title_str = args.modelpt
     title_str += "\n"
-    title_str += "N=15, d=3, batch=500 + nearest, sigmoid + clamped weights"
+    title_str += "N=15, d=3, batch=%d + nearest, sigmoid + clamped weights" % (batchsize)
     title_str += "\n"
     # title_str += "99875     [5.95e-08, 5.44e-04, 2.50e-02, 2.51e-02]    [5.95e-08, 5.44e-04, 2.50e-02, 2.51e-02]    []"
 
     plt.suptitle(title_str)
 
-    # Option 1
-    # QT backend
-    manager = plt.get_current_fig_manager()
-
-    # try:
-    #     manager.window.showMaximized()
-    # except:
-    #     pass
-
-    # # Option 2
-    # # TkAgg backend
-    # try:
-    #     manager.resize(*manager.window.maxsize())
-    # except:
-    #     pass
-
-    # # Option 3
-    # # WX backend
-    # try:
-    #     manager.frame.Maximize(True)
-    # except:
-    #     pass
-
-    fig.canvas.mpl_connect('key_press_event', lambda e: on_press_saveplot(e, 'rho_opt_bc.png'))
+    fig.canvas.mpl_connect('key_press_event', lambda e: on_press_saveplot(e,
+            'rho_opt_bc_batch=%d.png'  %(batchsize)
+        )
+    )
 
     plt.show()
