@@ -12,6 +12,10 @@ os.environ['XLA_FLAGS'] = "--xla_gpu_cuda_data_dir=/usr/local/home/cyan3/minifor
 print(os.environ['DDE_BACKEND'])
 import deepxde as dde
 
+from deepxde import backend as bkd
+from deepxde.backend import backend_name
+from deepxde.utils import get_num_args, run_if_all_none
+
 def pdf3d(x,y,z,rv):
     return rv.pdf(np.hstack((x, y, z)))
 
@@ -673,6 +677,23 @@ class EarlyStoppingFixed(dde.callbacks.EarlyStopping):
 earlystop_cb = EarlyStoppingFixed(baseline=1e-3, patience=0)
 
 class ModelCheckpoint2(dde.callbacks.ModelCheckpoint):
+    def __init__(
+        self,
+        filepath,
+        verbose=0,
+        save_better_only=False,
+        period=1,
+        extra_comment="",
+        monitor="train loss",
+    ):
+        super().__init__(
+            filepath,
+            verbose,
+            save_better_only,
+            period,
+            monitor)
+        self.extra_comment = extra_comment
+
     def on_epoch_end(self):
         current = self.get_monitor_value()
         if self.monitor_op(current, self.best) and current < 1e-1:
@@ -686,12 +707,23 @@ class ModelCheckpoint2(dde.callbacks.ModelCheckpoint):
                     save_path,
                 ))
 
+            comment = "Epoch {}: {} improved from {:.2e} to {:.2e}, {}".format(
+                    self.model.train_state.epoch,
+                    self.monitor,
+                    self.best,
+                    current,
+                    self.extra_comment,
+                )
+
             test_path = save_path.replace(".pt", "-%d.dat" % (
                 self.model.train_state.epoch))
             test = np.hstack((
                 self.model.train_state.X_test,
                 self.model.train_state.y_pred_test))
-            np.savetxt(test_path, test, header="x, y_pred")
+            np.savetxt(test_path, test,
+                header="x, y_pred",
+                comments=comment,
+            )
             print("saved test data to ", test_path)
 
             self.best = current
@@ -713,3 +745,98 @@ class ModelCheckpoint2(dde.callbacks.ModelCheckpoint):
         return result
 modelcheckpt_cb = ModelCheckpoint2(
     ck_path, verbose=True, save_better_only=True, period=1)
+
+class NonNeg_LastLayer_Model(dde.Model):
+    def _train_sgd(self, iterations, display_every):
+        print("NonNeg_LastLayer_Model training")
+        for i in range(iterations):
+            self.callbacks.on_epoch_begin()
+            self.callbacks.on_batch_begin()
+
+            self.train_state.set_data_train(
+                *self.data.train_next_batch(self.batch_size)
+            )
+            self._train_step(
+                self.train_state.X_train,
+                self.train_state.y_train,
+                self.train_state.train_aux_vars,
+            )
+
+            self.train_state.epoch += 1
+            self.train_state.step += 1
+            if self.train_state.step % display_every == 0 or i + 1 == iterations:
+                self._test()
+
+            self.callbacks.on_batch_end()
+            self.callbacks.on_epoch_end()
+
+            # clamped_weights = self.net.linears[-1].weight[1].clamp(0.0, 1.0)
+
+            clamped_weights = self.net.linears[-1].weight[1].clamp_min(0.0)
+            self.net.linears[-1].weight.data[1] = clamped_weights
+
+            if self.stop_training:
+                break
+
+class WASSPDE(dde.data.TimePDE):
+    def losses(self, targets, outputs, loss_fn, inputs, model, aux=None):
+        if dde.backend.backend_name in ["tensorflow.compat.v1", "tensorflow", "pytorch", "paddle"]:
+            outputs_pde = outputs
+        elif dde.backend.backend_name == "jax":
+            # JAX requires pure functions
+            outputs_pde = (outputs, aux[0])
+
+        f = []
+        if self.pde is not None:
+            if get_num_args(self.pde) == 2:
+                f = self.pde(inputs, outputs_pde)
+            elif get_num_args(self.pde) == 3:
+                if self.auxiliary_var_fn is None:
+                    if aux is None or len(aux) == 1:
+                        raise ValueError("Auxiliary variable function not defined.")
+                    f = self.pde(inputs, outputs_pde, unknowns=aux[1])
+                else:
+                    f = self.pde(inputs, outputs_pde, model.net.auxiliary_vars)
+            if not isinstance(f, (list, tuple)):
+                f = [f]
+
+        if not isinstance(loss_fn, (list, tuple)):
+            loss_fn = [loss_fn] * (len(f) + len(self.bcs))
+        elif len(loss_fn) != len(f) + len(self.bcs):
+            raise ValueError(
+                "There are {} errors, but only {} losses.".format(
+                    len(f) + len(self.bcs), len(loss_fn)
+                )
+            )
+
+        bcs_start = np.cumsum([0] + self.num_bcs)
+        bcs_start = list(map(int, bcs_start))
+        error_f = [fi[bcs_start[-1] :] for fi in f]
+        losses = [
+            loss_fn[i](bkd.zeros_like(error), error) for i, error in enumerate(error_f)
+        ]
+        for i, bc in enumerate(self.bcs):
+            beg, end = bcs_start[i], bcs_start[i + 1]
+            # The same BC points are used for training and testing.
+
+            fun = loss_fn[len(error_f) + i]
+            if "WASS_batch" in fun.__name__:
+                y_pred = outputs[beg:end, bc.component : bc.component + 1]
+                # y_true = bc.values[bc.batch_indices]
+                losses.append(fun(
+                    bc.batch_indices,
+                    y_pred,
+                ))
+            elif "WASS" in fun.__name__:
+                y_pred = outputs[beg:end, bc.component : bc.component + 1]
+                y_true = bc.values
+                losses.append(fun(
+                    y_true,
+                    y_pred,
+                ))
+            else:
+                error = bc.error(self.train_x, inputs, outputs, beg, end)
+                losses.append(fun(
+                    bkd.zeros_like(error),
+                    error))
+        return losses
