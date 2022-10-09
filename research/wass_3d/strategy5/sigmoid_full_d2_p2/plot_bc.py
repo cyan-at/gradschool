@@ -207,44 +207,6 @@ if __name__ == '__main__':
     tT = test[batchsize:2*batchsize, :]
     tt = test[2*batchsize:, :]
 
-    print(tt.shape)
-
-    dphi_dinput_t0 = dphi_dinput[:batchsize, :]
-    dphi_dinput_tT = dphi_dinput[batchsize:2*batchsize, :]
-    dphi_dinput_tt = dphi_dinput[2*batchsize:, :]
-
-    ########################################################
-
-    source_x1 = t0[:, 0]
-    source_x2 = t0[:, 1]
-
-    dphi_dinput_t0_dx = dphi_dinput_t0[:, 0]
-    dphi_dinput_t0_dy = dphi_dinput_t0[:, 1]
-
-    dphi_dinput_tT_dx = dphi_dinput_tT[:, 0]
-    dphi_dinput_tT_dy = dphi_dinput_tT[:, 1]
-
-    x_1_ = np.linspace(state_min, state_max, N)
-    x_2_ = np.linspace(state_min, state_max, N)
-    t_ = np.linspace(T_0, T_t, N)
-    grid_x1, grid_x2, grid_t = np.meshgrid(
-        x_1_,
-        x_2_,
-        t_, copy=False) # each is NxNxN
-
-    # import ipdb; ipdb.set_trace()
-    PSI = gd(
-      (tt[:, 0], tt[:, 1], tt[:, 2]),
-      dphi_dinput_tt[:, 0],
-      (grid_x1, grid_x2, grid_t),
-      method='nearest')
-
-    PSI2 = gd(
-      (tt[:, 0], tt[:, 1], tt[:, 2]),
-      dphi_dinput_tt[:, 1],
-      (grid_x1, grid_x2, grid_t),
-      method='nearest')
-
     ########################################################
 
     rho0 = t0[:, -1]
@@ -288,6 +250,49 @@ if __name__ == '__main__':
     ax1.set_ylabel('y')
     ax1.set_zlabel('t')
     ax1.set_title('rho_opt')
+
+    ########################################################
+
+    dphi_dinput_t0 = dphi_dinput[:batchsize, :]
+    dphi_dinput_tT = dphi_dinput[batchsize:2*batchsize, :]
+    dphi_dinput_tt = dphi_dinput[2*batchsize:, :]
+    print(
+        np.max(dphi_dinput_t0),
+        np.max(dphi_dinput_tT),
+        np.max(dphi_dinput_tt)
+    )
+
+    ########################################################
+
+    source_x1 = t0[:, 0]
+    source_x2 = t0[:, 1]
+
+    dphi_dinput_t0_dx = dphi_dinput_t0[:, 0]
+    dphi_dinput_t0_dy = dphi_dinput_t0[:, 1]
+
+    dphi_dinput_tT_dx = dphi_dinput_tT[:, 0]
+    dphi_dinput_tT_dy = dphi_dinput_tT[:, 1]
+
+    x_1_ = np.linspace(state_min, state_max, N)
+    x_2_ = np.linspace(state_min, state_max, N)
+    t_ = np.linspace(T_0, T_t, N)
+    grid_x1, grid_x2, grid_t = np.meshgrid(
+        x_1_,
+        x_2_,
+        t_, copy=False) # each is NxNxN
+
+    # import ipdb; ipdb.set_trace()
+    PSI = gd(
+      (tt[:, 0], tt[:, 1], tt[:, 2]),
+      dphi_dinput_tt[:, 0],
+      (grid_x1, grid_x2, grid_t),
+      method='nearest')
+
+    PSI2 = gd(
+      (tt[:, 0], tt[:, 1], tt[:, 2]),
+      dphi_dinput_tt[:, 1],
+      (grid_x1, grid_x2, grid_t),
+      method='nearest')
 
     ########################################################
 

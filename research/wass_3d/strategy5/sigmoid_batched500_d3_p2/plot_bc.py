@@ -251,6 +251,8 @@ if __name__ == '__main__':
     x_1_ = np.linspace(state_min, state_max, N)
     x_2_ = np.linspace(state_min, state_max, N)
     x_3_ = np.linspace(state_min, state_max, N)
+    t_ = np.linspace(T_0, T_t, N*2)
+
     grid_x1, grid_x2, grid_x3 = np.meshgrid(
         x_1_,
         x_2_,
@@ -341,129 +343,6 @@ if __name__ == '__main__':
     ax3.set_ylabel('y')
     ax3.set_zlabel('z')
 
-    '''
-    z1 = T_0
-    z2 = T_t
-
-    ax1.contourf(
-        meshes[0],
-        meshes[1],
-        rho0.reshape(N, N),
-        50, zdir='z',
-        cmap=cm.jet,
-        offset=z1,
-        alpha=0.4
-    )
-
-    ax1.contourf(
-        meshes[0],
-        meshes[1],
-        rhoT.reshape(N, N),
-        50, zdir='z',
-        cmap=cm.jet,
-        offset=z2,
-        alpha=0.4,
-    )
-
-    ax1.set_xlim(state_min, state_max)
-    ax1.set_zlim(T_0 - 0.1, T_t + 0.1)
-
-    ax1.set_xlabel('x')
-    ax1.set_ylabel('y')
-    ax1.set_zlabel('t')
-    ax1.set_title('rho_opt')
-
-    ########################################################
-
-    ax2 = fig.add_subplot(1, 3, 2, projection='3d')
-
-    z1 = T_0
-    z2 = T_t
-
-    ax2.contourf(
-        meshes[0],
-        meshes[1],
-        dphi_dinput_t0_dx.reshape(N, N),
-        50, zdir='z',
-        cmap=cm.jet,
-        offset=z1,
-        alpha=0.4
-    )
-
-    ax2.contourf(
-        meshes[0],
-        meshes[1],
-        dphi_dinput_tT_dx.reshape(N, N),
-        50, zdir='z',
-        cmap=cm.jet,
-        offset=z2,
-        alpha=0.4,
-    )
-
-    sc2=ax2.scatter(
-        grid_x1,
-        grid_x2,
-        grid_t,
-        c=PSI,
-        s=np.abs(PSI*20000),
-        cmap=cm.jet,
-        alpha=1.0)
-    plt.colorbar(sc2, shrink=0.25)
-
-    ax2.set_xlim(state_min, state_max)
-    ax2.set_zlim(T_0 - 0.1, T_t + 0.1)
-
-    ax2.set_xlabel('x')
-    ax2.set_ylabel('y')
-    ax2.set_zlabel('t')
-    ax2.set_title('dphi_dx')
-
-    ########################################################
-
-    ax3 = fig.add_subplot(1, 3, 3, projection='3d')
-
-    z1 = T_0
-    z2 = T_t
-
-    ax3.contourf(
-        meshes[0],
-        meshes[1],
-        dphi_dinput_t0_dy.reshape(N, N),
-        50, zdir='z',
-        cmap=cm.jet,
-        offset=z1,
-        alpha=0.4
-    )
-
-    ax3.contourf(
-        meshes[0],
-        meshes[1],
-        dphi_dinput_tT_dy.reshape(N, N),
-        50, zdir='z',
-        cmap=cm.jet,
-        offset=z2,
-        alpha=0.4,
-    )
-
-    sc3=ax3.scatter(
-        grid_x1,
-        grid_x2,
-        grid_t,
-        c=PSI2,
-        s=np.abs(PSI2*20000),
-        cmap=cm.jet,
-        alpha=1.0)
-    plt.colorbar(sc3, shrink=0.25)
-
-    ax3.set_xlim(state_min, state_max)
-    ax3.set_zlim(T_0 - 0.1, T_t + 0.1)
-
-    ax3.set_xlabel('x')
-    ax3.set_ylabel('y')
-    ax3.set_zlabel('t')
-    ax3.set_title('dphi_dy')
-    '''
-
     ########################################################
 
     title_str = args.modelpt
@@ -480,3 +359,73 @@ if __name__ == '__main__':
     )
 
     plt.show()
+
+    ########################################################
+
+    DPHI_DINPUT_t0_0 = gd(
+      (t0[:, 0], t0[:, 1], t0[:, 2]), dphi_dinput_t0[:, 0],
+      (grid_x1, grid_x2, grid_x3),
+      method='nearest')
+    DPHI_DINPUT_t0_1 = gd(
+      (t0[:, 0], t0[:, 1], t0[:, 2]), dphi_dinput_t0[:, 1],
+      (grid_x1, grid_x2, grid_x3),
+      method='nearest')
+    DPHI_DINPUT_t0_2 = gd(
+      (t0[:, 0], t0[:, 1], t0[:, 2]), dphi_dinput_t0[:, 2],
+      (grid_x1, grid_x2, grid_x3),
+      method='nearest')
+    t0={
+        '0': DPHI_DINPUT_t0_0,
+        '1': DPHI_DINPUT_t0_1,
+        '2': DPHI_DINPUT_t0_2
+    }
+    np.save('t0.npy', t0)
+    del t0
+
+    DPHI_DINPUT_tT_0 = gd(
+      (tT[:, 0], tT[:, 1], tT[:, 2]), dphi_dinput_tT[:, 0],
+      (grid_x1, grid_x2, grid_x3),
+      method='nearest')
+    DPHI_DINPUT_tT_1 = gd(
+      (tT[:, 0], tT[:, 1], tT[:, 2]), dphi_dinput_tT[:, 1],
+      (grid_x1, grid_x2, grid_x3),
+      method='nearest')
+    DPHI_DINPUT_tT_2 = gd(
+      (tT[:, 0], tT[:, 1], tT[:, 2]), dphi_dinput_tT[:, 2],
+      (grid_x1, grid_x2, grid_x3),
+      method='nearest')
+    tT={
+        '0': DPHI_DINPUT_tT_0,
+        '1': DPHI_DINPUT_tT_1,
+        '2': DPHI_DINPUT_tT_2
+    }
+    np.save('tT.npy', tT)
+    del tT
+
+    grid_x1, grid_x2, grid_x3, grid_t = np.meshgrid(
+        x_1_,
+        x_2_,
+        x_3_,
+        t_, copy=False) # each is NxNxN
+    DPHI_DINPUT_tt_0 = gd(
+      (tt[:, 0], tt[:, 1], tt[:, 2], tt[:, 3]),
+      dphi_dinput_tt[:, 0],
+      (grid_x1, grid_x2, grid_x3, grid_t),
+      method='nearest')
+    DPHI_DINPUT_tt_1 = gd(
+      (tt[:, 0], tt[:, 1], tt[:, 2], tt[:, 3]),
+      dphi_dinput_tt[:, 1],
+      (grid_x1, grid_x2, grid_x3, grid_t),
+      method='nearest')
+    DPHI_DINPUT_tt_2 = gd(
+      (tt[:, 0], tt[:, 1], tt[:, 2], tt[:, 3]),
+      dphi_dinput_tt[:, 2],
+      (grid_x1, grid_x2, grid_x3, grid_t),
+      method='nearest')
+    tt={
+        '0': DPHI_DINPUT_tt_0,
+        '1': DPHI_DINPUT_tt_1,
+        '2': DPHI_DINPUT_tt_2
+    }
+    np.save('tt.npy', tt)
+    del tt
