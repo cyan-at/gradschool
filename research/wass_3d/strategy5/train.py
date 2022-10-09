@@ -208,7 +208,7 @@ def get_model(d, N):
             C_temp)
         C_temp_device = C_temp_device.to(device).requires_grad_(False)
     
-        y_pred_max = -torch.max(y_pred)
+        y_pred_proxy = torch.min(y_pred)
 
         y_pred = torch.where(y_pred < 0, 0, y_pred)
 
@@ -223,7 +223,7 @@ def get_model(d, N):
             # this is BETTER than checking if max is negative
             # because pinn could output a very small
             # positive value, and overcome that case
-            return -y_pred_max
+            return -y_pred_proxy
 
         # if s > 1e-2:
         #     y_pred /= s # into pmf
@@ -254,7 +254,7 @@ def get_model(d, N):
             C_temp)
         C_temp_device = C_temp_device.to(device).requires_grad_(False)
 
-        y_pred_max = -torch.max(y_pred)
+        y_pred_proxy = torch.min(y_pred)
 
         y_pred = torch.where(y_pred < 0, 0, y_pred)
 
@@ -269,7 +269,7 @@ def get_model(d, N):
             # this is BETTER than checking if max is negative
             # because pinn could output a very small
             # positive value, and overcome that case
-            return -y_pred_max
+            return -y_pred_proxy
 
         # if s > 1e-3:
         #     y_pred /= s # into pmf
