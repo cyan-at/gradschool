@@ -379,8 +379,6 @@ if __name__ == '__main__':
         '1': DPHI_DINPUT_t0_1,
         '2': DPHI_DINPUT_t0_2
     }
-    np.save('t0.npy', t0)
-    del t0
 
     DPHI_DINPUT_tT_0 = gd(
       (tT[:, 0], tT[:, 1], tT[:, 2]), dphi_dinput_tT[:, 0],
@@ -399,8 +397,6 @@ if __name__ == '__main__':
         '1': DPHI_DINPUT_tT_1,
         '2': DPHI_DINPUT_tT_2
     }
-    np.save('tT.npy', tT)
-    del tT
 
     grid_x1, grid_x2, grid_x3, grid_t = np.meshgrid(
         x_1_,
@@ -427,5 +423,10 @@ if __name__ == '__main__':
         '1': DPHI_DINPUT_tt_1,
         '2': DPHI_DINPUT_tt_2
     }
-    np.save('tt.npy', tt)
-    del tt
+
+    np.save('all_control_data.npy', 
+        {
+            't0' : t0,
+            'tT' : tT,
+            'tt' : tt
+        })
