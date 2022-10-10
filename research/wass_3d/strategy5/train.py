@@ -191,29 +191,12 @@ def get_model(d, N):
     # import ipdb; ipdb.set_trace()
 
     def rho0_WASS_batch_cuda0(y_true, y_pred):
-        n = torch.numel(y_pred)
-
-        p1 = (y_pred<0).sum()  # negative terms
-
         # print(y_pred.shape)
         # print(y_true.shape)
 
-        rho0_temp_tensor = torch.from_numpy(
-            rho0[y_true],
-        )
-        rho0_temp_tensor = rho0_temp_tensor.to(device).requires_grad_(False)
+        p1 = (y_pred<0).sum()  # negative terms
 
-        C_temp = cdist(state[y_true, :], state[y_true, :], 'sqeuclidean')
-        C_temp_device = torch.from_numpy(
-            C_temp)
-        C_temp_device = C_temp_device.to(device).requires_grad_(False)
-    
-        y_pred_proxy = torch.min(y_pred)
-
-        y_pred = torch.where(y_pred < 0, 0, y_pred)
-
-        s = torch.sum(y_pred)
-        p2 = torch.abs(s - 1)
+        p2 = torch.abs(torch.sum(y_pred) - 1)
 
         if s < 1e-3:
             # mostly negative, then do not compute
@@ -232,6 +215,24 @@ def get_model(d, N):
 
         # if s > 1e-2:
         #     y_pred /= s # into pmf
+
+        ##############################
+
+        n = torch.numel(y_pred)
+
+        rho0_temp_tensor = torch.from_numpy(
+            rho0[y_true],
+        )
+        rho0_temp_tensor = rho0_temp_tensor.to(device).requires_grad_(False)
+
+        C_temp = cdist(state[y_true, :], state[y_true, :], 'sqeuclidean')
+        C_temp_device = torch.from_numpy(
+            C_temp)
+        C_temp_device = C_temp_device.to(device).requires_grad_(False)
+
+        y_pred_proxy = torch.min(y_pred)
+
+        y_pred = torch.where(y_pred < 0, 0, y_pred)
 
         dist, _, _ = sinkhorn0(
             C_temp_device,

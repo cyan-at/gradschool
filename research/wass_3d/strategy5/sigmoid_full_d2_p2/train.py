@@ -188,7 +188,7 @@ def get_model(d, N):
     timedomain = dde.geometry.TimeDomain(0., T_t)
     geomtime = dde.geometry.GeometryXTime(geom, timedomain)
 
-    data = dde.data.TimePDE(
+    data = WASSPDE(
         geomtime,
         euler_pdes[d],
         [rho_0_BC,rho_T_BC],

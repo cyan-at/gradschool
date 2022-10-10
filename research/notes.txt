@@ -1989,12 +1989,249 @@ torch.matmul(t.t(), s)
 torch.einsum('ji, j->i', t, s)
 
 #########################################################
+
+vs08:
+sigmoid, batched, d=3, + p2
+HEALTHY
+
+vs04:
+sigmoid, batched, d=3, no p2
+STUCK, STOPPED
+
+vs07:
+tanh, batched, d=3, p1+p2
+STUCK
+
+vs01:
+sigmoid, batched 750, d=3, dist + p2
+STUCK, STOPPED
+
 #########################################################
+
+stop normalizing into a pmf, maybe that's why it gets 'stuck'
+because the sum could be very high, so pmf is very low?
+
+normalize p1, p2 by numel in y_pred, to not overwhelm sinkhorn dist
+
 #########################################################
+
+tensor(0., grad_fn=<SumBackward0>)
+tensor(0., grad_fn=<SumBackward0>)
+tensor(0., grad_fn=<SumBackward0>)
+33        [5.38e-02, 8.11e-01, 4.85e+00, 1.03e+01] 
+
+tanh / negative pinn output getting 'stuck'
+also see in sigmoid output, getting 'stuck' with all 0 output?
+
+45        [5.42e-02, 3.59e-01, 3.58e+00, 5.01e+02]    [5.42e-02, 3.59e-01, 3.58e+00, 5.01
+e+02]    []
+tensor(19.070, grad_fn=<SumBackward0>)
+tensor(0., grad_fn=<SumBackward0>)
+tensor(18.531, grad_fn=<SumBackward0>)
+tensor(0., grad_fn=<SumBackward0>)
+tensor(18.531, grad_fn=<SumBackward0>)
+tensor(0., grad_fn=<SumBackward0>)
+46        [5.05e-02, 3.29e-01, 3.57e+00, 5.01e+02]    [5.05e-02, 3.29e-01, 3.57e+00, 5.01
+e+02]    []
+tensor(18.531, grad_fn=<SumBackward0>)
+tensor(0., grad_fn=<SumBackward0>)
+tensor(18.319, grad_fn=<SumBackward0>)
+tensor(0., grad_fn=<SumBackward0>)
+tensor(18.319, grad_fn=<SumBackward0>)
+tensor(0., grad_fn=<SumBackward0>)
+47        [4.77e-02, 3.04e-01, 3.56e+00, 5.01e+02]    [4.77e-02, 3.04e-01, 3.56e+00, 5.01
+e+02]    []
+tensor(18.319, grad_fn=<SumBackward0>)
+tensor(0., grad_fn=<SumBackward0>)
+tensor(18.892, grad_fn=<SumBackward0>)
+tensor(0., grad_fn=<SumBackward0>)
+tensor(18.892, grad_fn=<SumBackward0>)
+tensor(0., grad_fn=<SumBackward0>)
+
+
+for tanh, what happens is
+the output starts high
+is penalized for not summing to 1
+so it drops
+and then hits negative output
+and then the loss zero's the output to 0
+and the gradient is based on the neg count + diff to 1
+
+but i think the diff to 1 operation masks the problem
+so it gets stuck on a negative output
+
+and the summing of the negative count, nor the diff to 1 is a good gradient to tell pinn to 'multiply -1' the outputs
+instead, 
+
+y_pred_proxy = torch.min(y_pred)
+
+y_pred = torch.where(y_pred < 0, 0, y_pred)
+
+s = torch.sum(y_pred)
+p2 = torch.abs(s - 1)
+
+if s < 1e-3:
+    # mostly negative, then do not compute
+    # wass distance
+    # to avoid getting 'stuck' in 0 gradient
+    
+    # this is BETTER than checking if max is negative
+    # because pinn could output a very small
+    # positive value, and overcome that case
+    if y_pred_proxy < 0.0:
+        return -y_pred_proxy
+    else:
+        # for the sigmoid case where output is always non-negative
+        # this steers the pinn to outputing a higher sum
+        return 1 - y_pred_proxy
+
+40        [5.23e-02, 5.94e-01, 4.05e+00, 9.17e-02]    [5.23e-02, 5.94e-01, 4.05e+00, 9.17e-02]    []
+tensor(22.070, grad_fn=<SumBackward0>)
+tensor(0., grad_fn=<SumBackward0>)
+tensor(23.961, grad_fn=<SumBackward0>)
+tensor(0., grad_fn=<SumBackward0>)
+tensor(23.961, grad_fn=<SumBackward0>)
+tensor(0., grad_fn=<SumBackward0>)
+41        [5.13e-02, 5.90e-01, 3.96e+00, 2.05e-02]    [5.13e-02, 5.90e-01, 3.96e+00, 2.05e-02]    []
+tensor(23.961, grad_fn=<SumBackward0>)
+tensor(0., grad_fn=<SumBackward0>)
+tensor(26.096, grad_fn=<SumBackward0>)
+tensor(0.134, grad_fn=<SumBackward0>)
+tensor(26.096, grad_fn=<SumBackward0>)
+tensor(0.134, grad_fn=<SumBackward0>)
+42        [5.03e-02, 5.93e-01, 3.85e+00, 3.07e+01]    [5.03e-02, 5.93e-01, 3.85e+00, 3.07e+01]    []
+tensor(26.096, grad_fn=<SumBackward0>)
+tensor(0.134, grad_fn=<SumBackward0>)
+tensor(24.972, grad_fn=<SumBackward0>)
+tensor(5.837, grad_fn=<SumBackward0>)
+tensor(24.972, grad_fn=<SumBackward0>)
+tensor(5.837, grad_fn=<SumBackward0>)
+43        [4.91e-02, 6.26e-01, 3.81e+00, 2.37e+01]    [4.91e-02, 6.26e-01, 3.81e+00, 2.37e+01]    []
+tensor(24.972, grad_fn=<SumBackward0>)
+tensor(5.837, grad_fn=<SumBackward0>)
+tensor(23.701, grad_fn=<SumBackward0>)
+tensor(31.979, grad_fn=<SumBackward0>)
+tensor(23.701, grad_fn=<SumBackward0>)
+tensor(31.979, grad_fn=<SumBackward0>)
+
 #########################################################
+
+vs07:
+tanh, batched 500, d=3
+
+vs01:
+sigmoid, batched 750, d=3
+
 #########################################################
+
+27343     [1.98e-09, 3.47e-04, 1.04e+00, 1.02e+00]    [1.98e-09, 3.47e-04, 1.04e+00, 1.02
+e+00]    []
+27344     [1.98e-09, 3.50e-04, 1.04e+00, 1.03e+00]    [1.98e-09, 3.50e-04, 1.04e+00, 1.03
+e+00]    []
+27345     [1.94e-09, 3.39e-04, 1.05e+00, 1.03e+00]    [1.94e-09, 3.39e-04, 1.05e+00, 1.03
+e+00]    []
+27346     [1.93e-09, 3.42e-04, 1.04e+00, 1.03e+00]    [1.93e-09, 3.42e-04, 1.04e+00, 1.03
+e+00]    []
+27347     [1.98e-09, 3.54e-04, 1.05e+00, 1.03e+00]    [1.98e-09, 3.54e-04, 1.05e+00, 1.03
+e+00]    []
+27348     [2.02e-09, 3.55e-04, 1.05e+00, 1.03e+00]    [2.02e-09, 3.55e-04, 1.05e+00, 1.03
+e+00]    []
+27349     [1.92e-09, 3.45e-04, 1.04e+00, 1.03e+00]    [1.92e-09, 3.45e-04, 1.04e+00, 1.03
+e+00]    []
+
+but you see, the pinn if punished for the MINIMUM element
+will exactly tune just that one element? so it gets only slightly less stuck, but it is still stuck
+
+the correction /gradient must be global
+
 #########################################################
+
+sigmoid:
+weights are dialed down but can be dialed TOO LOW
+
+so the sum ~= 0, and gradients are very small, so it gets STUCK
+
+
 #########################################################
+
+41019     [7.83e-07, 9.54e-05, 1.14e+00, 9.53e-01]    [7.83e-07, 9.54e-05, 1.14e+00, 9.53e-01]    []  
+41020     [7.83e-07, 9.54e-05, 1.14e+00, 9.53e-01]    [7.83e-07, 9.54e-05, 1.14e+00, 9.53e-01]    []  
+41021     [7.83e-07, 9.53e-05, 1.14e+00, 9.53e-01]    [7.83e-07, 9.53e-05, 1.14e+00, 9.53e-01]    []  
+41022     [7.83e-07, 9.52e-05, 1.14e+00, 9.53e-01]    [7.83e-07, 9.52e-05, 1.14e+00, 9.53e-01]    []  
+
+#####################################################
+
+scp cyan3@vipersim01.ndc.nasa.gov:/home/cyan3/Desktop/gradschool/research/wass_3d/strategy5/wass_3d_model-21717* .
+
+./plot_bc.py --testdat ./wass_3d_model-60970-60970.dat --modelpt ./wass_3d_model-60970.pt --diff_on_cpu 0 --fullstate 0
+
+./plot_bc.py --testdat ./wass_3d_model-21717-21717.dat --modelpt ./wass_3d_model-21717.pt --diff_on_cpu 0
+
+./distribution0.py --control_data ./wass_3d_model-60970_3375_all_control_data.npy
+
+/home/cyan3/Desktop/gradschool/research/wass_3d/strategy5/wass_3d_model-79422
+
+vs08: wrapping up a good thing, lucky
+
+vs01: STUCK!, cancelled
+vs01: training on T_t = 5
+
+vs04: T_t = 5 training
+
+scorpius: grid interpolated linearly the dphi_dx/y/z and integrating with 30 time samples
+
+if this does NOT work, it means:
+
+sigmoid activation and clamped last layer weights for the shroedinger equation is NOT correct
+or
+what???
+
+RHO_0 sum 5.781647
+RHO_T sum 12.583499
+
+#########################################################
+
+distribution forced system NOT working
+    linear interpolation for dphi_dx/y/z
+    grid lookup by l2 norm argmin
+    either 3 axis lookup or 4 axis
+
+    integration from T_0 to T_t (20s) with 30 time samples
+
+    concern 1 (training):
+    RHO_0 sums to 6
+    RHO_T sums to 12
+    natively, they are not PMFs
+
+    concern 2 (math):
+    sigmoid activation, clmaped last-layer weights
+    so not correctly solving the planck equation?
+
+    concer 3 (training):
+    maybe q = 0.0 is an issue?
+
+    not clear what's wrong
+
+but running plot_bc with fullstate or batched shows similar distributions, so batching preserves correctness
+
+#########################################################
+
+vs08 finishes:
+
+Best model at step 96420:
+  train loss: 1.16e-02
+  test loss: 1.16e-02
+  test metric: []
+
+'train' took 210666.569459 s
+
+scp cyan3@vipersim08.ndc.nasa.gov:/home/cyan3/gradschool/research/wass_3d/strategy5/wass_3d_model-99505* .
+scp cyan3@vipersim08.ndc.nasa.gov:/home/cyan3/gradschool/research/wass_3d/strategy5/loss.dat .
+scp cyan3@vipersim08.ndc.nasa.gov:/home/cyan3/gradschool/research/wass_3d/strategy5/test.dat .
+scp cyan3@vipersim08.ndc.nasa.gov:/home/cyan3/gradschool/research/wass_3d/strategy5/train.dat .
+
+../../../plot_loss_func.py --lossdat ./loss.dat --modelpt ./wass_3d_model-99505.pt
+
 #########################################################
 #########################################################
 #########################################################
@@ -2469,3 +2706,221 @@ https://jakevdp.github.io/PythonDataScienceHandbook/04.12-three-dimensional-plot
 https://www.tutorialspoint.com/plotting-an-imshow-image-in-3d-in-matplotlib
 https://gist.github.com/WetHat/1d6cd0f7309535311a539b42cccca89c
 https://matplotlib.org/stable/api/_as_gen/matplotlib.patches.FancyArrowPatch.html
+
+https://www.physicsread.com/latex-plus-minus/
+https://mathworld.wolfram.com/L2-Norm.html
+https://www.google.com/search?q=l1+norm&oq=l1+norm&aqs=chrome..69i57j69i59.728j0j7&sourceid=chrome&ie=UTF-8
+https://math.stackexchange.com/questions/2157042/1-norm-less-than-or-equal-to-n-times-infinity-norm
+https://www.google.com/search?q=torch.div&oq=torch.div&aqs=chrome..69i57j69i60.2472j0j7&sourceid=chrome&ie=UTF-8
+https://math.stackexchange.com/questions/1463140/proof-for-why-a-matrix-multiplied-by-its-transpose-is-positive-semidefinite
+https://stackoverflow.com/questions/45604688/apply-function-on-each-row-row-wise-of-a-numpy-array
+https://numpy.org/doc/stable/reference/generated/numpy.ndarray.view.html
+https://matplotlib.org/stable/gallery/mplot3d/scatter3d.html
+https://math.stackexchange.com/questions/957465/relationship-between-inner-product-and-norm
+https://math.stackexchange.com/questions/1393301/frobenius-norm-of-product-of-matrix
+https://mathworld.wolfram.com/VectorNorm.html
+https://www.google.com/search?q=l2+norm+notation&oq=l2+norm+notation&aqs=chrome..69i57.4130j0j7&sourceid=chrome&ie=UTF-8
+https://math.stackexchange.com/questions/1954167/do-positive-semidefinite-matrices-have-to-be-symmetric
+https://mathworld.wolfram.com/MatrixDiagonalization.html#:~:text=Matrix%20diagonalization%20is%20the%20process,properties%20of%20the%20underlying%20matrix.
+https://en.wikipedia.org/wiki/Eigendecomposition_of_a_matrix
+https://findstuffsonline.com/jessica-barlett-latest-hd-pictures-and-wallpapers/
+https://mathinsight.org/dot_product_matrix_notation
+https://math.stackexchange.com/questions/2517797/does-a-symmetric-matrix-necessarily-have-a-symmetric-square-root
+https://numpy.org/doc/stable/reference/generated/numpy.linspace.html
+https://problemsolvingwithpython.com/06-Plotting-with-Matplotlib/06.16-3D-Surface-Plots/
+https://www.google.com/search?q=sublime+text+jump+to+end+of+file&oq=sublime+text+jump+to+end+of+file&aqs=chrome..69i57.3608j0j7&sourceid=chrome&ie=UTF-8
+https://en.wikipedia.org/wiki/Eigendecomposition_of_a_matrix
+https://en.wikipedia.org/wiki/Diagonalizable_matrix
+https://math.stackexchange.com/questions/1956787/uniqueness-of-orthogonal-decomposition-of-a-symmetric-matrix
+https://www.google.com/search?q=positive+semidefinite+symmetric+matrices+cos+of+angles&sxsrf=ALiCzsaDU9I0zaK8ejMVeFYCr-ZyswN9Tg:1664738874396&ei=OuY5Y97jF_jbkPIPzY-n6Ac&start=10&sa=N&ved=2ahUKEwje6IHKo8L6AhX4LUQIHc3HCX0Q8tMDegQIARA7&biw=1024&bih=1042&dpr=1.25
+https://en.wikipedia.org/wiki/Orthogonal_matrix#Matrix_properties
+https://math.stackexchange.com/questions/653133/eigenvalues-in-orthogonal-matrices
+https://math.stackexchange.com/questions/2822149/clarification-is-it-true-trace-of-ata-is-induced-matrix-norm-squared
+https://math.stackexchange.com/questions/33083/what-is-the-difference-between-the-frobenius-norm-and-the-2-norm-of-a-matrix
+https://en.wikipedia.org/wiki/Lp_space
+https://math.stackexchange.com/questions/4159983/derivation-of-l2-norm-of-matrix-formula
+https://www.google.com/search?q=frobenius+norm+of+matrix&sxsrf=ALiCzsYko_RP4NO4M_wiQBs5IctW1trGjw%3A1664742914837&ei=AvY5Y-TNMpvEqtsP37qtgAY&ved=0ahUKEwjk1tLQssL6AhUbomoFHV9dC2AQ4dUDCA4&uact=5&oq=frobenius+norm+of+matrix&gs_lcp=Cgdnd3Mtd2l6EAMyBQgAEIAEMgUIABCABDIGCAAQHhAWMgYIABAeEBYyBggAEB4QFjIGCAAQHhAWMgYIABAeEBYyBggAEB4QFjIGCAAQHhAWMgYIABAeEBY6CggAEEcQ1gQQsAM6CggAEIAEEIcCEBRKBAhBGABKBAhGGABQwQRY9gpgyAtoAXABeACAAY4CiAGCDpIBAzItN5gBAKABAcgBCMABAQ&sclient=gws-wiz
+https://pytorch.org/docs/stable/generated/torch.matmul.html
+https://en.wikipedia.org/wiki/Matrix_norm#Square_matrices
+https://en.wikipedia.org/wiki/Matrix_norm#Matrix_norms_induced_by_vector_norms
+https://en.wikipedia.org/wiki/Rayleigh_quotient
+https://en.wikipedia.org/wiki/Lagrange_multiplier
+https://en.wikipedia.org/wiki/Mathematical_optimization
+https://mathworld.wolfram.com/L2-Norm.html
+https://www.google.com/search?q=l2+norm+of+matrix+is+equal+to+product+transpose&oq=l2+norm+of+matrix+is+equal+to+product+transpose&aqs=chrome..69i57.13260j0j7&sourceid=chrome&ie=UTF-8
+https://linuxtect.com/move-end-of-line-in-vim-vi/#:~:text=We%20may%20need%20to%20end%20the%20last%20line%20from%20anywhere,the%20end%20of%20the%20line.
+https://linuxtect.com/how-to-make-bash-script-executable-with-chmod/
+https://math.stackexchange.com/questions/1274924/eigenvalues-of-ata
+https://www.youtube.com/watch?v=kG8yaAjkNQE
+https://www.google.com/search?q=orthogonal+matrix+product+with+transpose&oq=orthogonal+matrix+product+with+transpose&aqs=chrome..69i57.6791j0j7&sourceid=chrome&ie=UTF-8
+https://www.google.com/search?q=eigenvalue+of+square+matrix+transposed&oq=eigenvalue+of+square+matrix+transposed&aqs=chrome..69i57.4403j0j7&sourceid=chrome&ie=UTF-8
+https://www.google.com/search?q=matrix+characteristic+polynomial&oq=matrix+characteristic+polynomial&aqs=chrome..69i57.4097j0j7&sourceid=chrome&ie=UTF-8
+https://montjoile.medium.com/l0-norm-l1-norm-l2-norm-l-infinity-norm-7a7d18a4f40c#:~:text=If%20the%20L0%20norm%20of,username%20and%20password%20are%20incorrect.
+https://math.stackexchange.com/questions/3967922/singular-values-and-matrix-rank
+https://math.berkeley.edu/~hutching/teach/54-2017/svd-notes.pdf
+https://en.wikipedia.org/wiki/Normal_matrix
+https://math.stackexchange.com/questions/1754712/orthogonal-matrix-norm
+https://math.stackexchange.com/questions/3249516/orthogonal-matrices-and-matrix-norms
+https://math.stackexchange.com/questions/2105555/proof-that-the-2-norm-of-orthogonal-transformation-of-a-matrix-is-invariant
+https://www.google.com/search?q=orthogonal+matrix+preserves+l2+matrix+norm+site:math.stackexchange.com&sxsrf=ALiCzsZHh2yM-ONv_7hCNLmxUE-VzWCCZQ:1664818497262&ei=QR07Y67XD9zgkPIPnPSQ2Ag&start=10&sa=N&ved=2ahUKEwju-5OZzMT6AhVcMEQIHRw6BIsQ8tMDegQIARA7&biw=1225&bih=687&dpr=1.25
+https://math.stackexchange.com/questions/586663/why-does-the-spectral-norm-equal-the-largest-singular-value
+https://www.google.com/search?q=spectral+norm%2C+l2+norm+frobenius+norm&oq=spectral+norm%2C+l2+norm+frobenius+norm&aqs=chrome..69i57.4782j0j7&sourceid=chrome&ie=UTF-8
+https://en.wikipedia.org/wiki/Lp_space
+https://en.wikipedia.org/wiki/Cauchy%E2%80%93Schwarz_inequality
+https://www.google.com/search?q=l1+norm&oq=l1+norm&aqs=chrome.0.69i59l4j69i60.1726j0j7&sourceid=chrome&ie=UTF-8
+https://en.wikipedia.org/wiki/Unitary_matrix
+https://montjoile.medium.com/l0-norm-l1-norm-l2-norm-l-infinity-norm-7a7d18a4f40c
+https://math.stackexchange.com/questions/1378075/does-an-n-times-n-matrix-a-only-have-an-inverse-if-ranka-n-if-so-why
+
+
+https://noodlemagazine.com/watch/-152128902_456240589
+https://noodlemagazine.com/watch/226200998_169032219
+https://noodlemagazine.com/watch/-110014691_456239537
+https://noodlemagazine.com/watch/-148989495_456244804
+https://noodlemagazine.com/watch/-200562178_456239277
+https://www.nudevista.com/?q=tiffany+tyler+massage&s=t&start=25
+https://txxx.com/videos/15284169/tiffany-tyler-amazing-massage/?promo=10376
+https://www.tnaflix.com/search.php?what=tiffany%20tyler&tab=
+https://www.tnaflix.com/hardcore-porn/Sweetheart-brunette-Tiffany-Tyler-gets-laid/video1625296?isFeatured=0
+https://www.tnaflix.com/celebrity-porn/Tiffany-Tyler-nude-Erotic-Karma-2012/video2940235?isFeatured=0
+https://www.tnaflix.com/hd-videos/Young-babe-Tiffany-Tyler-fucked-hard-by-monster-white-dick/video4054174?isFeatured=0
+https://www.tnaflix.com/big-boobs/Capri-Cavanni-and-Tiffany-Tyler-in-Rent-Reduction/video4828121?isFeatured=0
+https://www.eporner.com/hd-porn/Y26vP1kfgT8/Hard-Cock-Needs-Massage/
+https://www.tnaflix.com/babe-videos/Tiffany-Tyler-Fuckedhard-18.mp4/video6512180#
+https://www.sextvx.com/video/705379/tiffany-tyler-massage-parlor
+https://www.tnaflix.com/big-boobs/LezBFriends-Party-With-Puma-Swede-Nina-Elle-Tiffany-Tyler%21/video4191157?isFeatured=0
+https://www.tnaflix.com/asian-porn/AMWF-Tiffany-Tyler-interracial-with-Asian-guy-video-1/video957531?isFeatured=0
+https://www.youporn.com/search/?query=tiffany+tyler&page=2
+https://www.youporn.com/watch/16945328/sexy-tiffany-cant-get-enough-of-this-giant-white-dick/
+https://www.youporn.com/watch/16827570/abigail-mac-eats-out-tiffany-tyler/
+https://www.youporn.com/watch/15520006/two-sexy-pornstar-kiss-and-lick-each-other-to-an-orgasm/
+https://www.youporn.com/watch/11563325/hayden-hawkins-and-tiffany-tyler-girl-bang/
+https://www.youporn.com/watch/335200/tiffany-tyler-thanks-for-the-tattoo/
+https://www.youporn.com/watch/9384215/tiffany-tyler-licking-out-lola-foxx/
+https://www.youporn.com/watch/12648763/reallesbianexposed-unexpected-wild-lesbian-threesome/
+
+https://colab.research.google.com/drive/1bzCH3Yaq8gK0ZByxlcaRaj3pOc2u6zht#scrollTo=ezUlfYJ59jWl
+https://stackoverflow.com/questions/65900110/does-pytorch-broadcast-consume-less-memory-than-expand
+https://pytorch.org/docs/stable/generated/torch.Tensor.expand.html
+https://pytorch.org/docs/stable/generated/torch.Tensor.set_.html
+https://www.google.com/search?q=pytorch+unsqueeze+without+memory&sxsrf=ALiCzsY81Q1FJANuS0TdMlc0PJmq1F-xMQ%3A1664902130186&ei=8mM8Y5boCrHckPIPyZC_0A4&ved=0ahUKEwiWqbjgg8f6AhUxLkQIHUnID-oQ4dUDCA4&uact=5&oq=pytorch+unsqueeze+without+memory&gs_lcp=Cgdnd3Mtd2l6EAMyBQghEKABMgUIIRCgAToKCAAQRxDWBBCwAzoECCMQJzoGCAAQHhAWOgUIABCGAzoFCCEQqwI6CAghEB4QFhAdSgQIQRgASgQIRhgAUJAFWLAbYKMcaARwAXgBgAHVAogBhx-SAQUyLTUuOJgBAKABAcgBCMABAQ&sclient=gws-wiz
+https://pytorch.org/docs/stable/generated/torch.unsqueeze.html
+https://stackoverflow.com/questions/71383309/can-i-define-a-function-to-replace-torch-einsum-sum-with-any-custom-function
+https://www.google.com/search?q=torch.expand&oq=torch.expand&aqs=chrome..69i57.1708j0j7&sourceid=chrome&ie=UTF-8
+https://www.google.com/search?q=torch+fill+with+zeros&sxsrf=ALiCzsY_YjUTl_Kb5LNZDm-L6J-AhMM3ZA%3A1664909869478&ei=LYI8Y6zkHJqE0PEPpcOakAY&ved=0ahUKEwjsrunKoMf6AhUaAjQIHaWhBmIQ4dUDCA4&uact=5&oq=torch+fill+with+zeros&gs_lcp=Cgdnd3Mtd2l6EAMyBggAEB4QFjIGCAAQHhAWMgUIABCGAzIFCAAQhgMyBQgAEIYDMgUIABCGAzoKCAAQRxDWBBCwAzoKCAAQsQMQgwEQQzoECAAQQzoFCAAQgAQ6BAgjECc6EAgAEIAEEIcCELEDEIMBEBQ6CwgAEIAEELEDEIMBOgUIABCRAjoKCAAQgAQQhwIQFDoHCAAQgAQQCjoICAAQHhAWEAo6CAgAEB4QDxAWSgQIQRgASgQIRhgAUNYMWPQeYJUgaANwAXgBgAHxBIgBwyWSAQoyLTE0LjAuMS4xmAEAoAEByAEIwAEB&sclient=gws-wiz
+https://stackoverflow.com/questions/59129812/how-to-avoid-cuda-out-of-memory-in-pytorch
+https://pytorch.org/docs/stable/generated/torch.Tensor.expand.html
+https://www.google.com/search?q=pytorch+count+memory+usage&sxsrf=ALiCzsZMILIzcREjvDq28834yLQxTk14qg%3A1664925874473&ei=ssA8Y8qyHLq-0PEP6OOK2A4&ved=0ahUKEwjK08ya3Mf6AhU6HzQIHeixAusQ4dUDCA4&uact=5&oq=pytorch+count+memory+usage&gs_lcp=Cgdnd3Mtd2l6EAMyBggAEB4QFjIFCAAQhgMyBQgAEIYDMgUIABCGAzIFCAAQhgMyBQgAEIYDOgoIABBHENYEELADOgUIABCABDoFCCEQoAE6BQghEKsCSgQIQRgASgQIRhgAUMYKWIYWYP4WaAJwAXgAgAGBA4gBuxWSAQYyLTEwLjGYAQCgAQHIAQjAAQE&sclient=gws-wiz
+https://discuss.pytorch.org/t/how-to-check-the-gpu-memory-being-used/131220
+https://medium.com/deep-learning-for-protein-design/a-comprehensive-guide-to-memory-usage-in-pytorch-b9b7c78031d3
+https://colab.research.google.com/drive/1bzCH3Yaq8gK0ZByxlcaRaj3pOc2u6zht#scrollTo=ezUlfYJ59jWl
+https://github.com/abhishekhalder/AM229F20
+https://github.com/abhishekhalder/AMS-232-S19/blob/master/HW1/HW1Solution.ipynb
+https://github.com/abhishekhalder/AM229F20/blob/main/HW1%20Solution.ipynb
+https://opg.optica.org/ao/fulltext.cfm?uri=ao-61-10-2805&id=470826
+https://doc.cgal.org/latest/Optimal_transportation_reconstruction_2/index.html#title20
+https://math.stackexchange.com/questions/3660192/algorithms-to-compute-the-wasserstein-distance-between-two-discrete-probability
+https://en.wikipedia.org/wiki/Cobra_maneuver
+https://blog.arduino.cc/2022/09/14/its-here-please-welcome-arduino-ide-2-0/
+https://github.com/leeoniya/uFuzzy
+https://www.jeffgeerling.com/blog/2022/you-cant-buy-raspberry-pi-right-now
+https://shop.pimoroni.com/products/raspberry-pi-pico-w?variant=40059369619539
+https://stackoverflow.com/questions/7825055/what-does-the-operator-do-in-c
+https://www.nature.com/articles/s41586-022-05172-4
+https://www.google.com/search?q=pytorch+use+numpy+constant+matrix&oq=pytorch+use+numpy+constant+matrix&aqs=chrome..69i57.7216j0j7&sourceid=chrome&ie=UTF-8
+https://github.com/jeanfeydy/geomloss/tree/main/geomloss
+https://arxiv.org/pdf/1306.0895.pdf
+https://gist.github.com/louity/0629e2d12ff4ac96573b3a541246e162#file-sinkhorn_logsumexp-py-L22
+https://pytorch.org/docs/stable/generated/torch.nn.Softmax.html
+https://pytorch.org/docs/stable/generated/torch.cuda.memory_allocated.html
+https://pytorch.org/docs/stable/notes/cuda.html#cuda-memory-management
+https://pytorch.org/docs/stable/generated/torch.cuda.memory_summary.html#torch.cuda.memory_summary
+https://www.tutorialspoint.com/how-to-perform-element-wise-addition-on-tensors-in-pytorch
+https://pytorch.org/docs/stable/generated/torch.sub.html
+https://pytorch.org/docs/stable/generated/torch.logsumexp.html
+https://math.stackexchange.com/questions/3978967/exponential-of-a-matrix-sum
+https://proofwiki.org/wiki/Exponential_of_Product
+https://pytorch.org/docs/stable/generated/torch.exp.html
+https://stats.stackexchange.com/questions/381936/vectorised-computation-of-logsumexp
+https://www.google.com/search?q=sinkhorn+barycenter+github&sxsrf=ALiCzsZghWX4Bkys8zJbuarw_aS9higtsw%3A1665121517625&ei=7bw_Y63YJezdptQPofuI0A8&ved=0ahUKEwjtgsOEtc36AhXsrokEHaE9AvoQ4dUDCA4&uact=5&oq=sinkhorn+barycenter+github&gs_lcp=Cgdnd3Mtd2l6EAMyBQghEKABOggIABCiBBCwAzoECCMQJzoECAAQQzoFCAAQkQI6CAgAEIAEELEDOggILhCABBCxAzoLCAAQgAQQsQMQgwE6BQgAEIAEOgYIABAeEBY6CAgAEB4QFhAKOgUIABCGAzoFCCEQqwJKBAhBGAFKBAhGGABQ2w5YwSZgqidoA3AAeACAAZEBiAGjEpIBBDE5LjaYAQCgAQHIAQTAAQE&sclient=gws-wiz
+https://gist.github.com/louity/0629e2d12ff4ac96573b3a541246e162
+https://github.com/GiulsLu/Sinkhorn-Barycenters
+https://github.com/GiulsLu/Sinkhorn-Barycenters/blob/master/documentation.md
+https://github.com/GiulsLu/Sinkhorn-Barycenters
+https://github.com/hichamjanati/debiased-ot-barycenters
+https://arxiv.org/pdf/2006.02575.pdf
+https://arxiv.org/pdf/2006.02575.pdf
+https://ott-jax.readthedocs.io/en/latest/_autosummary/ott.core.sinkhorn.sinkhorn.html
+https://hal.archives-ouvertes.fr/hal-02303456/document
+https://twitter.com/gabrielpeyre/status/955360271656194049?lang=en
+https://en.wikipedia.org/wiki/Softmax_function
+https://en.wikipedia.org/wiki/LogSumExp
+https://www.google.com/search?q=logsumexp+trick&oq=logsumexp+trick&aqs=chrome..69i57.2639j0j7&sourceid=chrome&ie=UTF-8
+https://gregorygundersen.com/blog/2020/02/09/log-sum-exp/
+https://discuss.pytorch.org/t/how-to-delete-a-tensor-in-gpu-to-free-up-memory/48879
+https://www.google.com/search?q=sinkhorn+divergence&oq=sinkhorn+divergence&aqs=chrome..69i57j69i60j69i61l2.4935j0j7&sourceid=chrome&ie=UTF-8
+https://arxiv.org/pdf/1910.12958.pdf
+
+
+https://trunk.arc.nasa.gov/bamboo/browse/VIPERSW-VXK-JOB1-226/artifact
+https://trunk.arc.nasa.gov/bamboo/browse/VIPERSW-VXK-JOB1-218
+https://canvas.ucsc.edu/courses/56479/quizzes/86954
+https://www.surfline.com/surf-news/surflines-rating-surf-heights-quality/1417
+https://the-algorithms.com/
+https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.303.8201&rep=rep1&type=pdf
+https://github.com/TheAlgorithms
+https://www.google.com/search?q=short+proofs&oq=short+proofs&aqs=chrome..69i57.5742j0j7&sourceid=chrome&ie=UTF-8
+https://advancedorthocenters.com/iliotibial-band-syndrome/
+https://www.google.com/search?q=vim+jump+to+start+of+line&sxsrf=ALiCzsYQoB01m2lRO6C_grX7vWPr2ABAQQ%3A1664814341269&ei=BQ07Y7f-D6ngkPIPqJudsAg&ved=0ahUKEwj3lLbbvMT6AhUpMEQIHahNB4YQ4dUDCA4&uact=5&oq=vim+jump+to+start+of+line&gs_lcp=Cgdnd3Mtd2l6EAMyCggAEEcQ1gQQsAMyCggAEEcQ1gQQsAMyCggAEEcQ1gQQsAMyCggAEEcQ1gQQsAMyCggAEEcQ1gQQsAMyCggAEEcQ1gQQsAMyCggAEEcQ1gQQsAMyCggAEEcQ1gQQsAMyBwgAELADEEMyBwgAELADEENKBAhBGABKBAhGGABQvhdYhRtggBxoBHAAeACAAQCIAQCSAQCYAQCgAQHIAQrAAQE&sclient=gws-wiz
+https://pytorch.org/docs/stable/generated/torch.set_printoptions.html
+https://www.google.com/search?q=3d+wasserstein+distance+github&sxsrf=ALiCzsYq2C85vq9_d3i2RsHLyktZ0gwfRg%3A1664772194632&ei=Ymg6Y82SJoiF0PEP5ea2-Ag&ved=0ahUKEwjNy6van8P6AhWIAjQIHWWzDY8Q4dUDCA4&uact=5&oq=3d+wasserstein+distance+github&gs_lcp=Cgdnd3Mtd2l6EAMyBQghEKsCOgoIABBHENYEELADOgUIIRCgAToICCEQHhAWEB1KBAhBGABKBAhGGABQ0QVYmw1gkg5oAXABeACAAZkBiAHdBZIBAzQuM5gBAKABAcgBCMABAQ&sclient=gws-wiz
+https://pythonot.github.io/auto_examples/gromov/plot_gromov.html
+https://www.google.com/search?q=pytorch+sinkhorn&oq=pytorch+sinkhorn&aqs=chrome..69i57.2858j0j7&sourceid=chrome&ie=UTF-8#imgrc=kzS33Rv5K7oVqM
+https://gist.github.com/wohlert/8589045ab544082560cc5f8915cc90bd
+https://notebook.community/t-vi/pytorch-tvmisc/wasserstein-distance/Pytorch_Wasserstein
+https://marcocuturi.net/ot.html
+https://dfdazac.github.io/sinkhorn.html
+https://github.com/cyan-at/wassdistance/blob/master/layers.py
+https://github.com/dfdazac/wassdistance/blob/master/layers.py
+https://arxiv.org/abs/1803.00567
+https://www.kernel-operations.io/geomloss/_auto_examples/sinkhorn_multiscale/plot_optimal_transport_cluster.html#sphx-glr-auto-examples-sinkhorn-multiscale-plot-optimal-transport-cluster-py
+http://www.kernel-operations.io/keops/python/installation.html
+http://www.kernel-operations.io/keops/python/installation.html#part-checkpython
+http://www.kernel-operations.io/keops/python/installation.html
+https://github.com/getkeops/keops/issues/257
+https://trunk.arc.nasa.gov/confluence/display/VIPERMS/How+to+run+RFSW+under+QEMU
+https://trunk.arc.nasa.gov/bamboo/browse/VIPERSW-QEMU/latestSuccessful
+https://trunk.arc.nasa.gov/bamboo/browse/VIPERSW-VXK/latestSuccessful
+https://trunk.arc.nasa.gov/bamboo/browse/VIPERSW-QEMU-90/artifact
+https://trunk.arc.nasa.gov/bitbucket/projects/VIPERSW/repos/viper/browse
+https://trunk.arc.nasa.gov/confluence/display/VIPERSW/Windriver+-+VxWorks+support+and+install
+https://www.tutorialspoint.com/how-to-squeeze-and-unsqueeze-a-tensor-in-pytorch
+https://open.spotify.com/collection/tracks
+https://www.youtube.com/
+https://stackoverflow.com/questions/53819383/how-to-assign-a-new-value-to-a-pytorch-variable-without-breaking-backpropagation
+https://jdhao.github.io/2019/07/10/pytorch_view_reshape_transpose_permute/
+https://pytorch.org/docs/stable/generated/torch.einsum.html
+https://stackoverflow.com/questions/53051913/modifying-a-pytorch-tensor-and-then-getting-the-gradient-lets-the-gradient-not-w
+https://pytorch.org/docs/stable/notes/autograd.html#in-place-operations-with-autograd
+https://stackoverflow.com/questions/55788093/how-to-free-gpu-memory-by-deleting-tensors
+https://discuss.pytorch.org/t/how-to-delete-pytorch-objects-correctly-from-memory/947/5
+https://discuss.pytorch.org/t/about-torch-cuda-empty-cache/34232/7
+https://stackoverflow.com/questions/63145729/how-to-make-sure-pytorch-has-deallocated-gpu-memory
+http://localhost:8889/notebooks/sinkhorn.ipynb
+
+
+https://en.wikipedia.org/wiki/Norm_(mathematics)
+https://en.wikipedia.org/wiki/Cauchy%E2%80%93Schwarz_inequality#Statement_of_the_inequality
+https://en.wikipedia.org/wiki/H%C3%B6lder%27s_inequality
+https://math.stackexchange.com/questions/218046/relations-between-p-norms
+https://math.stackexchange.com/questions/3215756/how-does-matrix-vector-multiplication-scale-a-norm-of-vector
+https://towardsdatascience.com/calculating-vector-p-norms-linear-algebra-for-data-science-iv-400511cffcf0
+https://math.stackexchange.com/questions/3927958/is-there-a-way-to-prove-that-the-2-norm-of-a-matrix-is-greater-than-the-largest
+https://www.google.com/search?q=when+is+2+norm+less+than+1+norm&sxsrf=ALiCzsb-SkcDETfHUypGMTmwkkSs3ZtOqw%3A1664933384993&ei=CN48Y9iXPPuv0PEPicuO2As&ved=0ahUKEwjYu_KX-Mf6AhX7FzQIHYmlA7sQ4dUDCA4&uact=5&oq=when+is+2+norm+less+than+1+norm&gs_lcp=Cgdnd3Mtd2l6EAMyBQghEKABMgUIIRCrAjIFCCEQqwI6CggAEEcQ1gQQsAM6BwgAELADEEM6CwgAEIAEELEDEIMBOgQIABBDOgsILhCABBCxAxCDAToFCC4QgAQ6DgguEIAEELEDEMcBENEDOgsILhCABBDHARDRAzoOCC4QgAQQxwEQ0QMQ1AI6CAguEIAEENQCOgQIIxAnOgUIABCRAjoLCC4QgAQQsQMQ1AI6CAgAELEDEIMBOgUIABCABDoICAAQgAQQsQM6BwgAEIAEEAo6CggAEIAEEMkDEAo6BQgAEIYDOgYIABAeEBY6CAgAEB4QDxAWOggIIRAeEBYQHUoECEEYAEoECEYYAFC758QEWKmHxQRgpojFBGgFcAF4AIAB3AGIAesXkgEGMjIuOC4xmAEAoAEByAEKuAECwAEB&sclient=gws-wiz
+https://www.google.com/search?q=norm+of+vector&biw=841&bih=598&sxsrf=ALiCzsa0yt3gG9mGUxJupB52SSdLGEiV7Q%3A1664942992631&ei=kAM9Y--TJunn0PEPqdqd-Ak&ved=0ahUKEwjvm5b9m8j6AhXpMzQIHSltB58Q4dUDCA4&uact=5&oq=norm+of+vector&gs_lcp=Cgdnd3Mtd2l6EAMyBQgAEIAEMgUIABCABDIFCAAQgAQyBQgAEIAEMgUIABCABDIFCAAQgAQyBQgAEIAEMgUIABCABDIFCAAQgAQyBQgAEIAEOgQIIxAnOgQILhBDOgQIABBDOgUIABCRAjoLCAAQgAQQsQMQgwE6EQguEIAEELEDEIMBEMcBENEDOg4ILhCABBCxAxCDARDUAjoUCC4QgAQQsQMQgwEQxwEQ0QMQiwM6BwgAEEMQiwM6DgguEIAEELEDENQCEIsDOhEILhCxAxCDARCLAxCoAxCdAzoHCC4QsQMQQzoICAAQkQIQiwM6CwguEIAEELEDEIMBOggIABCxAxCDAToICAAQgAQQsQM6CgguEIAEEIcCEBQ6CwgAELEDEIMBEJECOgoIABCxAxCDARBDOgUILhCABDoKCAAQgAQQhwIQFEoECEEYAUoECEYYAFDhWlisZ2CaaWgDcAB4AIABiAGIAb4KkgEDOS41mAEAoAEBuAECwAEB&sclient=gws-wiz
+https://math.stackexchange.com/questions/1334854/relation-between-two-p-norms
+https://www.google.com/search?q=finite+many+vectors+p-norm+ratio+site:math.stackexchange.com&sxsrf=ALiCzsawZidd2cEZqfNja7Ed31tPOwPCqw:1664947654895&source=lnms&tbm=bks&sa=X&ved=2ahUKEwjRmaisrcj6AhWJAzQIHVOuAAY4KBD8BSgDegQIARAF&biw=1769&bih=1042&dpr=1.25
+https://math.stackexchange.com/questions/57686/understanding-of-the-theorem-that-all-norms-are-equivalent-in-finite-dimensional
+https://math.stackexchange.com/questions/4094/how-do-you-show-monotonicity-of-the-ellp-norms
+https://proofwiki.org/wiki/P-Norm_is_Norm/Complex_Numbers
+https://math.stackexchange.com/questions/3623915/linear-algebra-a-level-p-norm-homogeneity

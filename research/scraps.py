@@ -2561,3 +2561,390 @@ plot_fname = "%s/pinn_vs_rho.png" % (os.path.abspath("./"))
 plt.savefig(plot_fname, dpi=300)
 # plt.show()
 
+
+
+    if args.plot == 0:
+        ax1 = plt.subplot(111, frameon=False)
+        ax1.grid()
+
+        ########################################################
+
+        s1, s2 = plot_rho_bc('rho_0', test[0:N, :], mu_0, sigma_0, ax1)
+
+        test_tt = test[N:2*N, :]
+        s3, s4 = plot_rho_bc('rho_T', test_tt, mu_T, sigma_T, ax1)
+
+        ########################################################
+
+        ax1.plot(
+            test_tt[:, X_IDX],
+            test_tt[:, Y3_IDX],
+            linewidth=1,
+            c='m',
+            label='y3')
+
+        ########################################################
+
+        ax1.legend(loc='lower right')
+        ax1.set_title(
+        'rho0: trapz=%.3f, sum=%.3f, rhoT: trapz=%.3f, sum=%.3f' % (s1, s2, s3, s4))
+    elif args.plot == 1:
+        ax1 = fig.add_subplot(projection='3d')
+
+        ts = test[:, T_IDX]
+        xs = test[:, X_IDX]
+        rho_opt = test[:, RHO_OPT_IDX]
+
+        ax1.scatter(ts, xs, rho_opt, marker='o')
+
+        ax1.set_xlabel('t')
+        ax1.set_ylabel('x')
+        ax1.set_zlabel('rho_opt')
+
+
+
+
+        x_T = np.transpose(np.linspace(state_min, state_max, N))
+        y_T = np.transpose(np.linspace(state_min, state_max, N))
+        z_T = np.transpose(np.linspace(state_min, state_max, N))
+        x_T=x_T.reshape(len(x_T),1)
+        y_T=y_T.reshape(len(y_T),1)
+        z_T=z_T.reshape(len(z_T),1)
+        S3 = dde.Variable(1.0)
+        a, b, c, d, f= 10., 2.1, 0.75, .0045, 0.0005
+        K, T=1.38066*10**-23, 293.
+        def pde(x, y):
+          """Self assembly system.
+          dy1_t = 1/2*(y3^2)-dy1_x*D1-dy1_xx*D2
+          dy2_t = -dD1y2_x +dD2y2_xx
+          y3=dy1_x*dD1_y3+dy1_xx*dD2_y3
+          All collocation-based residuals are defined here
+          Including a penalty function for negative solutions
+          """
+          y1, y2, y3 = y[:, 0:1], y[:, 1:2], y[:, 2:]
+          dy1_t = dde.grad.jacobian(y1, x, j=1)
+          dy1_x = dde.grad.jacobian(y1, x, j=0)
+          dy1_xx = dde.grad.hessian(y1, x, j=0)
+
+          D2=d*torch.exp(-(x[:, 0:1]-b-c*y3)*(x[:, 0:1]-b-c*y3))+f
+          F=a*K*T*(x[:, 0:1]-b-c*y3)*(x[:, 0:1]-b-c*y3)
+        #     dD2_x=dde.grad.jacobian(D2, x, j=0)
+        #     dF_x=dde.grad.jacobian(F, x, j=0)
+        #     D1=dD2_x-dF_x*(D2/(K*T))
+          D1=-2*(x[:, 0:1]-b-c*y3)*((d*torch.exp(-(x[:, 0:1]-b-c*y3)*(x[:, 0:1]-b-c*y3)))+a*D2)
+          dy2_t = dde.grad.jacobian(y2, x, j=1)
+          dD1y2_x=dde.grad.jacobian(D1*y2, x, j=0)
+          dD2y2_xx = dde.grad.hessian(D2*y2, x,  j=0)
+          dD1_y3=dde.grad.jacobian(D1, y3)
+          dD2_y3=dde.grad.jacobian(D2, y3)
+          tt=100
+          return [
+              dy1_t-.5*(S3*y3*S3*y3)+D1*dy1_x+D2*dy1_xx,
+              dy2_t+dD1y2_x-dD2y2_xx,
+              S3*y3-dy1_x*dD1_y3-dy1_xx*dD2_y3,
+          ]
+        geom = dde.geometry.Interval(state_min, state_max)
+        timedomain = dde.geometry.TimeDomain(0., T_t)
+        geomtime = dde.geometry.GeometryXTime(geom, timedomain)
+        time_0=np.hstack((x_T,T_0*np.ones((len(x_T), 1))))
+        rho_0=pdf1d(x_T, mu_0, sigma_0).reshape(len(x_T),1)
+        rho_0 = np.where(rho_0 < 0, 0, rho_0)
+        rho_0 = rho_0 / np.sum(np.abs(rho_0))
+        rho_0_BC = dde.icbc.PointSetBC(time_0, rho_0, component=1)
+        time_t=np.hstack((x_T,T_t*np.ones((len(x_T), 1))))
+        rho_T=pdf1d(x_T, mu_T, sigma_T).reshape(len(x_T),1)
+        rho_T = np.where(rho_T < 0, 0, rho_T)
+        rho_T = rho_T / np.sum(np.abs(rho_T))
+        rho_T_BC = dde.icbc.PointSetBC(time_t, rho_T, component=1)
+        data = dde.data.TimePDE(
+          geomtime,
+          pde,
+          [rho_0_BC,rho_T_BC],
+          num_domain=5000,
+          num_initial=500)
+        net = dde.nn.FNN([2] + [70] *3  + [3], "tanh", "Glorot normal")
+
+
+
+######################################
+
+C = cdist(state, state, 'sqeuclidean')
+cvector = C.reshape((M)**2)
+
+reg = 1e-1 # gamma, 10e-2, 5e-2
+C_tensor = torch.from_numpy(
+    -C / reg - 1
+).requires_grad_(False).type(torch.FloatTensor)
+C_tensor = C_tensor.to(device)
+c_tensor = torch.from_numpy(
+    cvector
+).requires_grad_(False).type(torch.FloatTensor)
+c_tensor = c_tensor.to(device)
+
+M = torch.exp(C_tensor).requires_grad_(False).type(torch.FloatTensor)
+M = M.to(device)
+
+u_vec0 = torch.ones(rho0_tensor.shape[0], dtype=torch.float32).requires_grad_(True)
+u_vec0 = u_vec0.to(device)
+v_vec0 = torch.ones(rho0_tensor.shape[0], dtype=torch.float32).requires_grad_(True)
+v_vec0 = v_vec0.to(device)
+
+u_vecT = torch.ones(rho0_tensor.shape[0], dtype=torch.float32).requires_grad_(True)
+u_vecT = u_vecT.to(device)
+v_vecT = torch.ones(rho0_tensor.shape[0], dtype=torch.float32).requires_grad_(True)
+v_vecT = v_vecT.to(device)
+
+p_opt0 = torch.zeros_like(M).requires_grad_(True)
+# p_opt0 = p_opt0.to(device)
+
+p_optT = torch.zeros_like(M).requires_grad_(True)
+# p_optT = p_optT.to(device)
+
+
+    '''
+    z1 = T_0
+    z2 = T_t
+
+    ax1.contourf(
+        meshes[0],
+        meshes[1],
+        rho0.reshape(N, N),
+        50, zdir='z',
+        cmap=cm.jet,
+        offset=z1,
+        alpha=0.4
+    )
+
+    ax1.contourf(
+        meshes[0],
+        meshes[1],
+        rhoT.reshape(N, N),
+        50, zdir='z',
+        cmap=cm.jet,
+        offset=z2,
+        alpha=0.4,
+    )
+
+    ax1.set_xlim(state_min, state_max)
+    ax1.set_zlim(T_0 - 0.1, T_t + 0.1)
+
+    ax1.set_xlabel('x')
+    ax1.set_ylabel('y')
+    ax1.set_zlabel('t')
+    ax1.set_title('rho_opt')
+
+    ########################################################
+
+    ax2 = fig.add_subplot(1, 3, 2, projection='3d')
+
+    z1 = T_0
+    z2 = T_t
+
+    ax2.contourf(
+        meshes[0],
+        meshes[1],
+        dphi_dinput_t0_dx.reshape(N, N),
+        50, zdir='z',
+        cmap=cm.jet,
+        offset=z1,
+        alpha=0.4
+    )
+
+    ax2.contourf(
+        meshes[0],
+        meshes[1],
+        dphi_dinput_tT_dx.reshape(N, N),
+        50, zdir='z',
+        cmap=cm.jet,
+        offset=z2,
+        alpha=0.4,
+    )
+
+    sc2=ax2.scatter(
+        grid_x1,
+        grid_x2,
+        grid_t,
+        c=PSI,
+        s=np.abs(PSI*20000),
+        cmap=cm.jet,
+        alpha=1.0)
+    plt.colorbar(sc2, shrink=0.25)
+
+    ax2.set_xlim(state_min, state_max)
+    ax2.set_zlim(T_0 - 0.1, T_t + 0.1)
+
+    ax2.set_xlabel('x')
+    ax2.set_ylabel('y')
+    ax2.set_zlabel('t')
+    ax2.set_title('dphi_dx')
+
+    ########################################################
+
+    ax3 = fig.add_subplot(1, 3, 3, projection='3d')
+
+    z1 = T_0
+    z2 = T_t
+
+    ax3.contourf(
+        meshes[0],
+        meshes[1],
+        dphi_dinput_t0_dy.reshape(N, N),
+        50, zdir='z',
+        cmap=cm.jet,
+        offset=z1,
+        alpha=0.4
+    )
+
+    ax3.contourf(
+        meshes[0],
+        meshes[1],
+        dphi_dinput_tT_dy.reshape(N, N),
+        50, zdir='z',
+        cmap=cm.jet,
+        offset=z2,
+        alpha=0.4,
+    )
+
+    sc3=ax3.scatter(
+        grid_x1,
+        grid_x2,
+        grid_t,
+        c=PSI2,
+        s=np.abs(PSI2*20000),
+        cmap=cm.jet,
+        alpha=1.0)
+    plt.colorbar(sc3, shrink=0.25)
+
+    ax3.set_xlim(state_min, state_max)
+    ax3.set_zlim(T_0 - 0.1, T_t + 0.1)
+
+    ax3.set_xlabel('x')
+    ax3.set_ylabel('y')
+    ax3.set_zlabel('t')
+    ax3.set_title('dphi_dy')
+    '''
+
+
+
+    print(tt.shape)
+
+
+
+    '''
+
+    ########################################################
+
+    source_x1 = t0[:, 0]
+    source_x2 = t0[:, 1]
+
+    dphi_dinput_t0_dx = dphi_dinput_t0[:, 0]
+    dphi_dinput_t0_dy = dphi_dinput_t0[:, 1]
+
+    dphi_dinput_tT_dx = dphi_dinput_tT[:, 0]
+    dphi_dinput_tT_dy = dphi_dinput_tT[:, 1]
+
+    x_1_ = np.linspace(state_min, state_max, N)
+    x_2_ = np.linspace(state_min, state_max, N)
+    t_ = np.linspace(T_0, T_t, N)
+    grid_x1, grid_x2, grid_t = np.meshgrid(
+        x_1_,
+        x_2_,
+        t_, copy=False) # each is NxNxN
+
+    # import ipdb; ipdb.set_trace()
+    PSI = gd(
+      (tt[:, 0], tt[:, 1], tt[:, 2]),
+      dphi_dinput_tt[:, 0],
+      (grid_x1, grid_x2, grid_t),
+      method='nearest')
+
+    PSI2 = gd(
+      (tt[:, 0], tt[:, 1], tt[:, 2]),
+      dphi_dinput_tt[:, 1],
+      (grid_x1, grid_x2, grid_t),
+      method='nearest')
+    '''
+
+
+        vinterp_N = 50
+        vinterp_T = 50
+
+        state_min = -2.5
+        state_max = 2.5
+        T_t = 5.0
+
+        t0_v_mat_fname = '%s/%s/notebook_post_predict_t0_%d_%d_v.mat' % (
+            os.path.abspath("./"), args.control_prefix, vinterp_N, vinterp_T)
+
+        mid_v_mat_fname = '%s/%s/notebook_post_predict_mid_%d_%d_v.mat' % (
+            os.path.abspath("./"), args.control_prefix, vinterp_N, vinterp_T)
+
+        t5_v_mat_fname = '%s/%s/notebook_post_predict_t5_%d_%d_v.mat' % (
+            os.path.abspath("./"), args.control_prefix, vinterp_N, vinterp_T)
+
+        # t5_v_mat_fname = '%s/%s/%s_post_predict_x1_x2_x3_t.mat' % (
+        #     os.path.abspath("./"), args.control_prefix, args.control_prefix)
+
+        if os.path.exists(mid_v_mat_fname):
+            control_data = {
+                "x_1_" : np.linspace(state_min, state_max, vinterp_N),
+                "x_2_" : np.linspace(state_min, state_max, vinterp_N),
+                "x_3_" : np.linspace(state_min, state_max, vinterp_N),
+                "t_" : np.linspace(0, T_t, vinterp_T),
+            }
+
+            # mat_contents = scipy.io.loadmat(t0_v_mat_fname)
+            # for k in ["t0_V1", "t0_V2", "t0_V3"]:
+            #     control_data[k] = mat_contents[k]
+            # del mat_contents
+
+            mat_contents = scipy.io.loadmat(mid_v_mat_fname)
+            for k in ["mid_V1", "mid_V2", "mid_V3"]:
+                control_data[k] = mat_contents[k]
+            # del mat_contents
+
+            # mat_contents = scipy.io.loadmat(t5_v_mat_fname)
+            # for k in ["t5_V1", "t5_V2", "t5_V3"]:
+            #     control_data[k] = mat_contents[k]
+            # del mat_contents
+        else:
+            print("missing one of the control v files")
+
+
+
+    # import ipdb; ipdb.set_trace();
+
+    # if (t < 1e-8):
+    #     # print("using t0")
+    #     V1 = control_data["t0_V1"]
+    #     V2 = control_data["t0_V2"]
+    #     V3 = control_data["t0_V3"]
+    # elif (np.abs(t-5.0) < 1e-8):
+    #     # print("using t5")
+    #     V1 = control_data["t5_V1"]
+    #     V2 = control_data["t5_V2"]
+    #     V3 = control_data["t5_V3"]
+    # else:
+    #     # print("using mid")
+    #     V1 = control_data["mid_V1"]
+    #     V2 = control_data["mid_V2"]
+    #     V3 = control_data["mid_V3"]
+
+    # if len(V1.shape) == 3:
+    #     v1 = V1[closest_1, closest_2, closest_3]
+    #     v2 = V2[closest_1, closest_2, closest_3]
+    #     v3 = V3[closest_1, closest_2, closest_3]
+    # elif len(V1.shape) == 4:
+    #     v1 = V1[closest_1, closest_2, closest_3, closest_t]
+    #     v2 = V2[closest_1, closest_2, closest_3, closest_t]
+    #     v3 = V3[closest_1, closest_2, closest_3, closest_t]
+    # else:
+    #     print("ERROR")
+    #     import ipdb; ipdb.set_trace();
+
+
+
+
+
+
+

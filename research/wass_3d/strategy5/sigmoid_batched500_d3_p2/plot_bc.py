@@ -128,6 +128,10 @@ if __name__ == '__main__':
         type=int, default=1)
     parser.add_argument('--fullstate',
         type=int, default=1)
+    parser.add_argument('--interp_mode',
+        type=str, default="linear")
+    parser.add_argument('--grid_n',
+        type=int, default=30)
 
     args = parser.parse_args()
 
@@ -208,11 +212,12 @@ if __name__ == '__main__':
 
         # only possible if tensors on cpu
         # maybe moving to cuda makes input non-leaf
-        # output_tensor[:, 0].backward(torch.ones_like(output_tensor[:, 0]))
-        # dphi_dinput = inputs_tensor.grad.numpy()
-
-        # OR do grad like so
-        dphi_dinput = torch.autograd.grad(outputs=output_tensor[:, 0], inputs=inputs_tensor, grad_outputs=torch.ones_like(output_tensor[:, 0]))[0]
+        if args.diff_on_cpu > 0:
+            output_tensor[:, 0].backward(torch.ones_like(output_tensor[:, 0]))
+            dphi_dinput = inputs_tensor.grad
+        else:
+            # OR do grad like so
+            dphi_dinput = torch.autograd.grad(outputs=output_tensor[:, 0], inputs=inputs_tensor, grad_outputs=torch.ones_like(output_tensor[:, 0]))[0]
 
         if args.diff_on_cpu > 0:
             dphi_dinput = dphi_dinput.numpy()
@@ -222,7 +227,10 @@ if __name__ == '__main__':
 
         # import ipdb; ipdb.set_trace()
 
-        dphi_dinput_fname = args.modelpt.replace(".pt", "_dphi_dinput_%d.txt" % (batchsize))
+        dphi_dinput_fname = args.modelpt.replace(".pt", "_dphi_dinput_%d_%d.txt" % (
+            args.diff_on_cpu,
+            batchsize
+        ))
         np.savetxt(
             dphi_dinput_fname,
             dphi_dinput)
@@ -248,10 +256,10 @@ if __name__ == '__main__':
     rho0 = t0[:batchsize, -1]
     rhoT = tT[:, -1]
 
-    x_1_ = np.linspace(state_min, state_max, N)
-    x_2_ = np.linspace(state_min, state_max, N)
-    x_3_ = np.linspace(state_min, state_max, N)
-    t_ = np.linspace(T_0, T_t, N*2)
+    x_1_ = np.linspace(state_min, state_max, args.grid_n)
+    x_2_ = np.linspace(state_min, state_max, args.grid_n)
+    x_3_ = np.linspace(state_min, state_max, args.grid_n)
+    t_ = np.linspace(T_0, T_t, args.grid_n*2)
 
     grid_x1, grid_x2, grid_x3 = np.meshgrid(
         x_1_,
@@ -262,13 +270,20 @@ if __name__ == '__main__':
       (t0[:, 0], t0[:, 1], t0[:, 2]),
       t0[:, -1],
       (grid_x1, grid_x2, grid_x3),
-      method='nearest')
+      method=args.interp_mode,
+      fill_value=0.0)
+
+    # import ipdb; ipdb.set_trace()
 
     RHO_T = gd(
       (tT[:, 0], tT[:, 1], tT[:, 2]),
       tT[:, -1],
       (grid_x1, grid_x2, grid_x3),
-      method='nearest')
+      method=args.interp_mode,
+      fill_value=0.0)
+
+    print("RHO_0 sum", np.sum(t0[:, -1]))
+    print("RHO_T sum", np.sum(tT[:, -1]))
 
     ########################################################
 
@@ -324,7 +339,8 @@ if __name__ == '__main__':
       (t0[:, 0], t0[:, 1], t0[:, 2]),
       dphi_dinput_t0_l2_norm,
       (grid_x1, grid_x2, grid_x3),
-      method='nearest')
+      method=args.interp_mode,
+      fill_value=0.0)
 
     ########################################################
 
@@ -347,16 +363,22 @@ if __name__ == '__main__':
 
     title_str = args.modelpt
     title_str += "\n"
-    title_str += "N=15, d=3, batch=%d + nearest, sigmoid + clamped weights" % (batchsize)
+    title_str += "N=15, d=3, batch=%d + %s, sigmoid + clamped weights" % (
+        batchsize,
+        args.interp_mode
+    )
     title_str += "\n"
     # title_str += "99875     [5.95e-08, 5.44e-04, 2.50e-02, 2.51e-02]    [5.95e-08, 5.44e-04, 2.50e-02, 2.51e-02]    []"
 
     plt.suptitle(title_str)
 
     fig.canvas.mpl_connect('key_press_event', lambda e: on_press_saveplot(e,
-            '%s_rho_opt_bc_batch=%d.png'  %(
+            '%s_rho_opt_bc_batch=%d_%d_%s_%d.png'  %(
                 args.modelpt.replace(".pt", ""),
-                batchsize
+                batchsize,
+                args.diff_on_cpu,
+                args.interp_mode,
+                args.grid_n
             )
         )
     )
@@ -365,40 +387,50 @@ if __name__ == '__main__':
 
     ########################################################
 
+    grid = np.array((grid_x1.reshape(-1), grid_x2.reshape(-1), grid_x3.reshape(-1))).T
+
     DPHI_DINPUT_t0_0 = gd(
       (t0[:, 0], t0[:, 1], t0[:, 2]), dphi_dinput_t0[:, 0],
       (grid_x1, grid_x2, grid_x3),
-      method='nearest')
+      method=args.interp_mode,
+      fill_value=0.0)
     DPHI_DINPUT_t0_1 = gd(
       (t0[:, 0], t0[:, 1], t0[:, 2]), dphi_dinput_t0[:, 1],
       (grid_x1, grid_x2, grid_x3),
-      method='nearest')
+      method=args.interp_mode,
+      fill_value=0.0)
     DPHI_DINPUT_t0_2 = gd(
       (t0[:, 0], t0[:, 1], t0[:, 2]), dphi_dinput_t0[:, 2],
       (grid_x1, grid_x2, grid_x3),
-      method='nearest')
+      method=args.interp_mode,
+      fill_value=0.0)
     t0={
-        '0': DPHI_DINPUT_t0_0,
-        '1': DPHI_DINPUT_t0_1,
-        '2': DPHI_DINPUT_t0_2
+        '0': DPHI_DINPUT_t0_0.reshape(-1),
+        '1': DPHI_DINPUT_t0_1.reshape(-1),
+        '2': DPHI_DINPUT_t0_2.reshape(-1),
+        'grid' : grid,
     }
 
     DPHI_DINPUT_tT_0 = gd(
       (tT[:, 0], tT[:, 1], tT[:, 2]), dphi_dinput_tT[:, 0],
       (grid_x1, grid_x2, grid_x3),
-      method='nearest')
+      method=args.interp_mode,
+      fill_value=0.0)
     DPHI_DINPUT_tT_1 = gd(
       (tT[:, 0], tT[:, 1], tT[:, 2]), dphi_dinput_tT[:, 1],
       (grid_x1, grid_x2, grid_x3),
-      method='nearest')
+      method=args.interp_mode,
+      fill_value=0.0)
     DPHI_DINPUT_tT_2 = gd(
       (tT[:, 0], tT[:, 1], tT[:, 2]), dphi_dinput_tT[:, 2],
       (grid_x1, grid_x2, grid_x3),
-      method='nearest')
+      method=args.interp_mode,
+      fill_value=0.0)
     tT={
-        '0': DPHI_DINPUT_tT_0,
-        '1': DPHI_DINPUT_tT_1,
-        '2': DPHI_DINPUT_tT_2
+        '0': DPHI_DINPUT_tT_0.reshape(-1),
+        '1': DPHI_DINPUT_tT_1.reshape(-1),
+        '2': DPHI_DINPUT_tT_2.reshape(-1),
+        'grid' : grid,
     }
 
     grid_x1, grid_x2, grid_x3, grid_t = np.meshgrid(
@@ -406,31 +438,48 @@ if __name__ == '__main__':
         x_2_,
         x_3_,
         t_, copy=False) # each is NxNxN
+
+    grid = np.array((
+        grid_x1.reshape(-1),
+        grid_x2.reshape(-1),
+        grid_x3.reshape(-1),
+        grid_t.reshape(-1),
+    )).T
+
+    # import ipdb; ipdb.set_trace()
+
     DPHI_DINPUT_tt_0 = gd(
       (tt[:, 0], tt[:, 1], tt[:, 2], tt[:, 3]),
       dphi_dinput_tt[:, 0],
       (grid_x1, grid_x2, grid_x3, grid_t),
-      method='nearest')
+      method=args.interp_mode,
+      fill_value=0.0)
     DPHI_DINPUT_tt_1 = gd(
       (tt[:, 0], tt[:, 1], tt[:, 2], tt[:, 3]),
       dphi_dinput_tt[:, 1],
       (grid_x1, grid_x2, grid_x3, grid_t),
-      method='nearest')
+      method=args.interp_mode,
+      fill_value=0.0)
     DPHI_DINPUT_tt_2 = gd(
       (tt[:, 0], tt[:, 1], tt[:, 2], tt[:, 3]),
       dphi_dinput_tt[:, 2],
       (grid_x1, grid_x2, grid_x3, grid_t),
-      method='nearest')
+      method=args.interp_mode,
+      fill_value=0.0)
     tt={
-        '0': DPHI_DINPUT_tt_0,
-        '1': DPHI_DINPUT_tt_1,
-        '2': DPHI_DINPUT_tt_2
+        '0': DPHI_DINPUT_tt_0.reshape(-1),
+        '1': DPHI_DINPUT_tt_1.reshape(-1),
+        '2': DPHI_DINPUT_tt_2.reshape(-1),
+        'grid' : grid,
     }
 
     np.save(
-        '%s_%d_all_control_data.npy' % (
+        '%s_%d_%d_%s_%d_all_control_data.npy' % (
             args.modelpt.replace(".pt", ""),
             batchsize,
+            args.diff_on_cpu,
+            args.interp_mode,
+            args.grid_n
         ), 
         {
             't0' : t0,

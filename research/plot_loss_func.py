@@ -10,11 +10,33 @@ import scipy.integrate as integrate
 
 import time, os, sys
 
+class Counter(object):
+  def __init__(self):
+    self.count = 0
+
+  def on_press_saveplot(self, event, png_name):
+    print('press', event.key)
+    sys.stdout.flush()
+    if event.key == 'x':
+      # visible = xl.get_visible()
+      # xl.set_visible(not visible)
+      # fig.canvas.draw()
+
+      fname = png_name.replace(".png", "_%d.png" % (
+        self.count))
+
+      plt.savefig(
+        fname,
+        dpi=500,
+        bbox_inches='tight')
+      print("saved figure", fname)
+
+      self.count += 1
+
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
 
-  parser.add_argument('--t_stop', type=int, default=10, help='')
-  parser.add_argument('--dt', type=float, default=0.02, help='')
+  parser.add_argument('--modelpt', type=str, required=True, help='')
   parser.add_argument('--lossdat', type=str, required=True)
 
   args = parser.parse_args()
@@ -41,12 +63,20 @@ if __name__ == '__main__':
 
   ax.grid()
   ax.legend(loc="lower left")
-  ax.set_title('training error/residual plots')
+  ax.set_title('training error/residual plots, %d epochs' % (len(epoch)))
   ax.set_yscale('log')
   ax.set_xscale('log')
 
-  plot_fname = "%s/loss.png" % (os.path.abspath("./"))
-  plt.savefig(plot_fname, dpi=300)
-  print("saved plot")
+  # plot_fname = "%s/loss.png" % (os.path.abspath("./"))
+  # plt.savefig(plot_fname, dpi=300)
+  # print("saved plot")
+
+  c = Counter()
+  fig.canvas.mpl_connect('key_press_event', lambda e: c.on_press_saveplot(e,
+          '%s_loss.png'  %(
+              args.modelpt.replace(".pt", ""),
+          )
+      )
+  )
 
   plt.show()

@@ -73,10 +73,6 @@ else:
     
 import cvxpy as cp
 import numpy as np
-from scipy.linalg import solve_discrete_are
-from scipy.linalg import sqrtm
-
-from cvxpylayers.torch import CvxpyLayer
 
 import argparse
 

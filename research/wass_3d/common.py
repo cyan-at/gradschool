@@ -843,12 +843,26 @@ class WASSPDE(dde.data.TimePDE):
                     error))
         return losses
 
-def on_press_saveplot(event, fname):
-    print('press', event.key)
-    sys.stdout.flush()
-    if event.key == 'x':
-        # visible = xl.get_visible()
-        # xl.set_visible(not visible)
-        # fig.canvas.draw()
-        plt.savefig(fname, dpi=500, bbox_inches='tight')
-        print("saved figure", fname)
+class Counter(object):
+    def __init__(self):
+        self.count = 0
+
+    def on_press_saveplot(self, event, png_name):
+        print('press', event.key)
+        sys.stdout.flush()
+        if event.key == 'x':
+            # visible = xl.get_visible()
+            # xl.set_visible(not visible)
+            # fig.canvas.draw()
+
+            fname = png_name.replace(".png", "_%d.png" % (
+                self.count))
+
+            plt.savefig(
+                fname,
+                dpi=500,
+                bbox_inches='tight')
+            print("saved figure", fname)
+
+            self.count += 1
+>>>>>>> Stashed changes

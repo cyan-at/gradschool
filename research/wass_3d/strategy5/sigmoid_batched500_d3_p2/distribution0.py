@@ -134,52 +134,34 @@ def dynamics(state, t, j1, j2, j3, control_data):
 
     ########################################
 
-    closest_1 = (np.abs(control_data["x_1_"] - state[X1_index])).argmin()
-    closest_2 = (np.abs(control_data["x_2_"] - state[X2_index])).argmin()
-    closest_3 = (np.abs(control_data["x_3_"] - state[X3_index])).argmin()
-    closest_t = (np.abs(control_data["t_"] - t)).argmin()
+    # print(t)
+    if np.abs(t - T_0) < 1e-8:
+        t_key = 't0'
+    elif np.abs(t - T_t) < 1e-8:
+        t_key = 'tT'
+    else:
+        t_key = 'tt'
 
-    # import ipdb; ipdb.set_trace();
+    t_control_data = control_data[t_key]
 
-    # if (t < 1e-8):
-    #     # print("using t0")
-    #     V1 = control_data["t0_V1"]
-    #     V2 = control_data["t0_V2"]
-    #     V3 = control_data["t0_V3"]
-    # elif (np.abs(t-5.0) < 1e-8):
-    #     # print("using t5")
-    #     V1 = control_data["t5_V1"]
-    #     V2 = control_data["t5_V2"]
-    #     V3 = control_data["t5_V3"]
-    # else:
-    #     # print("using mid")
-    #     V1 = control_data["mid_V1"]
-    #     V2 = control_data["mid_V2"]
-    #     V3 = control_data["mid_V3"]
+    query = state
+    # if t_key == 'tt':
+    if t_control_data['grid'].shape[1] == 4:
+        query = np.append(query, t)
 
-    # if len(V1.shape) == 3:
-    #     v1 = V1[closest_1, closest_2, closest_3]
-    #     v2 = V2[closest_1, closest_2, closest_3]
-    #     v3 = V3[closest_1, closest_2, closest_3]
-    # elif len(V1.shape) == 4:
-    #     v1 = V1[closest_1, closest_2, closest_3, closest_t]
-    #     v2 = V2[closest_1, closest_2, closest_3, closest_t]
-    #     v3 = V3[closest_1, closest_2, closest_3, closest_t]
-    # else:
-    #     print("ERROR")
-    #     import ipdb; ipdb.set_trace();
+    if np.abs(t - T_0) < 1e-8:
+        print("t_key", t_key)
+        print("state", query)
 
-    V1 = control_data["mid_V1"]
-    V2 = control_data["mid_V2"]
-    V3 = control_data["mid_V3"]
+    # grid_l2_norms = np.linalg.norm(query - t_control_data['grid'], ord=2, axis=1)
+    # closest_grid_idx = grid_l2_norms.argmin()
 
-    v1 = V1[closest_1, closest_2, closest_3, closest_t]
-    v2 = V2[closest_1, closest_2, closest_3, closest_t]
-    v3 = V3[closest_1, closest_2, closest_3, closest_t]
+    closest_grid_idx = np.linalg.norm(query - t_control_data['grid'], ord=2, axis=1).argmin()
+    # print("query", query, closest_grid_idx)
 
-    statedot[X1_index] = statedot[X1_index] + v1
-    statedot[X2_index] = statedot[X2_index] + v2
-    statedot[X3_index] = statedot[X3_index] + v3
+    statedot[X1_index] = statedot[X1_index] + t_control_data['0'][closest_grid_idx]
+    statedot[X2_index] = statedot[X2_index] + t_control_data['1'][closest_grid_idx]
+    statedot[X3_index] = statedot[X3_index] + t_control_data['2'][closest_grid_idx]
 
     return statedot
 
@@ -509,7 +491,8 @@ def init_data(
             A = np.sqrt(initial_sample[:, 0]**2 + initial_sample[:, 1]**2)
             phi = np.arctan(initial_sample[:, 1] / initial_sample[:, 0])
 
-            t_samples = np.linspace(0, t_e, distribution_samples)
+            print("distribution_samples", distribution_samples)
+            t_samples = np.linspace(0, t_e, 30)
 
             all_time_data = np.empty(
                 (
@@ -523,7 +506,9 @@ def init_data(
             # y[i] is state dim [i]
             # z[i] is time [i]
 
+            print("integrating forced", initial_sample.shape[0])
             for sample_i in range(initial_sample.shape[0]):
+                print("sample_i", sample_i)
                 sample_states = integrate.odeint(
                     dynamics_with_args,
                     initial_sample[sample_i, :],
@@ -537,7 +522,9 @@ def init_data(
                     len(t_samples))
                 )
 
+            print("integrating unforced")
             for sample_i in range(initial_sample.shape[0]):
+                print("sample_i", sample_i)
                 sample_states = integrate.odeint(
                     unforced_dynamics_with_args,
                     initial_sample[sample_i, :],
@@ -634,7 +621,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--sampling',
         type=str,
-        default="15,15,15,15,15,15,100,200",
+        default="15,15,15,15,15,15,30,50",
         required=False)
 
     parser.add_argument('--system',
@@ -647,85 +634,47 @@ if __name__ == '__main__':
         default=0,
         required=False)
 
-    parser.add_argument('--control_prefix',
+    parser.add_argument('--control_data',
         type=str,
-        default="run_tensorflow_-2.500_2.500__5.000__2000__0.001__1_1_2__0.000__2.000_1.000__0.000_1.000__12000_1000__20000",
+        default="",
         required=False)
 
     args = parser.parse_args()
 
     # distribution
-    mu_0 = np.array([args.mu_0]*3)
-    cov_0 = np.eye(3)
+    # mu_0 = np.array([args.mu_0]*3)
+    # cov_0 = np.eye(3)
 
     # sampling
-    ts = [float(x) for x in args.times.split(",")]
+    # ts = [float(x) for x in args.times.split(",")]
+    ts = np.linspace(T_0, T_t, 2)
+    print("ts", ts)
 
     sampling = [int(x) for x in args.sampling.split(",")]
-    window0 = sampling[0]
-    window1 = sampling[1]
-    window2 = sampling[2]
-    window3 = sampling[3]
-    window4 = sampling[4]
-    window5 = sampling[5]
     windows = sampling[:6]
     N = sampling[6]
+    print("N", N)
     distribution_samples = sampling[7]
 
-    j1, j2, j3 = [float(x) for x in args.system.split(",")]
+    # j1, j2, j3 = [float(x) for x in args.system.split(",")]
+    # j1 = float(j1)
+    # j2 = float(j2)
+    # j3 = float(j3)
+    print("j1, j2, j3", j1, j2, j3)
 
     #############################################################################
 
     control_data = None
-    if len(args.control_prefix) > 0:
-        vinterp_N = 50
-        vinterp_T = 50
-
-        state_min = -2.5
-        state_max = 2.5
-        T_t = 5.0
-
-        t0_v_mat_fname = '%s/%s/notebook_post_predict_t0_%d_%d_v.mat' % (
-            os.path.abspath("./"), args.control_prefix, vinterp_N, vinterp_T)
-
-        mid_v_mat_fname = '%s/%s/notebook_post_predict_mid_%d_%d_v.mat' % (
-            os.path.abspath("./"), args.control_prefix, vinterp_N, vinterp_T)
-
-        t5_v_mat_fname = '%s/%s/notebook_post_predict_t5_%d_%d_v.mat' % (
-            os.path.abspath("./"), args.control_prefix, vinterp_N, vinterp_T)
-
-        # t5_v_mat_fname = '%s/%s/%s_post_predict_x1_x2_x3_t.mat' % (
-        #     os.path.abspath("./"), args.control_prefix, args.control_prefix)
-
-        if os.path.exists(mid_v_mat_fname):
-            control_data = {
-                "x_1_" : np.linspace(state_min, state_max, vinterp_N),
-                "x_2_" : np.linspace(state_min, state_max, vinterp_N),
-                "x_3_" : np.linspace(state_min, state_max, vinterp_N),
-                "t_" : np.linspace(0, T_t, vinterp_T),
-            }
-
-            # mat_contents = scipy.io.loadmat(t0_v_mat_fname)
-            # for k in ["t0_V1", "t0_V2", "t0_V3"]:
-            #     control_data[k] = mat_contents[k]
-            # del mat_contents
-
-            mat_contents = scipy.io.loadmat(mid_v_mat_fname)
-            for k in ["mid_V1", "mid_V2", "mid_V3"]:
-                control_data[k] = mat_contents[k]
-            # del mat_contents
-
-            # mat_contents = scipy.io.loadmat(t5_v_mat_fname)
-            # for k in ["t5_V1", "t5_V2", "t5_V3"]:
-            #     control_data[k] = mat_contents[k]
-            # del mat_contents
-        else:
-            print("missing one of the control v files")
+    if len(args.control_data) > 0:
+        control_data = np.load(
+            args.control_data,
+            allow_pickle=True).item()
 
     #############################################################################
 
     initial_sample, te_to_data, X1, X2, X3 = init_data(
-        mu_0, np.eye(3)*sigma_0,
+        [mu_0]*3, np.eye(3)*sigma_0,
+        # mu_0, cov_0,
         windows, distribution_samples, N, ts,
         j1, j2, j3,
         control_data,
