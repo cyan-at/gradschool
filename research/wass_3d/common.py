@@ -329,11 +329,11 @@ sigma_0 = 0.5
 mu_T = 0.0
 sigma_T = 0.5
 
-j1, j2, j3 =1,1,2 # axis-symmetric case
+j1, j2, j3 =1.0,1.0,2.0 # axis-symmetric case
 q_statepenalty_gain = 0 # 0.5
 
 T_0=0. #initial time
-T_t=20. #Terminal time
+T_t=5. #Terminal time
 
 id_prefix = "wass_3d"
 de = 1
