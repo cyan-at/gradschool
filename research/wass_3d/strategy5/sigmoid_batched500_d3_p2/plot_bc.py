@@ -354,7 +354,10 @@ if __name__ == '__main__':
     plt.suptitle(title_str)
 
     fig.canvas.mpl_connect('key_press_event', lambda e: on_press_saveplot(e,
-            'rho_opt_bc_batch=%d.png'  %(batchsize)
+            '%s_rho_opt_bc_batch=%d.png'  %(
+                args.modelpt.replace(".pt", ""),
+                batchsize
+            )
         )
     )
 
@@ -424,7 +427,11 @@ if __name__ == '__main__':
         '2': DPHI_DINPUT_tt_2
     }
 
-    np.save('all_control_data.npy', 
+    np.save(
+        '%s_%d_all_control_data.npy' % (
+            args.modelpt.replace(".pt", ""),
+            batchsize,
+        ), 
         {
             't0' : t0,
             'tT' : tT,
