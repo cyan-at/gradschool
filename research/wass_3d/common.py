@@ -865,4 +865,3 @@ class Counter(object):
             print("saved figure", fname)
 
             self.count += 1
->>>>>>> Stashed changes
