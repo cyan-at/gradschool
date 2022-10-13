@@ -157,28 +157,30 @@ def get_model(d, N):
     ######################################
 
     def rho0_WASS_cuda0(y_true, y_pred):
-        # p1 = (y_pred<0).sum() # negative terms
+        p1 = (y_pred<0).sum() # negative terms
 
-        p2 = torch.abs(torch.sum(y_pred) - 1)
+        p2 = 1 / torch.var(y_pred)
+
+        p3 = torch.abs(torch.sum(y_pred) - 1)
 
         y_pred = torch.where(y_pred < 0, 0, y_pred)
-
         dist, _, _ = sinkhorn(C, y_pred.reshape(-1), rho0_tensor)
         # print("Sinkhorn distance: {:.3f}".format(dist.item()))
 
-        return dist + p2 # + p1
+        return 10 * p1 + p2 + p3 + dist
 
     def rhoT_WASS_cuda0(y_true, y_pred):
-        # p1 = (y_pred<0).sum() # negative terms
+        p1 = (y_pred<0).sum() # negative terms
 
-        p2 = torch.abs(torch.sum(y_pred) - 1)
+        p2 = 1 / torch.var(y_pred)
+
+        p3 = torch.abs(torch.sum(y_pred) - 1)
 
         y_pred = torch.where(y_pred < 0, 0, y_pred)
-
         dist, _, _ = sinkhorn(C, y_pred.reshape(-1), rhoT_tensor)
         # print("Sinkhorn distance: {:.3f}".format(dist.item()))
 
-        return dist + p2 # + p1
+        return 10 * p1 + p2 + p3 + dist
 
     ######################################
 
