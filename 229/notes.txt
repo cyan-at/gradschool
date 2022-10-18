@@ -1,0 +1,56 @@
+https://www.google.com/search?q=det%28I+%2B+lambda+X%29+%3D+1+%2B+lambda&sxsrf=ALiCzsYdJsV-wqEVS9zdyhOvqAJiiPQuWA%3A1665533133417&ei=zQRGY8WPGcmYkPIP0JKSgAk&ved=0ahUKEwiFqp22stn6AhVJDEQIHVCJBJAQ4dUDCA8&uact=5&oq=det%28I+%2B+lambda+X%29+%3D+1+%2B+lambda&gs_lp=ugYGCAEQARgJEgdnd3Mtd2l6uAED-AEBMgcQIRigARgKMggQIRgWGB4YHcICChAAGEcY1gQYsAPCAg4QABjkAhjWBBiwA9gBAcICBRAAGKIEwgIFECEYqwKQBg1IlyRQmgZY5CFwAXgByAEAkAEAmAGWAqABsxOqAQYwLjEwLjPiAwQgTRgB4gMEIEEYAOIDBCBGGAGIBgE&sclient=gws-wiz
+http://paulklein.ca/newsite/teaching/matrix%20calculus.pdf
+https://dawenl.github.io/files/mat_deriv.pdf
+https://math.stackexchange.com/questions/1212639/proof-that-abt-atbt-homework-question
+https://math.stackexchange.com/questions/1320400/prove-atbt-bat
+https://www.google.com/search?q=log+det+identities+site:math.stackexchange.com&sxsrf=ALiCzsaK9v08FtbkixQpkl9xaCMQaBwNUw:1665525560659&sa=X&ved=2ahUKEwjF8KCbltn6AhUWEUQIHcB8CiQQrQIoBHoECAkQBQ&biw=1344&bih=746&dpr=1.25
+https://math.stackexchange.com/questions/297665/matrix-identity-for-log-det1ab-where-b-is-symmetric-and-a-is-diagonal
+https://www.tandfonline.com/doi/abs/10.1080/0020739X.2010.500700?journalCode=tmes20
+https://math.stackexchange.com/questions/322640/how-to-prove-det-leftea-right-e-operatornametra
+https://math.stackexchange.com/questions/3130131/log-det-a-tr-loga
+https://math.stackexchange.com/questions/2723633/basic-properties-of-the-matrix-logarithm
+https://math.stackexchange.com/questions/506962/expressing-the-trace-of-a2-by-trace-of-a
+https://math.stackexchange.com/questions/1314142/trace-of-ab-trace-of-ba
+https://mathworld.wolfram.com/MatrixTrace.html
+file:///home/cyan3/Dev/jim/gradschool/229/AM229-F22-Lecture4.pdf
+https://angms.science/doc/LA/Matdiff.pdf
+https://angms.science/doc/LA/Matrix_derivative_scalar.pdf
+https://math.stackexchange.com/questions/2807864/derivative-of-the-trace-of-the-product-of-a-matrix-and-its-transpose
+https://math.stackexchange.com/questions/699505/for-all-square-matrices-a-and-b-of-the-same-size-it-is-true-that-ab2
+https://web.stanford.edu/~jduchi/projects/matrix_prop.pdf
+https://moodle.swarthmore.edu/pluginfile.php/251126/mod_resource/content/2/Tracesol.pdf
+https://math.stackexchange.com/questions/1927188/matrix-multiplication-a-bab
+https://math.stackexchange.com/questions/2986989/understanding-cones-in-general-and-the-ice-cream-cone
+https://proofwiki.org/wiki/Determinant_of_Matrix_Product
+https://math.stackexchange.com/questions/3242074/taking-log-of-a-matrix-equation
+
+https://web.stanford.edu/~boyd/cvxbook/bv_cvxslides.pdf
+https://web.stanford.edu/~boyd/cvxbook/bv_cvxbook.pdf
+https://github.com/cvxgrp/cvxbook_additional_exercises
+https://math.stackexchange.com/questions/2410875/the-minkowski-sum-of-two-convex-sets-is-convex
+https://math.stackexchange.com/questions/587162/prove-convex-hull-of-minkowski-sum
+https://math.stackexchange.com/questions/34009/is-the-variance-of-a-convex-function-a-convex-function
+https://or.stackexchange.com/questions/4606/convexity-of-the-variance-of-a-mixture-distribution
+https://www.google.com/search?q=halfspace+of+convex+function+is+convex&oq=halfspace+of+convex+function+is+convex&aqs=chrome..69i57.6076j0j7&sourceid=chrome&ie=UTF-8
+https://www.google.com/search?q=convexity+preserved+under+power&oq=convexity+preserved+under+power&aqs=chrome..69i57.4018j0j7&sourceid=chrome&ie=UTF-8
+https://math.stackexchange.com/questions/849573/composition-of-convex-and-power-function
+https://www.google.com/search?q=stephen+boyd+convex+optimization+p-norm+convex&oq=stephen+boyd+convex+optimization+p-norm+convex&aqs=chrome..69i57.9856j0j7&sourceid=chrome&ie=UTF-8
+https://github.com/abhishekhalder/AM229F20/blob/main/AM229F20_HW3_Solution.ipynb
+https://math.stackexchange.com/questions/2280341/why-is-every-p-norm-convex
+https://www.google.com/search?q=matrix+with+column+sum+1+is+polyhedron+site:math.stackexchange.com&sxsrf=ALiCzsYJcjBhkqGrWoyh0gZJGszRDMezJw:1666039254788&sa=X&ved=2ahUKEwi5p9rvj-j6AhUeC0QIHfEABU8QrQIoBHoECA8QBQ&biw=1093&bih=992&dpr=1.25
+https://en.wikipedia.org/wiki/Birkhoff_polytope
+https://math.stackexchange.com/questions/2817343/every-convex-polyhedron-is-a-spectrahedron
+https://math.stackexchange.com/questions/326040/proof-that-the-set-of-doubly-stochastic-matrices-forms-a-convex-polytope
+https://en.wikipedia.org/wiki/Convex_polytope
+https://math.stackexchange.com/questions/3247584/proof-involving-the-birkhoff-polytope
+https://math.stackexchange.com/questions/214948/whats-the-algorithm-of-finding-the-convex-combination-of-permutation-matrices-f
+https://stackoverflow.com/questions/40382454/jupyter-notebook-new-cell-type-default
+https://latex-tutorial.com/piecewise-functions-latex/
+https://tex.stackexchange.com/questions/111436/how-could-i-do-big-intersection-with-single-s
+
+linear equality => hyperplane
+linear inequality => half-plane
+
+quadratic equality => ellipsoid surface
+quadratic inequalit => ellipsoid surface + interior
+
