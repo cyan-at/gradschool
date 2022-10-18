@@ -134,6 +134,8 @@ def dynamics(state, t, j1, j2, j3, control_data):
 
     ########################################
 
+    # print(state)
+
     # print(t)
     if np.abs(t - T_0) < 1e-8:
         t_key = 't0'
@@ -149,15 +151,21 @@ def dynamics(state, t, j1, j2, j3, control_data):
     if t_control_data['grid'].shape[1] == 4:
         query = np.append(query, t)
 
-    if np.abs(t - T_0) < 1e-8:
-        print("t_key", t_key)
-        print("state", query)
+    # if np.abs(t - T_0) < 1e-8:
+    #     print("t_key", t_key)
+    #     print("state", query)
 
     # grid_l2_norms = np.linalg.norm(query - t_control_data['grid'], ord=2, axis=1)
     # closest_grid_idx = grid_l2_norms.argmin()
 
-    closest_grid_idx = np.linalg.norm(query - t_control_data['grid'], ord=2, axis=1).argmin()
-    # print("query", query, closest_grid_idx)
+    closest_grid_idx = np.linalg.norm(query - t_control_data['grid'], ord=1, axis=1).argmin()
+    # print("query",
+    #     query,
+    #     closest_grid_idx,
+    #     t_control_data['grid'][closest_grid_idx],
+    #     t_control_data['0'][closest_grid_idx],
+    #     t_control_data['1'][closest_grid_idx],
+    #     t_control_data['2'][closest_grid_idx])
 
     statedot[X1_index] = statedot[X1_index] + t_control_data['0'][closest_grid_idx]
     statedot[X2_index] = statedot[X2_index] + t_control_data['1'][closest_grid_idx]
@@ -382,9 +390,6 @@ def init_data(
     # alpha2 = j3 - j1 / j1 = -alpha1
     # alpha3 = 0
 
-    unforced_dynamics_with_args = lambda state, t: dynamics(state, t, j1, j2, j3, None)
-    dynamics_with_args = lambda state, t: dynamics(state, t, j1, j2, j3, control_data)
-
     #############################################################################
 
     x1 = np.linspace(mu_0[0] - windows[0], mu_0[0] + windows[1], N)
@@ -491,7 +496,6 @@ def init_data(
             A = np.sqrt(initial_sample[:, 0]**2 + initial_sample[:, 1]**2)
             phi = np.arctan(initial_sample[:, 1] / initial_sample[:, 0])
 
-            print("distribution_samples", distribution_samples)
             t_samples = np.linspace(0, t_e, 30)
 
             all_time_data = np.empty(
@@ -506,13 +510,13 @@ def init_data(
             # y[i] is state dim [i]
             # z[i] is time [i]
 
-            print("integrating forced", initial_sample.shape[0])
             for sample_i in range(initial_sample.shape[0]):
-                print("sample_i", sample_i)
+                print("forcing sample_i", sample_i)
                 sample_states = integrate.odeint(
-                    dynamics_with_args,
+                    dynamics,
                     initial_sample[sample_i, :],
-                    t_samples)
+                    t_samples,
+                    args=(j1, j2, j3, control_data))
                 all_time_data[sample_i, :, :] = sample_states.T
 
             unforced_all_time_data = np.empty(
@@ -522,13 +526,13 @@ def init_data(
                     len(t_samples))
                 )
 
-            print("integrating unforced")
             for sample_i in range(initial_sample.shape[0]):
-                print("sample_i", sample_i)
+                print("unforced sample_i", sample_i)
                 sample_states = integrate.odeint(
-                    unforced_dynamics_with_args,
+                    dynamics,
                     initial_sample[sample_i, :],
-                    t_samples)
+                    t_samples,
+                    args=(j1, j2, j3, None))
                 unforced_all_time_data[sample_i, :, :] = sample_states.T
 
         #############################################################################
@@ -611,7 +615,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--times',
         type=str,
-        default="0,1.0,2.0,3.0,4.0,5.0",
+        default="0, 10.0, 20.0",
         required=False)
 
     parser.add_argument('--mu_0',
@@ -621,7 +625,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--sampling',
         type=str,
-        default="15,15,15,15,15,15,30,50",
+        default="15,15,15,15,15,15,30,10",
         required=False)
 
     parser.add_argument('--system',
@@ -642,25 +646,25 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     # distribution
-    # mu_0 = np.array([args.mu_0]*3)
-    # cov_0 = np.eye(3)
+    mu_0 = np.array([args.mu_0]*3)
+    cov_0 = np.eye(3)
 
     # sampling
     # ts = [float(x) for x in args.times.split(",")]
     ts = np.linspace(T_0, T_t, 2)
-    print("ts", ts)
 
     sampling = [int(x) for x in args.sampling.split(",")]
+    window0 = sampling[0]
+    window1 = sampling[1]
+    window2 = sampling[2]
+    window3 = sampling[3]
+    window4 = sampling[4]
+    window5 = sampling[5]
     windows = sampling[:6]
     N = sampling[6]
-    print("N", N)
     distribution_samples = sampling[7]
 
-    # j1, j2, j3 = [float(x) for x in args.system.split(",")]
-    # j1 = float(j1)
-    # j2 = float(j2)
-    # j3 = float(j3)
-    print("j1, j2, j3", j1, j2, j3)
+    j1, j2, j3 = [float(x) for x in args.system.split(",")]
 
     #############################################################################
 
@@ -673,8 +677,7 @@ if __name__ == '__main__':
     #############################################################################
 
     initial_sample, te_to_data, X1, X2, X3 = init_data(
-        [mu_0]*3, np.eye(3)*sigma_0,
-        # mu_0, cov_0,
+        mu_0, cov_0,
         windows, distribution_samples, N, ts,
         j1, j2, j3,
         control_data,
@@ -683,7 +686,6 @@ if __name__ == '__main__':
     #############################################################################
 
     ## Create a GL View widget to display data
-    # app = QtGui.QApplication([])
     app = pg.mkQApp("GLScatterPlotItem Example")
 
     point_size = np.ones(distribution_samples) * 0.08

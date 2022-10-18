@@ -2196,6 +2196,10 @@ distribution forced system NOT working
     grid lookup by l2 norm argmin
     either 3 axis lookup or 4 axis
 
+    tried nearest interpolation
+    autodiff on cpu, cuda
+    doubling the interp resolution N=15, N=30
+
     integration from T_0 to T_t (20s) with 30 time samples
 
     concern 1 (training):
@@ -2207,8 +2211,11 @@ distribution forced system NOT working
     sigmoid activation, clmaped last-layer weights
     so not correctly solving the planck equation?
 
-    concer 3 (training):
+    concern 3 (training):
     maybe q = 0.0 is an issue?
+
+    concern 4 (numerics):
+    maybe i'm not integrating finely enough?
 
     not clear what's wrong
 
@@ -2232,11 +2239,52 @@ scp cyan3@vipersim08.ndc.nasa.gov:/home/cyan3/gradschool/research/wass_3d/strate
 
 ../../../plot_loss_func.py --lossdat ./loss.dat --modelpt ./wass_3d_model-99505.pt
 
+./plot_bc.py --testdat ./wass_3d_model-99505-99505.dat --modelpt ./wass_3d_model-99505.pt --diff_on_cpu 0 --grid_n 30
+
+./distribution0.py --control_data ./wass_3d_model-99505_3375_0_linear_30_all_control_data.npy
+
+#########################################################
+
+./distribution0.py --control_data ./wass_2d_model-99875_225_0_linear_30_all_control_data.npy
+
+#########################################################
+
+scp cyan3@vipersim08.ndc.nasa.gov:/usr/local/home/cyan3/gradschool/research/wass_3d/strategy5/sigmoid_full_d2_p2/wass_3d_model-35636* .
+
+Epoch 35636: train loss improved from 7.54e-02 to 7.49e-02, x, y_pred
+
+./plot_bc.py --testdat ./wass_2d_model_t5-35636-35636.dat --modelpt ./wass_2d_model_t5-35636.pt --diff_on_cpu 0 --grid_n 45 --interp_mode linear
+
+./distribution0.py --control_data ./wass_2d_model_t5-35636_225_0_linear_45_5_all_control_data.npy
+
+#########################################################
+
+Epoch 67844: train loss improved from 4.71e-02 to 4.60e-02, x, y_pred
+
+/usr/local/home/cyan3/Desktop/gradschool/research/wass_3d/strategy5/sigmoid_batched500_d3_p2/wass_3d_model-67844.pt
+
+scp cyan3@vipersim01.ndc.nasa.gov:/usr/local/home/cyan3/Desktop/gradschool/research/wass_3d/strategy5/sigmoid_batched500_d3_p2/wass_3d_model-67844* .
+
+./plot_bc.py --testdat ./t5_q0/wass_3d_model-67844-67844.dat --modelpt ./t5_q0/wass_3d_model-67844.pt --diff_on_cpu 0 --grid_n 30
+
+not good!
+
 #########################################################
 #########################################################
-#########################################################
-#########################################################
-#########################################################
+
+vs08: d=2, T_t = 5, q=0.5
+run07
+Epoch 96656: train loss improved from 2.80e-02 to 2.78e-02, x, y_pred
+../../../../plot_loss_func.py --lossdat ./loss.dat --modelpt ./wass_2d_model-96656.pt
+/usr/local/home/cyan3/Dev/jim/gradschool/research/wass_3d/strategy5/sigmoid_full_d2_p2$ ./plot_bc.py --testdat ./run07/wass_2d_model-96656-96656.dat --modelpt ./run07/wass_2d_model-96656.pt --diff_on_cpu 0 --grid_n 45 --interp_mode linear
+as expected, the control is smaller, but it is already too small
+
+vs04: d=3, T_t = 5, q=0.5
+run06
+
+vs01: d=3, T_t = 5, q=0
+run05
+
 #########################################################
 #########################################################
 #########################################################
@@ -2924,3 +2972,56 @@ https://math.stackexchange.com/questions/57686/understanding-of-the-theorem-that
 https://math.stackexchange.com/questions/4094/how-do-you-show-monotonicity-of-the-ellp-norms
 https://proofwiki.org/wiki/P-Norm_is_Norm/Complex_Numbers
 https://math.stackexchange.com/questions/3623915/linear-algebra-a-level-p-norm-homogeneity
+
+https://github.com/
+https://github.com/storpipfugl/pykdtree
+https://m2n037.github.io/awesome-mecheng/
+https://github.com/humiaozuzu/awesome-flask
+https://github.com/mjhea0/awesome-flask
+https://www.google.com/search?q=flask+google+login+github&sxsrf=ALiCzsbeYnAdI48nmfmasHnqAg-IoLWBaA:1665252644227&source=lnt&tbs=qdr:y&sa=X&ved=2ahUKEwjI6cfCndH6AhX_LEQIHWlABvkQpwV6BAgBEBk&biw=1024&bih=1042&dpr=1.25
+https://flask-dance.readthedocs.io/_/downloads/en/latest/pdf/
+https://github.com/dpgaspar/Flask-AppBuilder
+https://trunk.arc.nasa.gov/bitbucket/projects/VIPERGDS/repos/viper_devsim/browse
+https://stackoverflow.com/questions/32428193/saving-matplotlib-graphs-to-image-as-full-screen
+https://discuss.pytorch.org/t/converting-model-into-16-points-precisoin-float16-instead-of-32/102622/3
+https://pytorch.org/docs/stable/amp.html
+https://deepxde.readthedocs.io/en/latest/demos/pinn_forward/poisson.1d.multiscaleFourier.html?highlight=pderesidualresampler
+https://github.com/lululxvi/deepxde/issues/320
+https://deepxde.readthedocs.io/en/latest/search.html?q=batch_size&check_keywords=yes&area=default
+https://deepxde.readthedocs.io/en/latest/_modules/deepxde/icbc/boundary_conditions.html?highlight=batch_size#
+https://www.google.com/search?q=%60GLIBCXX_3.4.30%27+not+found&ie=UTF-8
+https://askubuntu.com/questions/575505/glibcxx-3-4-20-not-found-how-to-fix-this-error
+http://localhost:8888/notebooks/HW2.ipynb
+https://www.google.com/search?q=hand+tattoo+santa+cruz&sxsrf=ALiCzsa0Mn-xOnfmQKVEEe3tskm7g5Rblg%3A1665263565683&ei=zedBY522KerdkPIPscG2yA8&ved=0ahUKEwjd0KiaxtH6AhXqLkQIHbGgDfkQ4dUDCA4&uact=5&oq=hand+tattoo+santa+cruz&gs_lcp=Cgdnd3Mtd2l6EAMyBQghEKABMgUIIRCrAjIICCEQHhAWEB0yCAghEB4QFhAdOgoIABBHENYEELADOgcIABCwAxBDOgQIIxAnOgcIABCxAxBDOgQIABBDOgoIABCxAxCDARBDOggIABCABBCxAzoFCAAQkQI6CAgAELEDEJECOggIABDJAxCRAjoFCAAQgAQ6CAgAEB4QFhAKOgYIABAeEBY6CggAEB4QDxAWEAo6BQgAEIYDSgQIQRgASgQIRhgAUOwHWMMZYNMaaAFwAXgAgAHlAYgB5gqSAQU2LjUuMZgBAKABAcgBCsABAQ&sclient=gws-wiz
+https://github.com/dfdazac/wassdistance
+https://stackoverflow.com/questions/55749202/getting-gradient-of-vectorized-function-in-pytorch
+https://discuss.pytorch.org/t/how-to-compute-the-gradient-of-a-component-of-a-vector-valued-function/157581
+https://pytorch.org/docs/stable/generated/torch.autograd.grad.html#torch-autograd-grad
+https://stackoverflow.com/questions/54754153/autograd-grad-for-tensor-in-pytorch
+https://discuss.pytorch.org/t/grad-attribute-of-a-non-leaf-tensor-being-accessed/82313/6
+https://www.ebay.com/sch/i.html?_from=R40&_nkw=mens%27+climbing+harness&_sacat=0&LH_BIN=1&_sop=15
+https://www.ebay.com/itm/134201921592?hash=item1f3f0ed038%3Ag%3A5pkAAOSwNZ1i%7EIsg&amdata=enc%3AAQAHAAAAsCa%2FXOdKruRmT24wcPfK5IAYCsk9qu0tduSNBdDjY3LOHzwjBvUn%2BENhBi6nW6i0ETn%2BbqW1w%2BG6d69Q14PIrAjCWmlS%2FtSP7%2BLKqRcJOwUQy%2BgfIUy4tG%2FzCCRlF7bIgtlqrUucbhn9XFxbV2ZdiJHmgXIiuUr4gumncHI8kQfTvBI%2FCOIf4FUEj53jRX3%2B3xoquHalex8MF9KhtDb4FsHXJOeDPetJKyiUIQNzUHKi%7Ctkp%3ABk9SR7jIhbf3YA&LH_BIN=1&autorefresh=true
+https://www.ebay.com/itm/175411330403?hash=item28d7547d63%3Ag%3AN7cAAOSw79linreO&amdata=enc%3AAQAHAAAAoCpYCgPuDXV82ZC9nBUc%2FSnMCQeEea4NQd7PQ1P79IIhmjK%2B%2Fh%2B9uLHw2Mfgn%2FWo0R2ieQN6BoRsUDH%2BbAxiD09VEecSfSRvchFV24VPWB%2F617ROp78c%2FHGFO9YaM%2Bt%2BkU3U6Ugt%2Fb2rOjZFB13PhYfHUSfIjlUsu2ElR3drb6pHf%2F1HgvVyRNjwsHuxok6ig%2BxD1uR6fJ3xs69ncWdIbnw%3D%7Ctkp%3ABk9SR7jIhbf3YA&LH_BIN=1
+https://www.ebay.com/itm/195110350479?hash=item2d6d7bae8f%3Ag%3Ak4YAAOSwZEhinA%7E6&amdata=enc%3AAQAHAAAAoEBISOQ3lhg9GLF8CnwysVNzyfyHfPLe9Z%2FDoemS%2B1EDdG7R8z%2BbLgOyp4rfSvC2aL1hLlZB%2FDimu04fyoOMdOXGmzhQeuTX%2BJnFC%2B3amTx2naY0p0e87bVEyuuBchGq9ey9ed2PqBZVj%2FqAdIrHcXSZHLMfTdXzv%2B%2F%2BI0vsdcnlmRgHMVDTStPkLMsnzmtBUGmS94u%2Fi1N3Y4RdH637JLs%3D%7Ctkp%3ABk9SR7jIhbf3YA&LH_BIN=1
+https://pytorch.org/tutorials/beginner/blitz/autograd_tutorial.html
+https://stackoverflow.com/questions/54754153/autograd-grad-for-tensor-in-pytorch
+https://stackoverflow.com/questions/69148622/difference-between-autograd-grad-and-autograd-backward
+https://www.crunchyroll.com/mobile-suit-gundam-the-witch-from-mercury/episode-2-the-cursed-mobile-suit-871205
+https://pytorch.org/docs/stable/generated/torch.numel.html
+https://www.google.com/search?q=pykeops&oq=pykeops&aqs=chrome..69i57j69i59j69i61.1164j0j7&sourceid=chrome&ie=UTF-8
+https://www.kernel-operations.io/keops/python/installation.html
+https://gist.github.com/jeanfeydy/d9395912e4d8bf1c0340bc93f78ea4bd
+https://www.google.com/search?q=fast_sinkhorn+github&oq=fast_sinkhorn+github&aqs=chrome..69i57.5786j0j7&sourceid=chrome&ie=UTF-8
+https://github.com/paigautam/CVPR21_FastSinkhornFilters
+https://medium.com/coders-mojo/day-7-of-30-days-of-data-structures-and-algorithms-and-system-design-simplified-1-d-dynamic-2560f585499
+https://github.com/fwilliams/scalable-pytorch-sinkhorn
+https://github.com/pyqtgraph/pyqtgraph
+https://github.com/pyqtgraph/pyqtgraph/blob/master/pyqtgraph/examples/text.py
+https://stackoverflow.com/questions/52113401/np-loadtxt-ignores-the-header-how-can-i-save-the-header-data
+https://stackoverflow.com/questions/28439701/how-to-save-and-load-numpy-array-data-properly
+https://stackoverflow.com/questions/40219946/python-save-dictionaries-through-numpy-save
+https://www.ebay.com/sch/i.html?_from=R40&_trksid=p2334524.m570.l1313&_nkw=men%27s+9.5+rock+climbing+shoes&_sacat=0&LH_TitleDesc=0&_odkw=men%27s+9.5+climbing+shoes&_osacat=0&LH_BIN=1&_sop=15
+https://www.ebay.com/sch/i.html?_from=R40&_nkw=men%27s+climbing+harness+medium&_sacat=0&LH_PrefLoc=2&_sop=15&rt=nc&LH_BIN=1
+https://www.ebay.com/itm/314180295320?hash=item49269ada98%3Ag%3AS24AAOSwhVpjQd67&amdata=enc%3AAQAHAAAAsGXQUzcHYvo2tnOT8BgRTNe5qqkWhzsRlmvPwlikFWUeHhRKiz79cyeEVw879laBKkW8Z4a0xsRVZGSo%2BDyKVjRzM81A9sV9DsQiTQX3PR3YxvP9OMeGBBS%2BD9hZuZzgNNkLCJro028dm%2BLJKUj7IYxpJgYovFbBxZxKAFEZrWL319%2FV7OfQrFIVlZwxFLxBGLgNCPhyzZbjnZQdquwGlXFOaU6arW01A0WqHoNEXne1%7Ctkp%3ABk9SR6T45er3YA&LH_BIN=1
+https://www.ebay.com/itm/274877871147?var=575138996871&hash=item3fffff742b%3Ag%3A0wkAAOSwbdNg-uvp&amdata=enc%3AAQAHAAAAsDkOBCeabrrUXHfRNptWnGT3%2FTPlo6dVjnNjdPgrtdrzdvyqcEuoq%2B0KKVkoWob0Mh6jIBXzIOH4WnuDPx0hoZ%2FATNLQ7lQFswem9wKS7Hxg3W5wqNOOthHggaCihIaJQyC5e7Vbhfc3PmLBFbbPA1CfWNJhywnUGk7BNqK%2BN%2FILA3P1UNWMkvdWZVg9S9kJy6TE5Eg1Lt2ECDFGb%2BTCuIyRmVKiOuV1RjbL3f0COlbm%7Ctkp%3ABk9SR6T45er3YA&LH_BIN=1
+https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.griddata.html

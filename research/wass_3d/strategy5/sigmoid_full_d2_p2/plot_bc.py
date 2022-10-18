@@ -126,6 +126,12 @@ if __name__ == '__main__':
         type=int, default=0)
     parser.add_argument('--diff_on_cpu',
         type=int, default=1)
+    parser.add_argument('--fullstate',
+        type=int, default=1)
+    parser.add_argument('--interp_mode',
+        type=str, default="linear")
+    parser.add_argument('--grid_n',
+        type=int, default=30)
 
     args = parser.parse_args()
 
@@ -142,22 +148,24 @@ if __name__ == '__main__':
         # generate / predict a new output
         inputs = test[:, :d+1]
 
+        T_t = inputs[batchsize, -1]
+        print("found T_t", T_t)
+
         inputs = np.float32(inputs)
+
+        model, meshes = get_model(d, N)
+        model.restore(args.modelpt)
+
+        # output = model.predict(inputs)
 
         inputs_tensor = torch.from_numpy(
             inputs).requires_grad_(True)
-        inputs_tensor = inputs_tensor.requires_grad_(True)
 
         if args.diff_on_cpu == 0:
             print("moving input to cuda")
             inputs_tensor = inputs_tensor.type(torch.FloatTensor).to(cuda0).requires_grad_(True)
         else:
             print("keeping input on cpu")
-
-        model, meshes = get_model(d, N)
-        model.restore(args.modelpt)
-
-        # output = model.predict(inputs)
 
         # move the MODEL to the cpu
         # to compute the gradient there, not on CUDA
@@ -172,11 +180,12 @@ if __name__ == '__main__':
 
         # only possible if tensors on cpu
         # maybe moving to cuda makes input non-leaf
-        # output_tensor[:, 0].backward(torch.ones_like(output_tensor[:, 0]))
-        # dphi_dinput = inputs_tensor.grad.numpy()
-
-        # OR do grad like so
-        dphi_dinput = torch.autograd.grad(outputs=output_tensor[:, 0], inputs=inputs_tensor, grad_outputs=torch.ones_like(output_tensor[:, 0]))[0]
+        if args.diff_on_cpu > 0:
+            output_tensor[:, 0].backward(torch.ones_like(output_tensor[:, 0]))
+            dphi_dinput = inputs_tensor.grad
+        else:
+            # OR do grad like so
+            dphi_dinput = torch.autograd.grad(outputs=output_tensor[:, 0], inputs=inputs_tensor, grad_outputs=torch.ones_like(output_tensor[:, 0]))[0]
 
         if args.diff_on_cpu > 0:
             dphi_dinput = dphi_dinput.numpy()
@@ -186,7 +195,11 @@ if __name__ == '__main__':
 
         # import ipdb; ipdb.set_trace()
 
-        dphi_dinput_fname = args.modelpt.replace(".pt", "_dphi_dinput.txt")
+        dphi_dinput_fname = args.modelpt.replace(".pt", "_dphi_dinput_%d_%d_%.3f.txt" % (
+            args.diff_on_cpu,
+            batchsize,
+            T_t,
+        ))
         np.savetxt(
             dphi_dinput_fname,
             dphi_dinput)
@@ -211,6 +224,11 @@ if __name__ == '__main__':
 
     rho0 = t0[:, -1]
     rhoT = tT[:, -1]
+
+    x_1_ = np.linspace(state_min, state_max, args.grid_n)
+    x_2_ = np.linspace(state_min, state_max, args.grid_n)
+    x_3_ = np.linspace(state_min, state_max, args.grid_n)
+    t_ = np.linspace(T_0, T_t, args.grid_n*2)
 
     ########################################################
 
@@ -264,35 +282,63 @@ if __name__ == '__main__':
 
     ########################################################
 
-    source_x1 = t0[:, 0]
-    source_x2 = t0[:, 1]
+    meshes[0].reshape(-1)
+    meshes[1].reshape(-1)
+    grid0 = np.array((
+        meshes[0].reshape(-1),
+        meshes[1].reshape(-1),
+    )).T
 
     dphi_dinput_t0_dx = dphi_dinput_t0[:, 0]
     dphi_dinput_t0_dy = dphi_dinput_t0[:, 1]
 
+    t0={
+        '0': dphi_dinput_t0_dx.reshape(-1),
+        '1': dphi_dinput_t0_dy.reshape(-1),
+        'grid' : grid0,
+    }
+
     dphi_dinput_tT_dx = dphi_dinput_tT[:, 0]
     dphi_dinput_tT_dy = dphi_dinput_tT[:, 1]
 
-    x_1_ = np.linspace(state_min, state_max, N)
-    x_2_ = np.linspace(state_min, state_max, N)
-    t_ = np.linspace(T_0, T_t, N)
+    tT={
+        '0': dphi_dinput_tT_dx.reshape(-1),
+        '1': dphi_dinput_tT_dy.reshape(-1),
+        'grid' : grid0,
+    }
+
+    x_1_ = np.linspace(state_min, state_max, args.grid_n)
+    x_2_ = np.linspace(state_min, state_max, args.grid_n)
+    t_ = np.linspace(T_0, T_t, args.grid_n)
     grid_x1, grid_x2, grid_t = np.meshgrid(
         x_1_,
         x_2_,
         t_, copy=False) # each is NxNxN
 
+    grid1 = np.array((
+        grid_x1.reshape(-1),
+        grid_x2.reshape(-1),
+        grid_t.reshape(-1),
+    )).T
+
     # import ipdb; ipdb.set_trace()
-    PSI = gd(
+    DPHI_DINPUT_tt_0 = gd(
       (tt[:, 0], tt[:, 1], tt[:, 2]),
       dphi_dinput_tt[:, 0],
       (grid_x1, grid_x2, grid_t),
       method='nearest')
 
-    PSI2 = gd(
+    DPHI_DINPUT_tt_1 = gd(
       (tt[:, 0], tt[:, 1], tt[:, 2]),
       dphi_dinput_tt[:, 1],
       (grid_x1, grid_x2, grid_t),
       method='nearest')
+
+    tt={
+        '0': DPHI_DINPUT_tt_0.reshape(-1),
+        '1': DPHI_DINPUT_tt_1.reshape(-1),
+        'grid' : grid1,
+    }
 
     ########################################################
 
@@ -325,8 +371,8 @@ if __name__ == '__main__':
         grid_x1,
         grid_x2,
         grid_t,
-        c=PSI,
-        s=np.abs(PSI*20000),
+        c=DPHI_DINPUT_tt_0,
+        s=np.abs(DPHI_DINPUT_tt_0*100),
         cmap=cm.jet,
         alpha=1.0)
     plt.colorbar(sc2, shrink=0.25)
@@ -370,8 +416,8 @@ if __name__ == '__main__':
         grid_x1,
         grid_x2,
         grid_t,
-        c=PSI2,
-        s=np.abs(PSI2*20000),
+        c=DPHI_DINPUT_tt_1,
+        s=np.abs(DPHI_DINPUT_tt_1*100),
         cmap=cm.jet,
         alpha=1.0)
     plt.colorbar(sc3, shrink=0.25)
@@ -388,9 +434,29 @@ if __name__ == '__main__':
 
     title_str = args.modelpt
     title_str += "\n"
-    title_str += "N=15, d=2, batch=full, sigmoid + clamped weights"
+    title_str += "N=15, d=2, T_t=%.3f, batch=full, sigmoid + clamped weights" % (T_t)
+
     title_str += "\n"
-    title_str += "99875     [5.95e-08, 5.44e-04, 2.50e-02, 2.51e-02]    [5.95e-08, 5.44e-04, 2.50e-02, 2.51e-02]    []"
+    title_str += "rho0_sum=%.3f, rhoT_sum=%.3f" % (
+            np.sum(rho0),
+            np.sum(rhoT),
+        )
+
+    title_str += "\n"
+    title_str += "dphi_dinput_t0_dx={%.3f, %.3f}, dphi_dinput_t0_dy={%.3f, %.3f}" % (
+            np.min(dphi_dinput_t0_dx),
+            np.max(dphi_dinput_t0_dx),
+            np.min(dphi_dinput_t0_dy),
+            np.max(dphi_dinput_t0_dy)
+        )
+
+    title_str += "\n"
+    title_str += "dphi_dinput_tT_dx={%.3f, %.3f}, dphi_dinput_tT_dy={%.3f, %.3f}" % (
+            np.min(dphi_dinput_tT_dx),
+            np.max(dphi_dinput_tT_dx),
+            np.min(dphi_dinput_tT_dy),
+            np.max(dphi_dinput_tT_dy)
+        )
 
     plt.suptitle(title_str)
 
@@ -416,7 +482,40 @@ if __name__ == '__main__':
     #     manager.frame.Maximize(True)
     # except:
     #     pass
-    fig.canvas.mpl_connect('key_press_event', lambda e: on_press_saveplot(e, 'rhoopt_dphidx_dphidy.png'))
+    c = Counter()
+    fig.canvas.mpl_connect('key_press_event', lambda e: c.on_press_saveplot(e,
+            '%s_Tt=%.3f_rho_opt_bc_batch=%d_%d_%s_%d.png' % (
+                args.modelpt.replace(".pt", ""),
+                T_t,
+                batchsize,
+                args.diff_on_cpu,
+                args.interp_mode,
+                args.grid_n
+            )
+        )
+    )
 
     plt.show()
 
+    gen_control_data = input("generate control data? ")
+    print(gen_control_data)
+
+    if gen_control_data != "1":
+        sys.exit(0)
+
+    fname = '%s_%d_%d_%s_%d_%d_all_control_data.npy' % (
+            args.modelpt.replace(".pt", ""),
+            batchsize,
+            args.diff_on_cpu,
+            args.interp_mode,
+            args.grid_n,
+            T_t,
+        )
+    np.save(
+        fname, 
+        {
+            't0' : t0,
+            'tT' : tT,
+            'tt' : tt
+        })
+    print("saved control_data to %s" % (fname))

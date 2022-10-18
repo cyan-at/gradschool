@@ -537,14 +537,14 @@ def euler_pde_2(x, y):
     f2=x[:, 0:1]*1.0*(j3-j1)/j2
     # f1=x[:, 1:2]*x[:, 2:3]*(j2-j3)/j1
     # f2=x[:, 0:1]*x[:, 2:3]*(j3-j1)/j2
-    f3=x[:, 0:1]*x[:, 1:2]*(j1-j2)/j3
+    # f3=x[:, 0:1]*x[:, 1:2]*(j1-j2)/j3
     
     # d_f1dy1_y2_x=tf.gradients((f1+dy1_x)*y2, x)[0][:, 0:1]
     # d_f2dy1_y2_y=tf.gradients((f2+dy1_y)*y2, x)[0][:, 1:2]
     # d_f3dy1_y2_z=tf.gradients((f3+dy1_z)*y2, x)[0][:, 2:3]
     d_f1dy1_y2_x = dde.grad.jacobian((f1+dy1_x)*y2, x, j=0)
     d_f2dy1_y2_y = dde.grad.jacobian((f2+dy1_y)*y2, x, j=1)
-    d_f3dy1_y2_z = dde.grad.jacobian((f3+dy1_z)*y2, x, j=2)
+    # d_f3dy1_y2_z = dde.grad.jacobian((f3+dy1_z)*y2, x, j=2)
 
     # stay close to origin while searching, penalizes large state distance solutions
     q = q_statepenalty_gain*(
@@ -554,12 +554,12 @@ def euler_pde_2(x, y):
     # also try
     # q = 0 # minimum effort control
 
-    psi = -dy1_t + q - .5*(dy1_x*dy1_x+dy1_y*dy1_y+dy1_z*dy1_z) - (dy1_x*f1 + dy1_y*f2 + dy1_z*f3) - epsilon*(dy1_xx+dy1_yy+dy1_zz)
+    psi = -dy1_t + q - .5*(dy1_x*dy1_x+dy1_y*dy1_y) - (dy1_x*f1 + dy1_y*f2) - epsilon*(dy1_xx+dy1_yy)
 
     # TODO: verify this expression
     return [
         psi,
-        -dy2_t-(d_f1dy1_y2_x+d_f2dy1_y2_y+d_f3dy1_y2_z)+epsilon*(dy2_xx+dy2_yy+dy2_zz),
+        -dy2_t-(d_f1dy1_y2_x+d_f2dy1_y2_y)+epsilon*(dy2_xx+dy2_yy),
     ]
 
 def euler_pde_3(x, y):

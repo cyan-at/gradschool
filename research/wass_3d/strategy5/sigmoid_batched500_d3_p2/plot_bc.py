@@ -151,6 +151,8 @@ if __name__ == '__main__':
         inputs = np.float32(inputs)
 
         if args.fullstate > 0:
+            # BE CAREFUL ABOUT TIME VALUES HERE
+            # TIME = FUNCTION(DATA), not FUNCTION(COMMON)
             linspaces = []
             for i in range(d):
                 linspaces.append(np.transpose(np.linspace(state_min, state_max, N)))
@@ -166,7 +168,7 @@ if __name__ == '__main__':
             ))
             time_t=np.hstack((
                 state,
-                T_t*np.ones((len(mesh_vectors[0]), 1))
+                20*np.ones((len(mesh_vectors[0]), 1))
             ))
             inputs = np.vstack((time_0, time_t, rest))
             inputs = np.float32(inputs)
@@ -191,7 +193,6 @@ if __name__ == '__main__':
 
         inputs_tensor = torch.from_numpy(
             inputs).requires_grad_(True)
-        inputs_tensor = inputs_tensor.requires_grad_(True)
 
         if args.diff_on_cpu == 0:
             print("moving input to cuda")
@@ -259,7 +260,7 @@ if __name__ == '__main__':
     x_1_ = np.linspace(state_min, state_max, args.grid_n)
     x_2_ = np.linspace(state_min, state_max, args.grid_n)
     x_3_ = np.linspace(state_min, state_max, args.grid_n)
-    t_ = np.linspace(T_0, T_t, args.grid_n*2)
+    t_ = np.linspace(T_0, 20, args.grid_n*2)
 
     grid_x1, grid_x2, grid_x3 = np.meshgrid(
         x_1_,
@@ -302,7 +303,13 @@ if __name__ == '__main__':
         cmap=cm.jet,
         alpha=1.0)
     plt.colorbar(sc1, shrink=0.25)
-    ax1.set_title('rho0: mu={}, sigma={}'.format(mu_0, sigma_0))
+    ax1.set_title('rho0: mu=%.3f, sigma=%.3f, sum=%.3f, min=%.3f, max=%.3f' % (
+        mu_0,
+        sigma_0,
+        np.sum(t0[:, -1]),
+        np.min(t0[:, -1]),
+        np.max(t0[:, -1])
+    ))
     ax1.set_xlabel('x')
     ax1.set_ylabel('y')
     ax1.set_zlabel('z')
@@ -317,7 +324,13 @@ if __name__ == '__main__':
         cmap=cm.jet,
         alpha=1.0)
     plt.colorbar(sc2, shrink=0.25)
-    ax2.set_title('rhoT: mu={}, sigma={}'.format(mu_T, sigma_T))
+    ax2.set_title('rhoT: mu=%.3f, sigma=%.3f, sum=%.3f, min=%.3f, max=%.3f' % (
+        mu_T,
+        sigma_T,
+        np.sum(tT[:, -1]),
+        np.min(tT[:, -1]),
+        np.max(tT[:, -1])
+    ))
     ax2.set_xlabel('x')
     ax2.set_ylabel('y')
     ax2.set_zlabel('z')
@@ -333,7 +346,11 @@ if __name__ == '__main__':
         np.max(dphi_dinput_tt)
     )
 
-    dphi_dinput_t0_l2_norm = np.sqrt(dphi_dinput_t0[:, 0]**2 + dphi_dinput_t0[:, 1]**2 + dphi_dinput_t0[:, 2]**2)
+    # dphi_dinput_t0_l2_norm = np.linalg.norm(
+    #     dphi_dinput_t0[:, 0:3], ord=2, axis=1)
+    dphi_dinput_t0_l2_norm = dphi_dinput_t0[:, 0]
+
+    # import ipdb; ipdb.set_trace()
 
     DPHI_DINPUT_T0_L2_NORM = gd(
       (t0[:, 0], t0[:, 1], t0[:, 2]),
@@ -372,10 +389,12 @@ if __name__ == '__main__':
 
     plt.suptitle(title_str)
 
-    fig.canvas.mpl_connect('key_press_event', lambda e: on_press_saveplot(e,
-            '%s_rho_opt_bc_batch=%d_%d_%s_%d.png'  %(
+    c = Counter()
+    fig.canvas.mpl_connect('key_press_event', lambda e: c.on_press_saveplot(e,
+            '%s_rho_opt_bc_batch=%d_%d_%d_%s_%d.png'  %(
                 args.modelpt.replace(".pt", ""),
                 batchsize,
+                args.fullstate,
                 args.diff_on_cpu,
                 args.interp_mode,
                 args.grid_n
@@ -386,6 +405,12 @@ if __name__ == '__main__':
     plt.show()
 
     ########################################################
+
+    gen_control_data = input("generate control data? ")
+    print(gen_control_data)
+
+    if gen_control_data != "1":
+        sys.exit(0)
 
     grid = np.array((grid_x1.reshape(-1), grid_x2.reshape(-1), grid_x3.reshape(-1))).T
 
@@ -473,16 +498,19 @@ if __name__ == '__main__':
         'grid' : grid,
     }
 
-    np.save(
-        '%s_%d_%d_%s_%d_all_control_data.npy' % (
+    fname = '%s_%d_%d_%d_%s_%d_all_control_data.npy' % (
             args.modelpt.replace(".pt", ""),
             batchsize,
+            args.fullstate,
             args.diff_on_cpu,
             args.interp_mode,
             args.grid_n
-        ), 
+        )
+    np.save(
+        fname,
         {
             't0' : t0,
             'tT' : tT,
             'tt' : tt
         })
+    print("saved control_data to %s" % (fname))
