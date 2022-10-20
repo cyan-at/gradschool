@@ -3,7 +3,7 @@
 
 '''
 USAGE:
-./plot_bc.py --testdat ./wass_2d_model-99875-99875.dat --modelpt ./wass_2d_model-99875.pt
+./plot_bc.py --testdat ./wass_3d_model-60970-60970.dat --modelpt ./wass_3d_model-60970.pt --interp_mode nearest --grid_n 15
 '''
 
 # 0 define backend
