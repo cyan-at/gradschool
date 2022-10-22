@@ -153,7 +153,7 @@ if __name__ == '__main__':
 
         inputs = np.float32(inputs)
 
-        model, meshes = get_model(d, N)
+        model, meshes = get_model(d, N, 1, "sigmoid")
         model.restore(args.modelpt)
 
         # output = model.predict(inputs)
@@ -175,6 +175,8 @@ if __name__ == '__main__':
             model.net = model.net.cpu()
         else:
             print("keeping model on cuda")
+
+        # import ipdb; ipdb.set_trace()
 
         output_tensor = model.net(inputs_tensor)
 

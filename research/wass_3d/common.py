@@ -18,6 +18,8 @@ from deepxde.utils import get_num_args, run_if_all_none
 
 import matplotlib.pyplot as plt
 
+from scipy.spatial.distance import cdist
+
 def pdf3d(x,y,z,rv):
     return rv.pdf(np.hstack((x, y, z)))
 
@@ -641,8 +643,11 @@ euler_pdes = {
 
 ######################################
 
-ck_path = "%s/%s_model" % (os.path.abspath("./"), id_prefix)
 class EarlyStoppingFixed(dde.callbacks.EarlyStopping):
+    def __init__(self, path, min_delta=0, patience=0, baseline=None, monitor="loss_train"):
+        super(EarlyStoppingFixed, self).__init__(min_delta, patience, baseline, monitor)
+        self.path = path
+
     def on_epoch_end(self):
         current = self.get_monitor_value()
         if self.monitor_op(current - self.min_delta, self.best):
@@ -659,7 +664,7 @@ class EarlyStoppingFixed(dde.callbacks.EarlyStopping):
         if self.stopped_epoch > 0:
             print("Epoch {}: early stopping".format(self.stopped_epoch))
         
-        self.model.save(ck_path, verbose=True)
+        self.model.save(self.path, verbose=True)
 
     def get_monitor_value(self):
         if self.monitor == "train loss" or self.monitor == "loss_train":
@@ -676,7 +681,6 @@ class EarlyStoppingFixed(dde.callbacks.EarlyStopping):
             return 1.0
 
         return result
-earlystop_cb = EarlyStoppingFixed(baseline=1e-3, patience=0)
 
 class ModelCheckpoint2(dde.callbacks.ModelCheckpoint):
     def __init__(
@@ -745,8 +749,6 @@ class ModelCheckpoint2(dde.callbacks.ModelCheckpoint):
             return 1.0
 
         return result
-modelcheckpt_cb = ModelCheckpoint2(
-    ck_path, verbose=True, save_better_only=True, period=1)
 
 class NonNeg_LastLayer_Model(dde.Model):
     def _train_sgd(self, iterations, display_every):
@@ -779,6 +781,11 @@ class NonNeg_LastLayer_Model(dde.Model):
 
             if self.stop_training:
                 break
+
+model_types = {
+    0 : dde.Model,
+    1 : NonNeg_LastLayer_Model
+}
 
 class WASSPDE(dde.data.TimePDE):
     def losses(self, targets, outputs, loss_fn, inputs, model, aux=None):
@@ -822,6 +829,9 @@ class WASSPDE(dde.data.TimePDE):
             # The same BC points are used for training and testing.
 
             fun = loss_fn[len(error_f) + i]
+
+            # import ipdb; ipdb.set_trace();
+
             if "WASS_batch" in fun.__name__:
                 y_pred = outputs[beg:end, bc.component : bc.component + 1]
                 # y_true = bc.values[bc.batch_indices]
@@ -865,3 +875,40 @@ class Counter(object):
             print("saved figure", fname)
 
             self.count += 1
+
+######################################
+
+def WASS(y_true, y_pred, sinkhorn, rho_tensor, C):
+    p1 = (y_pred<0).sum() # negative terms
+
+    p2 = 1 / torch.var(y_pred)
+
+    p3 = torch.abs(torch.sum(y_pred) - 1)
+
+    y_pred = torch.where(y_pred < 0, 0, y_pred)
+    dist, _, _ = sinkhorn(C, y_pred.reshape(-1), rho_tensor)
+    # print("Sinkhorn distance: {:.3f}".format(dist.item()))
+
+    return 10 * p1 + p2 + p3 + dist
+
+def WASS_batch(y_true, y_pred, device, sinkhorn, rho, state):
+    rhoT_temp_tensor = torch.from_numpy(
+        rho[y_true],
+    ).to(device).requires_grad_(False)
+
+    C_temp_device = torch.from_numpy(
+        cdist(state[y_true, :], state[y_true, :], 'sqeuclidean'))
+    C_temp_device = C_temp_device.to(device).requires_grad_(False)
+
+    p2 = torch.abs(torch.sum(y_pred) - 1)
+
+    y_pred = torch.where(y_pred < 0, 0, y_pred)
+
+    # import ipdb; ipdb.set_trace()
+
+    dist, _, _ = sinkhorn(
+        C_temp_device,
+        y_pred.reshape(-1),
+        rhoT_temp_tensor)
+
+    return dist + p2 # + p1

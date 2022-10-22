@@ -148,6 +148,9 @@ if __name__ == '__main__':
         # generate / predict a new output
         inputs = test[:, :d+1]
 
+        T_t = inputs[batchsize, -1]
+        print("found T_t", T_t)
+
         inputs = np.float32(inputs)
 
         if args.fullstate > 0:
@@ -168,7 +171,7 @@ if __name__ == '__main__':
             ))
             time_t=np.hstack((
                 state,
-                20*np.ones((len(mesh_vectors[0]), 1))
+                T_t*np.ones((len(mesh_vectors[0]), 1))
             ))
             inputs = np.vstack((time_0, time_t, rest))
             inputs = np.float32(inputs)
@@ -260,7 +263,7 @@ if __name__ == '__main__':
     x_1_ = np.linspace(state_min, state_max, args.grid_n)
     x_2_ = np.linspace(state_min, state_max, args.grid_n)
     x_3_ = np.linspace(state_min, state_max, args.grid_n)
-    t_ = np.linspace(T_0, 20, args.grid_n*2)
+    t_ = np.linspace(T_0, T_t, args.grid_n*2)
 
     grid_x1, grid_x2, grid_x3 = np.meshgrid(
         x_1_,

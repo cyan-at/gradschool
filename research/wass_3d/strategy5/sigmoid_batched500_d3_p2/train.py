@@ -83,7 +83,13 @@ import argparse
 
 ######################################
 
-def get_model(d, N, batchsize):
+def get_model(
+    d,
+    N,
+    batchsize,
+    model_type,
+    activations,
+    init="Glorot normal"):
     M = N**d
 
     linspaces = []
@@ -175,65 +181,65 @@ def get_model(d, N, batchsize):
 
     # import ipdb; ipdb.set_trace()
 
-    def rho0_WASS_batch_cuda0(y_true, y_pred):
-        # p1 = (y_pred<0).sum() # negative terms
+    # def rho0_WASS_batch_cuda0(y_true, y_pred):
+    #     # p1 = (y_pred<0).sum() # negative terms
 
-        # print(y_pred.shape)
-        # print(y_true.shape)
+    #     # print(y_pred.shape)
+    #     # print(y_true.shape)
 
-        rho0_temp_tensor = torch.from_numpy(
-            rho0[y_true],
-        )
-        rho0_temp_tensor = rho0_temp_tensor.to(device).requires_grad_(False)
+    #     rho0_temp_tensor = torch.from_numpy(
+    #         rho0[y_true],
+    #     )
+    #     rho0_temp_tensor = rho0_temp_tensor.to(device).requires_grad_(False)
 
-        C_temp = cdist(state[y_true, :], state[y_true, :], 'sqeuclidean')
-        C_temp_device = torch.from_numpy(
-            C_temp)
-        C_temp_device = C_temp_device.to(device).requires_grad_(False)
+    #     C_temp = cdist(state[y_true, :], state[y_true, :], 'sqeuclidean')
+    #     C_temp_device = torch.from_numpy(
+    #         C_temp)
+    #     C_temp_device = C_temp_device.to(device).requires_grad_(False)
 
-        p2 = torch.abs(torch.sum(y_pred) - 1)
+    #     p2 = torch.abs(torch.sum(y_pred) - 1)
 
-        y_pred = torch.where(y_pred < 0, 0, y_pred)
+    #     y_pred = torch.where(y_pred < 0, 0, y_pred)
 
-        # import ipdb; ipdb.set_trace()
+    #     # import ipdb; ipdb.set_trace()
 
-        dist, _, _ = sinkhorn0(
-            C_temp_device,
-            y_pred.reshape(-1),
-            rho0_temp_tensor)
-        # print("Sinkhorn distance: {:.3f}".format(dist.item()))
+    #     dist, _, _ = sinkhorn0(
+    #         C_temp_device,
+    #         y_pred.reshape(-1),
+    #         rho0_temp_tensor)
+    #     # print("Sinkhorn distance: {:.3f}".format(dist.item()))
 
-        return dist + p2 # + p1
+    #     return dist + p2 # + p1
 
-    def rhoT_WASS_batch_cuda0(y_true, y_pred):
-        # p1 = (y_pred<0).sum() # negative terms
+    # def rhoT_WASS_batch_cuda0(y_true, y_pred):
+    #     # p1 = (y_pred<0).sum() # negative terms
 
-        # print(y_pred.shape)
-        # print(y_true.shape)
+    #     # print(y_pred.shape)
+    #     # print(y_true.shape)
 
-        rhoT_temp_tensor = torch.from_numpy(
-            rhoT[y_true],
-        )
-        rhoT_temp_tensor = rhoT_temp_tensor.to(device).requires_grad_(False)
+    #     rhoT_temp_tensor = torch.from_numpy(
+    #         rhoT[y_true],
+    #     )
+    #     rhoT_temp_tensor = rhoT_temp_tensor.to(device).requires_grad_(False)
 
-        C_temp = cdist(state[y_true, :], state[y_true, :], 'sqeuclidean')
-        C_temp_device = torch.from_numpy(
-            C_temp)
-        C_temp_device = C_temp_device.to(device).requires_grad_(False)
+    #     C_temp = cdist(state[y_true, :], state[y_true, :], 'sqeuclidean')
+    #     C_temp_device = torch.from_numpy(
+    #         C_temp)
+    #     C_temp_device = C_temp_device.to(device).requires_grad_(False)
 
-        p2 = torch.abs(torch.sum(y_pred) - 1)
+    #     p2 = torch.abs(torch.sum(y_pred) - 1)
 
-        y_pred = torch.where(y_pred < 0, 0, y_pred)
+    #     y_pred = torch.where(y_pred < 0, 0, y_pred)
 
-        # import ipdb; ipdb.set_trace()
+    #     # import ipdb; ipdb.set_trace()
 
-        dist, _, _ = sinkhornT(
-            C_temp_device,
-            y_pred.reshape(-1),
-            rhoT_temp_tensor)
-        # print("Sinkhorn distance: {:.3f}".format(dist.item()))
+    #     dist, _, _ = sinkhornT(
+    #         C_temp_device,
+    #         y_pred.reshape(-1),
+    #         rhoT_temp_tensor)
+    #     # print("Sinkhorn distance: {:.3f}".format(dist.item()))
 
-        return dist + p2 # + p1
+    #     return dist + p2 # + p1
 
     ######################################
 
@@ -258,24 +264,26 @@ def get_model(d, N, batchsize):
     # 5 outputs: 2 eq
     net = dde.nn.FNN(
         [d+1] + [70] *3  + [2],
-        "sigmoid",
-        # "tanh",
-
-        "Glorot normal"
+        activations,
+        init
         # "zeros",
     )
-    model = NonNeg_LastLayer_Model(data, net)
+    model = model_types[model_type](data, net)
 
     ######################################
 
-    loss_func=[
+    rho0_WASS_batch = lambda y_true, y_pred: WASS_batch(y_true, y_pred, device, sinkhorn0, rho0, state)
+    rho0_WASS_batch.__name__ = "rho0_WASS_batch"
+    rhoT_WASS_batch = lambda y_true, y_pred: WASS_batch(y_true, y_pred, device, sinkhornT, rhoT, state)
+    rhoT_WASS_batch.__name__ = "rhoT_WASS_batch"
+    losses=[
         "MSE","MSE",
-        rho0_WASS_batch_cuda0,
-        rhoT_WASS_batch_cuda0
+        rhoT_WASS_batch,
+        rhoT_WASS_batch,
     ]
     # loss functions are based on PDE + BC: eq outputs, BCs
 
-    model.compile("adam", lr=1e-3,loss=loss_func)
+    model.compile("adam", lr=1e-3,loss=losses)
 
     return model, meshes
 
@@ -284,6 +292,7 @@ if __name__ == '__main__':
     parser.add_argument('--N', type=int, default=15, help='')
     parser.add_argument('--js', type=str, default="1,1,2", help='')
     parser.add_argument('--q', type=float, default=0.0, help='')
+    parser.add_argument('--ck_path', type=str, default=".", help='')
     parser.add_argument('--debug', type=int, default=False, help='')
     parser.add_argument('--batchsize', type=int, default=500, help='')
     args = parser.parse_args()
@@ -300,11 +309,28 @@ if __name__ == '__main__':
     if args.debug:
         torch.autograd.set_detect_anomaly(True)
 
-    model, _ = get_model(d, N, args.batchsize)
+    model, _ = get_model(
+        d,
+        N,
+        args.batchsize,
+        1,
+        "sigmoid")
 
     ######################################
 
     de = 1
+
+    ck_path = "%s/model" % (args.ck_path)
+    earlystop_cb = EarlyStoppingFixed(
+        ck_path,
+        baseline=1e-3,
+        patience=0)
+    modelcheckpt_cb = ModelCheckpoint2(
+        ck_path,
+        verbose=True,
+        save_better_only=True,
+        period=1)
+
     losshistory, train_state = model.train(
         iterations=num_epochs,
         display_every=de,

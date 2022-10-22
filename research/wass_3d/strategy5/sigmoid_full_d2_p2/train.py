@@ -75,7 +75,13 @@ import argparse
 
 ######################################
 
-def get_model(d, N):
+def get_model(
+    d,
+    N,
+    model_type,
+    activations, # sigmoid, tanh
+    init="Glorot normal",
+    ):
     M = N**d
 
     linspaces = []
@@ -156,34 +162,6 @@ def get_model(d, N):
 
     ######################################
 
-    def rho0_WASS_cuda0(y_true, y_pred):
-        p1 = (y_pred<0).sum() # negative terms
-
-        p2 = 1 / torch.var(y_pred)
-
-        p3 = torch.abs(torch.sum(y_pred) - 1)
-
-        y_pred = torch.where(y_pred < 0, 0, y_pred)
-        dist, _, _ = sinkhorn(C, y_pred.reshape(-1), rho0_tensor)
-        # print("Sinkhorn distance: {:.3f}".format(dist.item()))
-
-        return 10 * p1 + p2 + p3 + dist
-
-    def rhoT_WASS_cuda0(y_true, y_pred):
-        p1 = (y_pred<0).sum() # negative terms
-
-        p2 = 1 / torch.var(y_pred)
-
-        p3 = torch.abs(torch.sum(y_pred) - 1)
-
-        y_pred = torch.where(y_pred < 0, 0, y_pred)
-        dist, _, _ = sinkhorn(C, y_pred.reshape(-1), rhoT_tensor)
-        # print("Sinkhorn distance: {:.3f}".format(dist.item()))
-
-        return 10 * p1 + p2 + p3 + dist
-
-    ######################################
-
     geom=dde.geometry.geometry_3d.Cuboid(
         [state_min]*d,
         [state_max]*d)
@@ -202,24 +180,26 @@ def get_model(d, N):
     net = dde.nn.FNN(
         [d+1] + [70] *3  + [2],
         # "sigmoid",
-        "tanh",
-
-        "Glorot normal"
+        activations,
+        init
         # "zeros",
     )
-    # model = NonNeg_LastLayer_Model(data, net)
-    model = dde.Model(data, net)
+    model = model_types[model_type](data, net)
 
     ######################################
 
-    loss_func=[
+    rho0_WASS = lambda y_true, y_pred: WASS(y_true, y_pred, sinkhorn, rho0_tensor, C)
+    rho0_WASS.__name__ = "rho0_WASS"
+    rhoT_WASS = lambda y_true, y_pred: WASS(y_true, y_pred, sinkhorn, rhoT_tensor, C)
+    rhoT_WASS.__name__ = "rhoT_WASS"
+    losses=[
         "MSE","MSE",
-        rho0_WASS_cuda0,
-        rhoT_WASS_cuda0
+        rho0_WASS,
+        rhoT_WASS,
     ]
     # loss functions are based on PDE + BC: eq outputs, BCs
 
-    model.compile("adam", lr=1e-3,loss=loss_func)
+    model.compile("adam", lr=1e-3,loss=losses)
 
     return model, meshes
 
@@ -230,6 +210,7 @@ if __name__ == '__main__':
     parser.add_argument('--N', type=int, default=15, help='')
     parser.add_argument('--js', type=str, default="1,1,2", help='')
     parser.add_argument('--q', type=float, default=0.5, help='')
+    parser.add_argument('--ck_path', type=str, default=".", help='')
     parser.add_argument('--debug', type=int, default=False, help='')
     args = parser.parse_args()
 
@@ -245,9 +226,24 @@ if __name__ == '__main__':
     if args.debug:
         torch.autograd.set_detect_anomaly(True)
 
-    model, _ = get_model(d, N)
+    model, _ = get_model(d, N,
+        1,
+        "sigmoid"
+        )
 
     de = 1
+
+    ck_path = "%s/model" % (args.ck_path)
+    earlystop_cb = EarlyStoppingFixed(
+        ck_path,
+        baseline=1e-3,
+        patience=0)
+    modelcheckpt_cb = ModelCheckpoint2(
+        ck_path,
+        verbose=True,
+        save_better_only=True,
+        period=1)
+
     losshistory, train_state = model.train(
         iterations=num_epochs,
         display_every=de,
