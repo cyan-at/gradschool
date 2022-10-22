@@ -878,7 +878,7 @@ class Counter(object):
 
 ######################################
 
-def WASS(y_true, y_pred, sinkhorn, rho_tensor, C):
+def WASS_1(y_true, y_pred, sinkhorn, rho_tensor, C):
     p1 = (y_pred<0).sum() # negative terms
 
     p2 = 1 / torch.var(y_pred)
@@ -891,7 +891,7 @@ def WASS(y_true, y_pred, sinkhorn, rho_tensor, C):
 
     return 10 * p1 + p2 + p3 + dist
 
-def WASS_batch(y_true, y_pred, device, sinkhorn, rho, state):
+def WASS_batch_0(y_true, y_pred, device, sinkhorn, rho, state):
     rhoT_temp_tensor = torch.from_numpy(
         rho[y_true],
     ).to(device).requires_grad_(False)

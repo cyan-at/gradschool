@@ -179,70 +179,6 @@ def get_model(
 
     ######################################
 
-    # import ipdb; ipdb.set_trace()
-
-    # def rho0_WASS_batch_cuda0(y_true, y_pred):
-    #     # p1 = (y_pred<0).sum() # negative terms
-
-    #     # print(y_pred.shape)
-    #     # print(y_true.shape)
-
-    #     rho0_temp_tensor = torch.from_numpy(
-    #         rho0[y_true],
-    #     )
-    #     rho0_temp_tensor = rho0_temp_tensor.to(device).requires_grad_(False)
-
-    #     C_temp = cdist(state[y_true, :], state[y_true, :], 'sqeuclidean')
-    #     C_temp_device = torch.from_numpy(
-    #         C_temp)
-    #     C_temp_device = C_temp_device.to(device).requires_grad_(False)
-
-    #     p2 = torch.abs(torch.sum(y_pred) - 1)
-
-    #     y_pred = torch.where(y_pred < 0, 0, y_pred)
-
-    #     # import ipdb; ipdb.set_trace()
-
-    #     dist, _, _ = sinkhorn0(
-    #         C_temp_device,
-    #         y_pred.reshape(-1),
-    #         rho0_temp_tensor)
-    #     # print("Sinkhorn distance: {:.3f}".format(dist.item()))
-
-    #     return dist + p2 # + p1
-
-    # def rhoT_WASS_batch_cuda0(y_true, y_pred):
-    #     # p1 = (y_pred<0).sum() # negative terms
-
-    #     # print(y_pred.shape)
-    #     # print(y_true.shape)
-
-    #     rhoT_temp_tensor = torch.from_numpy(
-    #         rhoT[y_true],
-    #     )
-    #     rhoT_temp_tensor = rhoT_temp_tensor.to(device).requires_grad_(False)
-
-    #     C_temp = cdist(state[y_true, :], state[y_true, :], 'sqeuclidean')
-    #     C_temp_device = torch.from_numpy(
-    #         C_temp)
-    #     C_temp_device = C_temp_device.to(device).requires_grad_(False)
-
-    #     p2 = torch.abs(torch.sum(y_pred) - 1)
-
-    #     y_pred = torch.where(y_pred < 0, 0, y_pred)
-
-    #     # import ipdb; ipdb.set_trace()
-
-    #     dist, _, _ = sinkhornT(
-    #         C_temp_device,
-    #         y_pred.reshape(-1),
-    #         rhoT_temp_tensor)
-    #     # print("Sinkhorn distance: {:.3f}".format(dist.item()))
-
-    #     return dist + p2 # + p1
-
-    ######################################
-
     geom=dde.geometry.geometry_3d.Cuboid(
         [state_min]*d,
         [state_max]*d)
@@ -272,9 +208,9 @@ def get_model(
 
     ######################################
 
-    rho0_WASS_batch = lambda y_true, y_pred: WASS_batch(y_true, y_pred, device, sinkhorn0, rho0, state)
+    rho0_WASS_batch = lambda y_true, y_pred: WASS_batch_0(y_true, y_pred, device, sinkhorn0, rho0, state)
     rho0_WASS_batch.__name__ = "rho0_WASS_batch"
-    rhoT_WASS_batch = lambda y_true, y_pred: WASS_batch(y_true, y_pred, device, sinkhornT, rhoT, state)
+    rhoT_WASS_batch = lambda y_true, y_pred: WASS_batch_0(y_true, y_pred, device, sinkhornT, rhoT, state)
     rhoT_WASS_batch.__name__ = "rhoT_WASS_batch"
     losses=[
         "MSE","MSE",
