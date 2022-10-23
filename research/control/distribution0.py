@@ -732,7 +732,8 @@ if __name__ == '__main__':
     #############################################################################
 
     ## Create a GL View widget to display data
-    app = QtGui.QApplication([])
+    # app = QtGui.QApplication([])
+    app = pg.mkQApp("")
 
     point_size = np.ones(distribution_samples) * 0.08
 
@@ -764,5 +765,6 @@ if __name__ == '__main__':
     ## Start Qt event loop unless running in interactive mode.
     w.show()
 
-    if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
-        QtGui.QApplication.instance().exec_()
+    # if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
+    #     QtGui.QApplication.instance().exec_()
+    pg.exec()
