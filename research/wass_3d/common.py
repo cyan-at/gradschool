@@ -878,18 +878,14 @@ class Counter(object):
 
 ######################################
 
-def WASS_1(y_true, y_pred, sinkhorn, rho_tensor, C):
-    p1 = (y_pred<0).sum() # negative terms
-
-    p2 = 1 / torch.var(y_pred)
-
-    p3 = torch.abs(torch.sum(y_pred) - 1)
+def WASS_0(y_true, y_pred, sinkhorn, rho_tensor, C):
+    p2 = torch.abs(torch.sum(y_pred) - 1)
 
     y_pred = torch.where(y_pred < 0, 0, y_pred)
     dist, _, _ = sinkhorn(C, y_pred.reshape(-1), rho_tensor)
     # print("Sinkhorn distance: {:.3f}".format(dist.item()))
 
-    return 10 * p1 + p2 + p3 + dist
+    return dist + p2 # + p1
 
 def WASS_batch_0(y_true, y_pred, device, sinkhorn, rho, state):
     rhoT_temp_tensor = torch.from_numpy(
@@ -912,3 +908,18 @@ def WASS_batch_0(y_true, y_pred, device, sinkhorn, rho, state):
         rhoT_temp_tensor)
 
     return dist + p2 # + p1
+
+######################################
+
+def WASS_1(y_true, y_pred, sinkhorn, rho_tensor, C):
+    p1 = (y_pred<0).sum() # negative terms
+
+    p2 = 1 / torch.var(y_pred)
+
+    p3 = torch.abs(torch.sum(y_pred) - 1)
+
+    y_pred = torch.where(y_pred < 0, 0, y_pred)
+    dist, _, _ = sinkhorn(C, y_pred.reshape(-1), rho_tensor)
+    # print("Sinkhorn distance: {:.3f}".format(dist.item()))
+
+    return 10 * p1 + p2 + p3 + dist
