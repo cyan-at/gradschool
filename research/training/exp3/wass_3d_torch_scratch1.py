@@ -103,7 +103,7 @@ from common import *
 
 import argparse
 parser = argparse.ArgumentParser(description="")
-parser.add_argument('--N', type=int, default=50, help='')
+parser.add_argument('--N', type=int, default=15, help='')
 parser.add_argument('--js', type=str, default="1,1,2", help='')
 parser.add_argument('--q', type=float, default=0.0, help='')
 parser.add_argument('--debug', type=int, default=False, help='')
@@ -219,7 +219,7 @@ rho0_name = 'rho0_%.3f_%.3f__%.3f_%.3f__%d.dat' % (
     mu_0, sigma_0,
     state_min, state_max,
     N)
-trunc_rho0_pdf = get_multivariate_truncated_norm(x_T, y_T, z_T, mu_0, sigma_0, state_min, state_max, N, f, rho0_name)
+trunc_rho0_pdf = get_multivariate_truncated_pdf(x_T, y_T, z_T, mu_0, sigma_0, state_min, state_max, N, f, rho0_name)
 
 time_0=np.hstack((
     x_T,
@@ -236,7 +236,7 @@ rhoT_name = 'rhoT_%.3f_%.3f__%.3f_%.3f__%d.dat' % (
     mu_T, sigma_T,
     state_min, state_max,
     N)
-trunc_rhoT_pdf = get_multivariate_truncated_norm(x_T, y_T, z_T, mu_T, sigma_T, state_min, state_max, N, f, rhoT_name)
+trunc_rhoT_pdf = get_multivariate_truncated_pdf(x_T, y_T, z_T, mu_T, sigma_T, state_min, state_max, N, f, rhoT_name)
 
 time_t=np.hstack((
     x_T,
@@ -270,8 +270,9 @@ trunc_rho0_tensor = trunc_rho0_tensor.to(device)
 
 rho0_m, rho0_sig = get_pmf_stats_torch(
     trunc_rho0_tensor,
-    x_T_tensor, y_T_tensor, z_T_tensor,
-    x1_tensor, x2_tensor, x3_tensor, dt)
+    [x_T_tensor, y_T_tensor, z_T_tensor],
+    [x1_tensor, x2_tensor, x3_tensor],
+    dt)
 
 trunc_rhoT_tensor = torch.from_numpy(
     trunc_rhoT_pdf
@@ -280,8 +281,9 @@ trunc_rhoT_tensor = trunc_rhoT_tensor.to(device)
 
 rhoT_m, rhoT_sig = get_pmf_stats_torch(
     trunc_rhoT_tensor,
-    x_T_tensor, y_T_tensor, z_T_tensor,
-    x1_tensor, x2_tensor, x3_tensor, dt)
+    [x_T_tensor, y_T_tensor, z_T_tensor],
+    [x1_tensor, x2_tensor, x3_tensor],
+    dt)
 
 r = 1e-5
 e = torch.ones((3,3)) * r
@@ -309,8 +311,9 @@ def rho0_WASS_cuda0(y_true, y_pred):
 
     ym, ysig = get_pmf_stats_torch(
         y_pred,
-        x_T_tensor, y_T_tensor, z_T_tensor,
-        x1_tensor, x2_tensor, x3_tensor, dt)
+        [x_T_tensor, y_T_tensor, z_T_tensor],
+        [x1_tensor, x2_tensor, x3_tensor],
+        dt)
     ysig = torch.nan_to_num(ysig) + e
 
     # if torch.max(ysig) < 1e-3:
@@ -356,8 +359,9 @@ def rhoT_WASS_cuda0(y_true, y_pred):
 
     ym, ysig = get_pmf_stats_torch(
         y_pred,
-        x_T_tensor, y_T_tensor, z_T_tensor,
-        x1_tensor, x2_tensor, x3_tensor, dt)
+        [x_T_tensor, y_T_tensor, z_T_tensor],
+        [x1_tensor, x2_tensor, x3_tensor],
+        dt)
     ysig = torch.nan_to_num(ysig) + e
 
     # if torch.max(ysig) < 1e-3:

@@ -86,8 +86,8 @@ def get_pdf_support_torch(
         # flatten z down into xy cell
         # flatten x down to y row
         # flatten y into number    
-        buffer0 = torch.zeros(len(xtensors[0]), dtype=dt)
-        buffer1 = torch.zeros(len(xtensors[1]), dtype=dt)
+        buffer0 = torch.zeros(len(xtensors[0]))
+        buffer1 = torch.zeros(len(xtensors[1]))
         for j in range(len(xtensors[1])):
             for i in range(len(xtensors[0])):
                 buffer0[i] = torch.trapz(
@@ -117,7 +117,8 @@ def get_marginal_pmf(matrix, xs, mode):
                     np.sum(
                         slice(matrix, i, j, mode)
                     ) # smoosh out axis=mode
-                for i in range(len(xs[(mode + 1) % d]))])
+                    for i in range(len(xs[(mode + 1) % d]))
+                ])
             ) # x2 slice for one x1 => R
         for j in range(len(xs[(mode + 2) % d]))])
         return marginal
@@ -173,27 +174,26 @@ def get_marginal_pmf_torch(
         # mode == 0, smoosh out 'x', then 'y' => z marginal
         # mode == 1, smoosh out 'y', then 'z' => x marginal
         # mode == 2, smoosh out 'z', then 'x' => y marginal
-        marginal = torch.cat(
-            torch.sum(
-                torch.cat(
-                    torch.sum(
-                        slice(tensor_matrix, i, j, mode)
-                    ) # smoosh out axis=mode
-                    for i in range(len(xs[(mode + 1) % d]))
-                )
-            ) # x2 slice for one x1 => R
-            for j in range(len(xs[(mode + 2) % d]))
-        )
+
+        q = len(xtensors[(mode + 2) % d])
+        marginal = torch.zeros(q)
+        for j in range(q):
+            t = len(xtensors[(mode + 1) % d])
+            sums = torch.zeros(t)
+            for i in range(t):
+                sums[i] = torch.sum(slice(tensor_matrix, i, j, mode))
+            marginal[j] = torch.sum(sums)
+
+        # import ipdb; ipdb.set_trace()
         return marginal
-    else:
+    elif d == 2:
         # mode == 0, flatten 'x' => y marginal
         # mode == 1, flatten 'y' => x marginal
-        marginal = torch.cat(
-            torch.sum(
-                slice2d(matrix, i, mode)
-            )
-            for i in range(len(xs[mode]))
-        )
+        q = len(xtensors[mode])
+        marginal = torch.zeros(q)
+        for i in range(q):
+            marginal[i] = torch.sum(
+                slice2d(matrix, i, mode))
         return marginal
 
 def get_pmf_stats_torch(
@@ -218,7 +218,10 @@ def get_pmf_stats_torch(
         # is implemented as a dot product
         marginal_pmf = get_marginal_pmf_torch(
             pmf_cube, linspaces, (i+1) % d)
-        mus[i] = np.dot(marginal_pmf, linspaces[i])
+        mus[i] = torch.matmul(
+            marginal_pmf,
+            linspaces[i]
+        )
 
         marginals.append(marginal_pmf)
         deltas.append(mesh_vectors[i] - mus[i])
@@ -226,9 +229,9 @@ def get_pmf_stats_torch(
     cov_matrix = torch.zeros((d, d))
     for i in range(d):
         for j in range(d):
-            cov_matrix[i][j] = np.sum(pmf_normed * deltas[i] * deltas[j])
+            cov_matrix[i][j] = torch.sum(pmf_normed * deltas[i] * deltas[j])
 
-    return mu, cov_matrix
+    return mus, cov_matrix
 
 def get_multivariate_truncated_pdf(x_T, y_T, z_T, mu, sigma, state_min, state_max, N, f, cache_name):
     state = np.hstack((x_T, y_T, z_T))
