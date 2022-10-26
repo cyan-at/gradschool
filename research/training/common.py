@@ -926,3 +926,61 @@ def WASS_1(y_true, y_pred, sinkhorn, rho_tensor, C):
     # print("Sinkhorn distance: {:.3f}".format(dist.item()))
 
     return 10 * p1 + p2 + p3 + dist
+
+######################################
+
+X1_index = 0
+X2_index = 1
+X3_index = 2
+
+def euler_maru(
+    y0,
+    t_span,
+    mu_func,
+    dt,
+    dw_func,
+    sigma_func,
+    args=()
+    ):
+    '''
+    https://en.wikipedia.org/wiki/Euler%E2%80%93Maruyama_method
+
+    # #recall
+    '''
+    ts = np.arange(t_span[0], t_span[1] + dt, dt)
+    ys = np.zeros((len(ts), len(y0)))
+
+    ys[0, :] = y0
+
+    for i in range(1, ts.size):
+        t = t_span[0] + (i - 1) * dt
+        y = ys[i - 1, :]
+        ys[i, :] = y + np.array(mu_func(t, y, *args)) * dt + sigma_func(y, t) * dw_func(dt)
+
+    return ts, ys
+
+def dynamics(t, state, j1, j2, j3, control_data):
+    statedot = np.zeros_like(state)
+    # implicit is that all state dimension NOT set
+    # have 0 dynamics == do not change in value
+
+    alpha1 = (j2 - j3) / j1
+    alpha2 = (j3 - j1) / j2
+    alpha3 = (j1 - j2) / j3
+
+    ########################################
+
+    statedot[X1_index] = alpha1 * state[X2_index] * state[X3_index]
+    statedot[X2_index] = alpha2 * state[X3_index] * state[X1_index]
+    statedot[X3_index] = alpha3 * state[X1_index] * state[X2_index]
+
+    ########################################
+
+    if control_data is None:
+        return statedot
+    else:
+        print("t", t)
+        statedot[X1_index] += np.random.uniform(-0.1, 0.1)
+        statedot[X2_index] += np.random.uniform(-0.1, 0.1)
+        statedot[X3_index] += np.random.uniform(-0.1, 0.1)
+        return statedot
