@@ -131,6 +131,11 @@ def dynamics(state, t, j1, j2, j3, control_data):
 
     if control_data is None:
         return statedot
+    else:
+        statedot[X1_index] += np.random.uniform(-0.1, 0.1)
+        statedot[X2_index] += np.random.uniform(-0.1, 0.1)
+        statedot[X3_index] += np.random.uniform(-0.1, 0.1)
+        return statedot
 
     ########################################
 
@@ -516,7 +521,7 @@ def init_data(
                     dynamics,
                     initial_sample[sample_i, :],
                     t_samples,
-                    args=(j1, j2, j3, control_data))
+                    args=(j1, j2, j3, {}))
                 all_time_data[sample_i, :, :] = sample_states.T
 
             unforced_all_time_data = np.empty(
@@ -615,7 +620,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--times',
         type=str,
-        default="0, 10.0, 20.0",
+        default="0,1.0,2.0,3.0,4.0,5.0",
         required=False)
 
     parser.add_argument('--mu_0',
@@ -625,7 +630,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--sampling',
         type=str,
-        default="15,15,15,15,15,15,30,10",
+        default="15,15,15,15,15,15,100,200",
         required=False)
 
     parser.add_argument('--system',
@@ -652,8 +657,8 @@ if __name__ == '__main__':
     cov_0 = np.eye(d)*sigma_0
 
     # sampling
-    # ts = [float(x) for x in args.times.split(",")]
-    ts = np.linspace(T_0, T_t, 2)
+    ts = [float(x) for x in args.times.split(",")]
+    # ts = np.linspace(T_0, T_t, 2)
 
     sampling = [int(x) for x in args.sampling.split(",")]
     window0 = sampling[0]
