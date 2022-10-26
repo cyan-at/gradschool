@@ -50,16 +50,22 @@ if __name__ == '__main__':
     t_span = (T_0, T_t)
     N = args.N
 
+    a = 0.05
+
     control_data = None
     if len(args.control_data) > 0:
         control_data = np.load(
             args.control_data,
             allow_pickle=True).item()
 
-    initial_sample = np.random.multivariate_normal(
-        np.array([mu_0]*d), np.eye(d)*0.1, 100) # 100 x 3
+        # import ipdb; ipdb.set_trace()
 
-    all_time_data = np.empty(
+    initial_sample = np.random.multivariate_normal(
+        np.array([mu_0]*d), np.eye(d)*0.1, 10) # 100 x 3
+
+    ##############################
+
+    with_control = np.empty(
         (
             initial_sample.shape[0],
             initial_sample.shape[1],
@@ -70,6 +76,7 @@ if __name__ == '__main__':
         # x[i] is sample [i]
         # y[i] is state dim [i]
         # z[i] is time [i]
+        print(i)
         _, tmp = euler_maru(
             initial_sample[i, :],
             t_span,
@@ -77,37 +84,85 @@ if __name__ == '__main__':
             (t_span[-1] - t_span[0])/(N),
             lambda delta_t: 0.0, # np.random.normal(loc=0.0, scale=np.sqrt(delta_t)),
             lambda y, t: 0.0, # 0.06,
-            (j1, j2, j3, {}))
-        all_time_data[i, :, :] = tmp.T
+            (j1, j2, j3, control_data))
+        with_control[i, :, :] = tmp.T
 
-    fig = plt.figure()
-
-    ax = fig.add_subplot(1, 1, 1, projection='3d')
+    without_control = np.empty(
+        (
+            initial_sample.shape[0],
+            initial_sample.shape[1],
+            N+1
+        ))
 
     for i in range(initial_sample.shape[0]):
         # x[i] is sample [i]
         # y[i] is state dim [i]
         # z[i] is time [i]
-        ax.plot(all_time_data[i, 0, :],
-                all_time_data[i, 1, :],
-                all_time_data[i, 2, :],
-                alpha=0.1)
+        print(i)
+        _, tmp = euler_maru(
+            initial_sample[i, :],
+            t_span,
+            dynamics,
+            (t_span[-1] - t_span[0])/(N),
+            lambda delta_t: 0.0, # np.random.normal(loc=0.0, scale=np.sqrt(delta_t)),
+            lambda y, t: 0.0, # 0.06,
+            (j1, j2, j3, None))
+        without_control[i, :, :] = tmp.T
+
+    fig = plt.figure()
+
+    ax = fig.add_subplot(1, 1, 1, projection='3d')
+
+    ##############################
 
     ax.scatter(
-        all_time_data[:, 0, 0],
-        all_time_data[:, 1, 0],
-        all_time_data[:, 2, 0],
+        with_control[:, 0, 0],
+        with_control[:, 1, 0],
+        with_control[:, 2, 0],
         c='r',
         marker='.')
 
+    ##############################
+
+    for i in range(initial_sample.shape[0]):
+        # x[i] is sample [i]
+        # y[i] is state dim [i]
+        # z[i] is time [i]
+        ax.plot(with_control[i, 0, :],
+                with_control[i, 1, :],
+                with_control[i, 2, :],
+                alpha=a,
+                c='g')
+
     ax.scatter(
-        all_time_data[:, 0, -1],
-        all_time_data[:, 1, -1],
-        all_time_data[:, 2, -1],
+        with_control[:, 0, -1],
+        with_control[:, 1, -1],
+        with_control[:, 2, -1],
+        c='g',
+        marker='.')
+
+    ##############################
+
+    for i in range(initial_sample.shape[0]):
+        # x[i] is sample [i]
+        # y[i] is state dim [i]
+        # z[i] is time [i]
+        ax.plot(without_control[i, 0, :],
+                without_control[i, 1, :],
+                without_control[i, 2, :],
+                alpha=a,
+                c='b')
+
+    ax.scatter(
+        without_control[:, 0, -1],
+        without_control[:, 1, -1],
+        without_control[:, 2, -1],
         c='b',
         marker='.')
 
-    ax.set_title("euler_maru")
+    ##############################
+
+    ax.set_title("euler_maru g: with, b: without, T_0 %.3f, T_t %.3f" % (T_0, T_t))
 
     ax.set_aspect('equal', 'box')
 

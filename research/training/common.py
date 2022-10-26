@@ -978,9 +978,46 @@ def dynamics(t, state, j1, j2, j3, control_data):
 
     if control_data is None:
         return statedot
+    # else:
+    #     print("t", t)
+    #     statedot[X1_index] += np.random.uniform(-0.2, 0.5)
+    #     statedot[X2_index] += np.random.uniform(-0.2, 0.5)
+    #     statedot[X3_index] += np.random.uniform(-0.2, 0.5)
+    #     return statedot
+
+    if np.abs(t - T_0) < 1e-8:
+        t_key = 't0'
+    elif np.abs(t - T_t) < 1e-8:
+        t_key = 'tT'
     else:
-        print("t", t)
-        statedot[X1_index] += np.random.uniform(-0.1, 0.1)
-        statedot[X2_index] += np.random.uniform(-0.1, 0.1)
-        statedot[X3_index] += np.random.uniform(-0.1, 0.1)
-        return statedot
+        t_key = 'tt'
+
+
+    t_control_data = control_data[t_key]
+
+    query = state
+    # if t_key == 'tt':
+    if t_control_data['grid'].shape[1] == 4:
+        query = np.append(query, t)
+
+    # if np.abs(t - T_0) < 1e-8:
+    #     print("t_key", t_key)
+    #     print("state", query)
+
+    # grid_l2_norms = np.linalg.norm(query - t_control_data['grid'], ord=2, axis=1)
+    # closest_grid_idx = grid_l2_norms.argmin()
+
+    closest_grid_idx = np.linalg.norm(query - t_control_data['grid'], ord=1, axis=1).argmin()
+    # print("query",
+    #     query,
+    #     closest_grid_idx,
+    #     t_control_data['grid'][closest_grid_idx],
+    #     t_control_data['0'][closest_grid_idx],
+    #     t_control_data['1'][closest_grid_idx],
+    #     t_control_data['2'][closest_grid_idx])
+
+    statedot[X1_index] = statedot[X1_index] + t_control_data['0'][closest_grid_idx] * 10
+    statedot[X2_index] = statedot[X2_index] + t_control_data['1'][closest_grid_idx] * 10
+    statedot[X3_index] = statedot[X3_index] + t_control_data['2'][closest_grid_idx] * 10
+
+    return statedot
