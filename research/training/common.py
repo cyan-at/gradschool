@@ -914,6 +914,7 @@ def WASS_batch_0(y_true, y_pred, device, sinkhorn, rho, state):
 
 ######################################
 
+# this one gets stuck in local minima
 def WASS_1(y_true, y_pred, sinkhorn, rho_tensor, C):
     p1 = (y_pred<0).sum() # negative terms
 
@@ -926,6 +927,33 @@ def WASS_1(y_true, y_pred, sinkhorn, rho_tensor, C):
     # print("Sinkhorn distance: {:.3f}".format(dist.item()))
 
     return 10 * p1 + p2 + p3 + dist
+
+def WASS_batch_1(y_true, y_pred, device, sinkhorn, rho, state):
+    # import ipdb; ipdb.set_trace()
+    p1 = -torch.sum(y_pred[y_pred < 0])
+
+    # p1 = (y_pred<0).sum() # negative terms
+
+    y_pred = torch.where(y_pred < 0, 0, y_pred)
+
+    p2 = torch.abs(torch.sum(y_pred) - 1)
+
+    rhoT_temp_tensor = torch.from_numpy(
+        rho[y_true],
+    ).to(device).requires_grad_(False)
+
+    C_temp_device = torch.from_numpy(
+        cdist(state[y_true, :], state[y_true, :], 'sqeuclidean'))
+    C_temp_device = C_temp_device.to(device).requires_grad_(False)
+
+    # import ipdb; ipdb.set_trace()
+
+    dist, _, _ = sinkhorn(
+        C_temp_device,
+        y_pred.reshape(-1),
+        rhoT_temp_tensor)
+
+    return 20 * p1 + 10 * p2 + dist
 
 ######################################
 
