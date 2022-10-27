@@ -959,6 +959,8 @@ def euler_maru(
 
     return ts, ys
 
+k = 1e4
+
 def dynamics(t, state, j1, j2, j3, control_data):
     statedot = np.zeros_like(state)
     # implicit is that all state dimension NOT set
@@ -1016,8 +1018,8 @@ def dynamics(t, state, j1, j2, j3, control_data):
     #     t_control_data['1'][closest_grid_idx],
     #     t_control_data['2'][closest_grid_idx])
 
-    statedot[X1_index] = statedot[X1_index] + t_control_data['0'][closest_grid_idx] * 10
-    statedot[X2_index] = statedot[X2_index] + t_control_data['1'][closest_grid_idx] * 10
-    statedot[X3_index] = statedot[X3_index] + t_control_data['2'][closest_grid_idx] * 10
+    statedot[X1_index] = statedot[X1_index] + t_control_data['0'][closest_grid_idx] * k
+    statedot[X2_index] = statedot[X2_index] + t_control_data['1'][closest_grid_idx] * k
+    statedot[X3_index] = statedot[X3_index] + t_control_data['2'][closest_grid_idx] * k
 
     return statedot

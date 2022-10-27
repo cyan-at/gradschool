@@ -1,12 +1,33 @@
 #!/usr/bin/env python3
 
-import numpy as np
-from scipy.integrate import odeint, solve_ivp
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+'''
+#!/usr/bin/python3
+
+USAGE:
+
+./marginal0.py
+
+./marginal0.py --plot 1
+'''
+
 import argparse
 
+from pyqtgraph.Qt import QtCore, QtGui
+import pyqtgraph as pg
+import pyqtgraph.opengl as gl
+import numpy as np
+import os, pickle, time, sys
+from matplotlib import cm
+import matplotlib.pyplot as plt
+
+import scipy.integrate as integrate
+
 from common import *
+
+from RSB_traj import plot_params
+
+import matplotlib
+matplotlib.use("TkAgg")
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -33,7 +54,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--N',
         type=int,
-        default=500,
+        default=2000,
         required=False)
 
     parser.add_argument('--control_data',
@@ -47,8 +68,13 @@ if __name__ == '__main__':
 
     d = 3
 
+    T_t = 20.0
+
     t_span = (T_0, T_t)
     N = args.N
+    dt = (t_span[-1] - t_span[0])/(N)
+    ts = np.arange(t_span[0], t_span[1] + dt, dt)
+    print(len(ts))
 
     a = 0.05
 
@@ -61,7 +87,7 @@ if __name__ == '__main__':
         # import ipdb; ipdb.set_trace()
 
     initial_sample = np.random.multivariate_normal(
-        np.array([mu_0]*d), np.eye(d)*0.1, 10) # 100 x 3
+        np.array([mu_0]*d), np.eye(d)*0.1, 100) # 100 x 3
 
     ##############################
 
@@ -69,7 +95,7 @@ if __name__ == '__main__':
         (
             initial_sample.shape[0],
             initial_sample.shape[1],
-            N+1
+            len(ts),
         ))
 
     for i in range(initial_sample.shape[0]):
@@ -91,7 +117,7 @@ if __name__ == '__main__':
         (
             initial_sample.shape[0],
             initial_sample.shape[1],
-            N+1
+            len(ts),
         ))
 
     for i in range(initial_sample.shape[0]):
@@ -109,61 +135,83 @@ if __name__ == '__main__':
             (j1, j2, j3, None))
         without_control[i, :, :] = tmp.T
 
+    ##############################
+
     fig = plt.figure()
 
-    ax = fig.add_subplot(1, 1, 1, projection='3d')
+    params = plot_params()
+    plt.rcParams.update(params)
 
-    ##############################
-
-    ax.scatter(
-        with_control[:, 0, 0],
-        with_control[:, 1, 0],
-        with_control[:, 2, 0],
-        c='r',
-        marker='.')
-
-    ##############################
-
-    for i in range(initial_sample.shape[0]):
-        # x[i] is sample [i]
-        # y[i] is state dim [i]
-        # z[i] is time [i]
-        ax.plot(with_control[i, 0, :],
-                with_control[i, 1, :],
-                with_control[i, 2, :],
-                alpha=a,
-                c='g')
-
-    ax.scatter(
-        with_control[:, 0, -1],
-        with_control[:, 1, -1],
-        with_control[:, 2, -1],
-        c='g',
-        marker='.')
+    fig = plt.figure(1,
+        figsize=params["figure.figsize"]) 
+    # figsize accepts only inches.
+    fig.subplots_adjust(
+        left=0.04,
+        right=0.98,
+        top=0.93,
+        bottom=0.15,
+        hspace=0.05,
+        wspace=0.02)
+    ax1 = fig.add_subplot(1, 3, 1, projection='3d')
+    ax2 = fig.add_subplot(1, 3, 2, projection='3d')
+    ax3 = fig.add_subplot(1, 3, 3, projection='3d')
 
     ##############################
 
     for i in range(initial_sample.shape[0]):
-        # x[i] is sample [i]
-        # y[i] is state dim [i]
-        # z[i] is time [i]
-        ax.plot(without_control[i, 0, :],
-                without_control[i, 1, :],
-                without_control[i, 2, :],
-                alpha=a,
-                c='b')
+        ax1.plot(
+            without_control[i, 0, :],
+            ts,
+            [0.0]*len(ts),
+            lw=.3,
+            c='b')
 
-    ax.scatter(
-        without_control[:, 0, -1],
-        without_control[:, 1, -1],
-        without_control[:, 2, -1],
-        c='b',
-        marker='.')
+        ax2.plot(
+            without_control[i, 1, :],
+            ts,
+            [0.0]*len(ts),
+            lw=.3,
+            c='b')
+
+        ax3.plot(
+            without_control[i, 2, :],
+            ts,
+            [0.0]*len(ts),
+            lw=.3,
+            c='b')
+
+        ax1.plot(
+            with_control[i, 0, :],
+            ts,
+            [0.0]*len(ts),
+            lw=.3,
+            c='g')
+
+        ax2.plot(
+            with_control[i, 1, :],
+            ts,
+            [0.0]*len(ts),
+            lw=.3,
+            c='g')
+
+        ax3.plot(
+            with_control[i, 2, :],
+            ts,
+            [0.0]*len(ts),
+            lw=.3,
+            c='g')
 
     ##############################
 
-    ax.set_title("euler_maru g: with, b: without, T_0 %.3f, T_t %.3f" % (T_0, T_t))
+    s = args.control_data
+    if s is None:
+        s = "None"
 
-    ax.set_aspect('equal', 'box')
+    plt.suptitle("euler_maru g: with, b: without, T_0 %.3f, T_t %.3f, k=%.2f\ncontrol_data=%s" % (
+        T_0,
+        T_t,
+        k,
+        s,
+    ))
 
     plt.show()
