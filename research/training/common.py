@@ -987,7 +987,7 @@ def euler_maru(
 
     return ts, ys
 
-k = 1e4
+k = 1
 
 def dynamics(t, state, j1, j2, j3, control_data):
     statedot = np.zeros_like(state)

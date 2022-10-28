@@ -57,6 +57,11 @@ if __name__ == '__main__':
         default=2000,
         required=False)
 
+    parser.add_argument('--M',
+        type=int,
+        default=10,
+        required=False)
+
     parser.add_argument('--control_data',
         type=str,
         default="",
@@ -87,7 +92,7 @@ if __name__ == '__main__':
         # import ipdb; ipdb.set_trace()
 
     initial_sample = np.random.multivariate_normal(
-        np.array([mu_0]*d), np.eye(d)*0.1, 100) # 100 x 3
+        np.array([mu_0]*d), np.eye(d)*0.1, args.M) # 100 x 3
 
     ##############################
 
@@ -156,50 +161,106 @@ if __name__ == '__main__':
     ax2 = fig.add_subplot(1, 3, 2, projection='3d')
     ax3 = fig.add_subplot(1, 3, 3, projection='3d')
 
+    axs = [ax1, ax2, ax3]
+
     ##############################
 
+    h = 0.5
+
     for i in range(initial_sample.shape[0]):
-        ax1.plot(
-            without_control[i, 0, :],
-            ts,
-            [0.0]*len(ts),
-            lw=.3,
-            c='b')
 
-        ax2.plot(
-            without_control[i, 1, :],
-            ts,
-            [0.0]*len(ts),
-            lw=.3,
-            c='b')
+        for j in range(3):
+            axs[j].plot(
+                without_control[i, j, :],
+                ts,
+                [0.0]*len(ts),
+                lw=.3,
+                c='b')
 
-        ax3.plot(
-            without_control[i, 2, :],
-            ts,
-            [0.0]*len(ts),
-            lw=.3,
-            c='b')
+            ########################################
 
-        ax1.plot(
-            with_control[i, 0, :],
-            ts,
-            [0.0]*len(ts),
-            lw=.3,
-            c='g')
+            axs[j].plot(
+                with_control[i, j, :],
+                ts,
+                [0.0]*len(ts),
+                lw=.3,
+                c='g')
 
-        ax2.plot(
-            with_control[i, 1, :],
-            ts,
-            [0.0]*len(ts),
-            lw=.3,
-            c='g')
+            ########################################
+            ########################################
 
-        ax3.plot(
-            with_control[i, 2, :],
-            ts,
-            [0.0]*len(ts),
-            lw=.3,
-            c='g')
+            axs[j].plot(
+                [with_control[i, j, -1]]*2,
+                [ts[-1]]*2,
+                [0.0, h],
+                lw=1,
+                c='g')
+
+            axs[j].scatter(
+                with_control[i, j, -1],
+                ts[-1],
+                h,
+                c='g',
+                s=50,
+            )
+
+            axs[j].plot(
+                [without_control[i, j, -1]]*2,
+                [ts[-1]]*2,
+                [0.0, h],
+                lw=1,
+                c='b')
+
+            axs[j].scatter(
+                without_control[i, j, -1],
+                ts[-1],
+                h,
+                c='b',
+                s=50,
+            )
+
+            ########################################
+            ########################################
+
+            axs[j].plot(
+                [with_control[i, j, 0]]*2,
+                [ts[0]]*2,
+                [0.0, h],
+                lw=1,
+                c='g')
+
+            axs[j].scatter(
+                with_control[i, j, 0],
+                ts[0],
+                h,
+                c='g',
+                s=50,
+            )
+
+            axs[j].plot(
+                [without_control[i, j, 0]]*2,
+                [ts[0]]*2,
+                [0.0, h],
+                lw=1,
+                c='b')
+
+            axs[j].scatter(
+                without_control[i, j, 0],
+                ts[0],
+                h,
+                c='b',
+                s=50,
+            )
+
+    ##############################
+
+    ax1.set_aspect('equal', 'box')
+    ax2.set_aspect('equal', 'box')
+    ax3.set_aspect('equal', 'box')
+
+    ax1.set_zlim(-0.1, 2*h)
+    ax2.set_zlim(-0.1, 2*h)
+    ax3.set_zlim(-0.1, 2*h)
 
     ##############################
 
