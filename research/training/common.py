@@ -711,7 +711,7 @@ def euler_pde_4(x, y):
         psi,
         -dy2_t-(d_f1dy1_y2_x+d_f2dy1_y2_y+d_f3dy1_y2_z)+epsilon*(dy2_xx+dy2_yy+dy2_zz),
         U1 - dpsi_x,
-        1 / U1,
+        0.1 / U1, # scaled, not that important
     ]
 
 euler_pdes = {
