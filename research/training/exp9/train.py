@@ -187,7 +187,7 @@ def get_model(
 
     data = WASSPDE(
         geomtime,
-        euler_pdes[d],
+        euler_pdes[4],
         [rho_0_BC,rho_T_BC],
         num_domain=samples_between_initial_and_final,
         num_initial=initial_and_final_samples,
@@ -219,7 +219,7 @@ def get_model(
     ]
     # loss functions are based on PDE + BC: eq outputs, BCs
 
-    model.compile("adam", lr=1e-3,loss=losses)
+    model.compile("adam", lr=1e-3,loss=losses, external_trainable_variables=[U1])
 
     return model, meshes
 
@@ -240,7 +240,7 @@ if __name__ == '__main__':
     print("js: ", j1, j2, j3)
     print("q: ", q_statepenalty_gain)
 
-    d = 4
+    d = 3
 
     if args.debug:
         torch.autograd.set_detect_anomaly(True)
