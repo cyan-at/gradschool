@@ -5120,3 +5120,64 @@ model_path = model.save(ck_path)
 print(model_path)
 
 ######################################
+
+In [59]: history                                                                                                                                                                     
+ls
+import sympy
+sympy.init_printing()
+from sympy import *
+x, y, z = symbols('x y z')
+x
+f = x**2 / y
+f.diff(x).diff(x)
+f.diff(x).diff(y)
+f = x**2 / (y*z)
+f
+f.diff(x).diff(x)
+f.diff(x).diff(y)
+f.diff(x).diff(z)
+from sympy.tensor.array import derive_by_array
+derive_by_array(f, [x, y, z])
+f
+derive_by_array(f, [x, y, z])
+derive_by_array(f, (x, y, z))
+derive_by_array(derive_by_array(f, (x, y, z)), (x, y, z))
+f2 = derive_by_array(derive_by_array(f, (x, y, z)), (x, y, z))
+f2
+print(latex(f2))
+f2[0, 0]
+f2[0, 0] / (y**3 * z**3)
+f2[0, 0] / (1 / (y**3 * z**3))
+f2[0, 1] / (1 / (y**3 * z**3))
+f2[0, 2] / (1 / (y**3 * z**3))
+f2[1, 0] / (1 / (y**3 * z**3))
+f2[1, 1] / (1 / (y**3 * z**3))
+f2[1, 2] / (1 / (y**3 * z**3))
+f2[2, 0] / (1 / (y**3 * z**3))
+f2 / (1 / (y**3 * z**3))
+f2 / (2 / (y**3 * z**3))
+t
+t = [y*z, x*z, x*y]
+from sympy.physics.quantum import TensorProduct
+t1 = Matrix([y*z, x*z, x*y])
+TensorProduct(t1, t1)
+TensorProduct(t1, t1.T)
+f
+f2 = derive_by_array(derive_by_array(f, (x, y, z)), (x, y, z))
+f2
+f2 / (2 / (y**3 * z**3))
+f2 / (1 / (y**3 * z**3))
+TensorProduct(t1, t1.T)
+TensorProduct(2*t1, 2*t1.T)
+TensorProduct(t1, t1.T)
+f2 / (1 / (y**3 * z**3))
+t2 = Matrix([y*z, -x*z, x*y])
+TensorProduct(t2, t2.T)
+t2 = Matrix([y*z, x*z, -x*y])
+TensorProduct(t2, t2.T)
+t2 = Matrix([-y*z, x*z, x*y])
+TensorProduct(t2, t2.T)
+t2 = Matrix([-2*y*z, x*z, x*y])
+TensorProduct(t2, t2.T)
+f2 / (1 / (y**3 * z**3))
+history
