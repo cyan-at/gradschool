@@ -1067,7 +1067,7 @@ def euler_maru(
 
     return ts, ys
 
-def dynamics(t, state, j1, j2, j3, control_data, v_scale):
+def dynamics(t, state, j1, j2, j3, control_data, affine):
     statedot = np.zeros_like(state)
     # implicit is that all state dimension NOT set
     # have 0 dynamics == do not change in value
@@ -1124,8 +1124,17 @@ def dynamics(t, state, j1, j2, j3, control_data, v_scale):
     #     t_control_data['1'][closest_grid_idx],
     #     t_control_data['2'][closest_grid_idx])
 
-    statedot[X1_index] = statedot[X1_index] + t_control_data['0'][closest_grid_idx] * v_scale
-    statedot[X2_index] = statedot[X2_index] + t_control_data['1'][closest_grid_idx] * v_scale
-    statedot[X3_index] = statedot[X3_index] + t_control_data['2'][closest_grid_idx] * v_scale
+    v_x = t_control_data['0'][closest_grid_idx]
+    v_y = t_control_data['1'][closest_grid_idx]
+    v_z = t_control_data['2'][closest_grid_idx]
+
+    if affine is not None:
+        v_x = affine(v_x)
+        v_y = affine(v_y)
+        v_z = affine(v_z)
+
+    statedot[X1_index] = statedot[X1_index] + v_x
+    statedot[X2_index] = statedot[X2_index] + v_y
+    statedot[X3_index] = statedot[X3_index] + v_z
 
     return statedot

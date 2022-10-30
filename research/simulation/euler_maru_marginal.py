@@ -70,6 +70,9 @@ if __name__ == '__main__':
     parser.add_argument('--v_scale',
         type=float,
         default=1.0)
+    parser.add_argument('--bias',
+        type=float,
+        default=0.0)
 
     args = parser.parse_args()
 
@@ -119,7 +122,11 @@ if __name__ == '__main__':
             (t_span[-1] - t_span[0])/(N),
             lambda delta_t: 0.0, # np.random.normal(loc=0.0, scale=np.sqrt(delta_t)),
             lambda y, t: 0.0, # 0.06,
-            (j1, j2, j3, control_data, args.v_scale))
+            (
+                j1, j2, j3,
+                control_data,
+                lambda v: v * args.v_scale + args.bias
+            ))
         with_control[i, :, :] = tmp.T
 
     without_control = np.empty(
@@ -141,7 +148,11 @@ if __name__ == '__main__':
             (t_span[-1] - t_span[0])/(N),
             lambda delta_t: 0.0, # np.random.normal(loc=0.0, scale=np.sqrt(delta_t)),
             lambda y, t: 0.0, # 0.06,
-            (j1, j2, j3, None, args.v_scale))
+            (
+                j1, j2, j3,
+                None,
+                None
+            ))
         without_control[i, :, :] = tmp.T
 
     ##############################
@@ -272,10 +283,11 @@ if __name__ == '__main__':
     if s is None:
         s = "None"
 
-    plt.suptitle("euler_maru g: with, b: without, T_0 %.3f, T_t %.3f, v_scale=%.2f\ncontrol_data=%s" % (
+    plt.suptitle("euler_maru g: with, b: without, T_0 %.3f, T_t %.3f, v_scale=%.2f, bias=%.2f\ncontrol_data=%s" % (
         T_0,
         T_t,
         args.v_scale,
+        args.bias,
         s,
     ))
 
