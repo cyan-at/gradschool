@@ -29,6 +29,8 @@ from RSB_traj import plot_params
 import matplotlib
 matplotlib.use("TkAgg")
 
+from concurrent.futures import ThreadPoolExecutor
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
@@ -110,11 +112,8 @@ if __name__ == '__main__':
             len(ts),
         ))
 
-    for i in range(initial_sample.shape[0]):
-        # x[i] is sample [i]
-        # y[i] is state dim [i]
-        # z[i] is time [i]
-        print(i)
+    def task(i, target, control_data, affine):
+        print("starting {}".format(i))
         _, tmp = euler_maru(
             initial_sample[i, :],
             t_span,
@@ -125,9 +124,41 @@ if __name__ == '__main__':
             (
                 j1, j2, j3,
                 control_data,
-                lambda v: v * args.v_scale + args.bias
+                affine
             ))
-        with_control[i, :, :] = tmp.T
+        target[i, :, :] = tmp.T
+        return i
+
+    with_control_affine = lambda v: v * args.v_scale + args.bias
+    with ThreadPoolExecutor() as executor:
+        results = executor.map(
+            task,
+            list(range(initial_sample.shape[0])),
+            [with_control]*initial_sample.shape[0],
+            [control_data]*initial_sample.shape[0],
+            [with_control_affine]*initial_sample.shape[0]
+        )
+        for result in results:
+            print("done with {}".format(result))
+
+    # for i in range(initial_sample.shape[0]):
+    #     # x[i] is sample [i]
+    #     # y[i] is state dim [i]
+    #     # z[i] is time [i]
+    #     print(i)
+    #     _, tmp = euler_maru(
+    #         initial_sample[i, :],
+    #         t_span,
+    #         dynamics,
+    #         (t_span[-1] - t_span[0])/(N),
+    #         lambda delta_t: 0.0, # np.random.normal(loc=0.0, scale=np.sqrt(delta_t)),
+    #         lambda y, t: 0.0, # 0.06,
+    #         (
+    #             j1, j2, j3,
+    #             control_data,
+    #             lambda v: v * args.v_scale + args.bias
+    #         ))
+    #     with_control[i, :, :] = tmp.T
 
     without_control = np.empty(
         (
@@ -136,24 +167,35 @@ if __name__ == '__main__':
             len(ts),
         ))
 
-    for i in range(initial_sample.shape[0]):
-        # x[i] is sample [i]
-        # y[i] is state dim [i]
-        # z[i] is time [i]
-        print(i)
-        _, tmp = euler_maru(
-            initial_sample[i, :],
-            t_span,
-            dynamics,
-            (t_span[-1] - t_span[0])/(N),
-            lambda delta_t: 0.0, # np.random.normal(loc=0.0, scale=np.sqrt(delta_t)),
-            lambda y, t: 0.0, # 0.06,
-            (
-                j1, j2, j3,
-                None,
-                None
-            ))
-        without_control[i, :, :] = tmp.T
+    with ThreadPoolExecutor() as executor:
+        results = executor.map(
+            task,
+            list(range(initial_sample.shape[0])),
+            [without_control]*initial_sample.shape[0],
+            [None]*initial_sample.shape[0],
+            [None]*initial_sample.shape[0]
+        )
+        for result in results:
+            print("done with {}".format(result))
+
+    # for i in range(initial_sample.shape[0]):
+    #     # x[i] is sample [i]
+    #     # y[i] is state dim [i]
+    #     # z[i] is time [i]
+    #     print(i)
+    #     _, tmp = euler_maru(
+    #         initial_sample[i, :],
+    #         t_span,
+    #         dynamics,
+    #         (t_span[-1] - t_span[0])/(N),
+    #         lambda delta_t: 0.0, # np.random.normal(loc=0.0, scale=np.sqrt(delta_t)),
+    #         lambda y, t: 0.0, # 0.06,
+    #         (
+    #             j1, j2, j3,
+    #             None,
+    #             None
+    #         ))
+    #     without_control[i, :, :] = tmp.T
 
     ##############################
 
@@ -182,8 +224,19 @@ if __name__ == '__main__':
 
     h = 0.5
 
-    for i in range(initial_sample.shape[0]):
+    mus = np.zeros(3)
+    variances = np.zeros(3)
+    for j in range(3):
+        tmp = with_control[:, j, -1]
+        mus[j] = np.mean(tmp)
+        variances[j] = np.var(tmp)
+    mu_s = "{}".format(mus)
+    var_s = "{}".format(variances)
 
+    print("mu_s", mu_s)
+    print("var_s", var_s)
+
+    for i in range(initial_sample.shape[0]):
         for j in range(3):
             axs[j].plot(
                 without_control[i, j, :],
@@ -205,39 +258,6 @@ if __name__ == '__main__':
             ########################################
 
             axs[j].plot(
-                [with_control[i, j, -1]]*2,
-                [ts[-1]]*2,
-                [0.0, h],
-                lw=1,
-                c='g')
-
-            axs[j].scatter(
-                with_control[i, j, -1],
-                ts[-1],
-                h,
-                c='g',
-                s=50,
-            )
-
-            axs[j].plot(
-                [without_control[i, j, -1]]*2,
-                [ts[-1]]*2,
-                [0.0, h],
-                lw=1,
-                c='b')
-
-            axs[j].scatter(
-                without_control[i, j, -1],
-                ts[-1],
-                h,
-                c='b',
-                s=50,
-            )
-
-            ########################################
-            ########################################
-
-            axs[j].plot(
                 [with_control[i, j, 0]]*2,
                 [ts[0]]*2,
                 [0.0, h],
@@ -253,6 +273,24 @@ if __name__ == '__main__':
             )
 
             axs[j].plot(
+                [with_control[i, j, -1]]*2,
+                [ts[-1]]*2,
+                [0.0, h],
+                lw=1,
+                c='g')
+
+            axs[j].scatter(
+                with_control[i, j, -1],
+                ts[-1],
+                h,
+                c='g',
+                s=50,
+            )
+
+            ########################################
+            ########################################
+
+            axs[j].plot(
                 [without_control[i, j, 0]]*2,
                 [ts[0]]*2,
                 [0.0, h],
@@ -262,6 +300,21 @@ if __name__ == '__main__':
             axs[j].scatter(
                 without_control[i, j, 0],
                 ts[0],
+                h,
+                c='b',
+                s=50,
+            )
+
+            axs[j].plot(
+                [without_control[i, j, -1]]*2,
+                [ts[-1]]*2,
+                [0.0, h],
+                lw=1,
+                c='b')
+
+            axs[j].scatter(
+                without_control[i, j, -1],
+                ts[-1],
                 h,
                 c='b',
                 s=50,
@@ -283,12 +336,14 @@ if __name__ == '__main__':
     if s is None:
         s = "None"
 
-    plt.suptitle("euler_maru g: with, b: without, T_0 %.3f, T_t %.3f, v_scale=%.2f, bias=%.2f\ncontrol_data=%s" % (
+    plt.suptitle("euler_maru g: with, b: without, T_0 %.3f, T_t %.3f, v_scale=%.2f, bias=%.2f\ncontrol_data=%s\ncontrolled mu=%s, var=%s" % (
         T_0,
         T_t,
         args.v_scale,
         args.bias,
         s,
+        mu_s,
+        var_s,
     ))
 
     plt.show()
