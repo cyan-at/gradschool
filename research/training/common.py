@@ -780,12 +780,16 @@ def euler_pde_5(x, y):
     psi = -dy1_t + q - .5*(dy1_x*dy1_x+dy1_y*dy1_y+dy1_z*dy1_z) - (dy1_x*f1 + dy1_y*f2 + dy1_z*f3) - epsilon*(dy1_xx+dy1_yy+dy1_zz)
 
     dpsi_x = dde.grad.jacobian(psi, x, j=0)
+    dpsi_y = dde.grad.jacobian(psi, x, j=1)
+    dpsi_z = dde.grad.jacobian(psi, x, j=2)
 
     # TODO: verify this expression
     return [
         psi,
         -dy2_t-(d_f1dy1_y2_x+d_f2dy1_y2_y+d_f3dy1_y2_z)+epsilon*(dy2_xx+dy2_yy+dy2_zz),
         0.01/(torch.min(torch.abs(dpsi_x))),
+        0.01/(torch.min(torch.abs(dpsi_y))),
+        0.01/(torch.min(torch.abs(dpsi_z))),
     ]
 
 euler_pdes = {

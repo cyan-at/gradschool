@@ -213,7 +213,8 @@ def get_model(
     rhoT_WASS_batch = lambda y_true, y_pred: WASS_batch_2(y_true, y_pred, device, sinkhornT, rhoT, state)
     rhoT_WASS_batch.__name__ = "rhoT_WASS_batch"
     losses=[
-        "MSE","MSE", "MSE",
+        "MSE","MSE",
+        "MSE","MSE","MSE",
         rho0_WASS_batch,
         rhoT_WASS_batch,
     ]
