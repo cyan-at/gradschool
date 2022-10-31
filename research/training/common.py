@@ -1099,6 +1099,47 @@ class WASSPDE(dde.data.TimePDE):
 
         return losses
 
+class ScaleLayer(nn.Module):
+   def __init__(self, init_value=1e0):
+       super().__init__()
+
+   def forward(self, input):
+       return input * self.scale
+
+class ScaledFNN(dd.nn.NN):
+    """Fully-connected neural network."""
+
+    def __init__(self, layer_sizes, activation, kernel_initializer):
+        super().__init__()
+        self.activation = activations.get(activation)
+        initializer = initializers.get(kernel_initializer)
+        initializer_zero = initializers.get("zeros")
+
+        self.linears = torch.nn.ModuleList()
+        for i in range(1, len(layer_sizes)):
+            self.linears.append(
+                torch.nn.Linear(
+                    layer_sizes[i - 1], layer_sizes[i], dtype=config.real(torch)
+                )
+            )
+            initializer(self.linears[-1].weight)
+            initializer_zero(self.linears[-1].bias)
+
+    def forward(self, inputs):
+        x = inputs
+        if self._input_transform is not None:
+            x = self._input_transform(x)
+        for linear in self.linears[:-1]:
+            x = self.activation(linear(x))
+
+        x = self.linears[-1](x)
+
+        import ipdb; ipdb.set_trace()
+
+        if self._output_transform is not None:
+            x = self._output_transform(inputs, x)
+        return x
+
 class Counter(object):
     def __init__(self):
         self.count = 0

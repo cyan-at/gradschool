@@ -198,7 +198,7 @@ def get_model(
 
     # d+1 inputs: <state> + t
     # 5 outputs: 2 eq
-    net = dde.nn.FNN(
+    net = ScaledFNN(
         [d+1] + [70] *3  + [5],
         activations,
         init
