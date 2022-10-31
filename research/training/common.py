@@ -982,7 +982,7 @@ class WASSPDE(dde.data.TimePDE):
         for i, fi in enumerate(f):
             if len(fi.shape) > 0:
                 error = fi[bcs_start[-1] :]
-                loss_fn[i](bkd.zeros_like(error), error)
+                losses.append(loss_fn[i](bkd.zeros_like(error), error))
             else:
                 losses.append(fi)
 
@@ -990,11 +990,12 @@ class WASSPDE(dde.data.TimePDE):
             beg, end = bcs_start[i], bcs_start[i + 1]
             # The same BC points are used for training and testing.
 
-            fun = loss_fn[len(error_f) + i]
+            fun = loss_fn[len(f) + i]
 
             # import ipdb; ipdb.set_trace();
 
             if "WASS_batch" in fun.__name__:
+                # print("hello!")
                 y_pred = outputs[beg:end, bc.component : bc.component + 1]
                 # y_true = bc.values[bc.batch_indices]
                 losses.append(fun(
@@ -1013,6 +1014,9 @@ class WASSPDE(dde.data.TimePDE):
                 losses.append(fun(
                     bkd.zeros_like(error),
                     error))
+
+        # print(len(losses))
+
         return losses
 
 class Counter(object):
