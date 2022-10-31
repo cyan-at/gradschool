@@ -189,7 +189,12 @@ if __name__ == '__main__':
             print("keeping input on cpu")
         '''
 
-        model, meshes = get_model(d, N, batchsize)
+        model, meshes = get_model(
+            d,
+            N,
+            batchsize,
+            1,
+            "sigmoid")
         model.restore(args.modelpt)
 
         # output = model.predict(inputs)
@@ -297,6 +302,30 @@ if __name__ == '__main__':
 
     ax1 = fig.add_subplot(1, 3, 1, projection='3d')
 
+    ########################################################
+
+    dphi_dinput_t0 = dphi_dinput[:batchsize, :]
+    dphi_dinput_tT = dphi_dinput[batchsize:2*batchsize, :]
+    dphi_dinput_tt = dphi_dinput[2*batchsize:, :]
+    print(
+        np.max(dphi_dinput_t0),
+        np.max(dphi_dinput_tT),
+        np.max(dphi_dinput_tt)
+    )
+
+    dphi_dinput_t0_l2_norm = np.linalg.norm(
+        dphi_dinput_t0[:, 0:3], ord=2, axis=1)
+
+    DPHI_DINPUT_T0_L2_NORM = gd(
+      (t0[:, 0], t0[:, 1], t0[:, 2]),
+      dphi_dinput_t0_l2_norm,
+      (grid_x1, grid_x2, grid_x3),
+      method=args.interp_mode,
+      fill_value=0.0)
+
+    ########################################################
+
+    '''
     sc1=ax1.scatter(
         grid_x1,
         grid_x2,
@@ -338,32 +367,6 @@ if __name__ == '__main__':
     ax2.set_ylabel('y')
     ax2.set_zlabel('z')
 
-    ########################################################
-
-    dphi_dinput_t0 = dphi_dinput[:batchsize, :]
-    dphi_dinput_tT = dphi_dinput[batchsize:2*batchsize, :]
-    dphi_dinput_tt = dphi_dinput[2*batchsize:, :]
-    print(
-        np.max(dphi_dinput_t0),
-        np.max(dphi_dinput_tT),
-        np.max(dphi_dinput_tt)
-    )
-
-    # dphi_dinput_t0_l2_norm = np.linalg.norm(
-    #     dphi_dinput_t0[:, 0:3], ord=2, axis=1)
-    dphi_dinput_t0_l2_norm = dphi_dinput_t0[:, 0]
-
-    # import ipdb; ipdb.set_trace()
-
-    DPHI_DINPUT_T0_L2_NORM = gd(
-      (t0[:, 0], t0[:, 1], t0[:, 2]),
-      dphi_dinput_t0_l2_norm,
-      (grid_x1, grid_x2, grid_x3),
-      method=args.interp_mode,
-      fill_value=0.0)
-
-    ########################################################
-
     ax3 = fig.add_subplot(1, 3, 3, projection='3d')
     sc3=ax3.scatter(
         grid_x1,
@@ -375,6 +378,90 @@ if __name__ == '__main__':
         alpha=1.0)
     plt.colorbar(sc3, shrink=0.25)
     ax3.set_title('dphi_dinput_t0 l2_norm')
+    ax3.set_xlabel('x')
+    ax3.set_ylabel('y')
+    ax3.set_zlabel('z')
+    '''
+
+    ########################################################
+
+    DPHI_DINPUT_T0_X = gd(
+      (t0[:, 0], t0[:, 1], t0[:, 2]),
+      dphi_dinput_t0[:, 0],
+      (grid_x1, grid_x2, grid_x3),
+      method=args.interp_mode,
+      fill_value=0.0)
+
+    DPHI_DINPUT_T0_Y = gd(
+      (t0[:, 0], t0[:, 1], t0[:, 2]),
+      dphi_dinput_t0[:, 1],
+      (grid_x1, grid_x2, grid_x3),
+      method=args.interp_mode,
+      fill_value=0.0)
+
+    DPHI_DINPUT_T0_Z = gd(
+      (t0[:, 0], t0[:, 1], t0[:, 2]),
+      dphi_dinput_t0[:, 2],
+      (grid_x1, grid_x2, grid_x3),
+      method=args.interp_mode,
+      fill_value=0.0)
+
+    ########################################################
+
+    p = 5.0
+
+    sc1=ax1.scatter(
+        grid_x1,
+        grid_x2,
+        grid_x3,
+        c=DPHI_DINPUT_T0_X,
+        s=np.abs(DPHI_DINPUT_T0_X*p),
+        cmap=cm.jet,
+        alpha=1.0)
+    plt.colorbar(sc1, shrink=0.25)
+    ax1.set_title('scaled %.3f dpsi_dx\nmin=%.3f, max=%.3f' % (
+        p,
+        np.min(dphi_dinput[:, 0]*p),
+        np.max(dphi_dinput[:, 0]*p)
+    ))
+    ax1.set_xlabel('x')
+    ax1.set_ylabel('y')
+    ax1.set_zlabel('z')
+
+    ax2 = fig.add_subplot(1, 3, 2, projection='3d')
+    sc2=ax2.scatter(
+        grid_x1,
+        grid_x2,
+        grid_x3,
+        c=DPHI_DINPUT_T0_Y,
+        s=np.abs(DPHI_DINPUT_T0_Y*p),
+        cmap=cm.jet,
+        alpha=1.0)
+    plt.colorbar(sc2, shrink=0.25)
+    ax2.set_title('scaled %.3f dpsi_dy\nmin=%.3f, max=%.3f' % (
+        p,
+        np.min(dphi_dinput[:, 1]*p),
+        np.max(dphi_dinput[:, 1]*p)
+    ))
+    ax2.set_xlabel('x')
+    ax2.set_ylabel('y')
+    ax2.set_zlabel('z')
+
+    ax3 = fig.add_subplot(1, 3, 3, projection='3d')
+    sc3=ax3.scatter(
+        grid_x1,
+        grid_x2,
+        grid_x3,
+        c=DPHI_DINPUT_T0_Z,
+        s=np.abs(DPHI_DINPUT_T0_Z*p),
+        cmap=cm.jet,
+        alpha=1.0)
+    plt.colorbar(sc3, shrink=0.25)
+    ax3.set_title('scaled %.3f dpsi_dz\nmin=%.3f, max=%.3f' % (
+        p,
+        np.min(dphi_dinput[:, 2]*p),
+        np.max(dphi_dinput[:, 2]*p)
+    ))
     ax3.set_xlabel('x')
     ax3.set_ylabel('y')
     ax3.set_zlabel('z')

@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
 
 '''
-#!/usr/bin/python3
-
 USAGE:
 
-./marginal0.py
-
-./marginal0.py --plot 1
+./euler_maru_marginal.py --control_data ../training/exp8/model-100000_500_0_1_linear_30_all_control_data.npy --M 4 --v_scale 12000.0 --bias 0.0 --M 20
 '''
 
 import argparse
