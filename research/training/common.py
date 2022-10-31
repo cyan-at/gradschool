@@ -978,10 +978,14 @@ class WASSPDE(dde.data.TimePDE):
 
         # import ipdb; ipdb.set_trace()
 
-        error_f = [fi[bcs_start[-1] :] for fi in f]
-        losses = [
-            loss_fn[i](bkd.zeros_like(error), error) for i, error in enumerate(error_f)
-        ]
+        losses = []
+        for i, fi in enumerate(f):
+            if len(fi.shape) > 0:
+                error = fi[bcs_start[-1] :]
+                loss_fn[i](bkd.zeros_like(error), error)
+            else:
+                losses.append(fi)
+
         for i, bc in enumerate(self.bcs):
             beg, end = bcs_start[i], bcs_start[i + 1]
             # The same BC points are used for training and testing.
