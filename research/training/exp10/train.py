@@ -187,7 +187,7 @@ def get_model(
 
     data = WASSPDE(
         geomtime,
-        euler_pdes[d],
+        euler_pdes[5],
         [rho_0_BC,rho_T_BC],
         num_domain=samples_between_initial_and_final,
         num_initial=initial_and_final_samples,
@@ -199,7 +199,7 @@ def get_model(
     # d+1 inputs: <state> + t
     # 5 outputs: 2 eq
     net = dde.nn.FNN(
-        [d+1] + [70] *3  + [2],
+        [d+1] + [70] *3  + [3],
         activations,
         init
         # "zeros",
@@ -208,12 +208,12 @@ def get_model(
 
     ######################################
 
-    rho0_WASS_batch = lambda y_true, y_pred: WASS_batch_1(y_true, y_pred, device, sinkhorn0, rho0, state)
+    rho0_WASS_batch = lambda y_true, y_pred: WASS_batch_2(y_true, y_pred, device, sinkhorn0, rho0, state)
     rho0_WASS_batch.__name__ = "rho0_WASS_batch"
-    rhoT_WASS_batch = lambda y_true, y_pred: WASS_batch_1(y_true, y_pred, device, sinkhornT, rhoT, state)
+    rhoT_WASS_batch = lambda y_true, y_pred: WASS_batch_2(y_true, y_pred, device, sinkhornT, rhoT, state)
     rhoT_WASS_batch.__name__ = "rhoT_WASS_batch"
     losses=[
-        "MSE","MSE",
+        "MSE","MSE", "MSE",
         rho0_WASS_batch,
         rhoT_WASS_batch,
     ]
