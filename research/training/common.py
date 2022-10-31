@@ -787,9 +787,9 @@ def euler_pde_5(x, y):
     return [
         psi,
         -dy2_t-(d_f1dy1_y2_x+d_f2dy1_y2_y+d_f3dy1_y2_z)+epsilon*(dy2_xx+dy2_yy+dy2_zz),
-        0.01/(torch.min(torch.abs(dpsi_x))),
-        0.01/(torch.min(torch.abs(dpsi_y))),
-        0.01/(torch.min(torch.abs(dpsi_z))),
+        0.01/(torch.min(torch.abs(dpsi_x)) + 1e-10),
+        0.01/(torch.min(torch.abs(dpsi_y)) + 1e-10),
+        0.01/(torch.min(torch.abs(dpsi_z)) + 1e-10),
     ]
 
 euler_pdes = {
