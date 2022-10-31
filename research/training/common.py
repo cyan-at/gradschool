@@ -1099,7 +1099,7 @@ class WASSPDE(dde.data.TimePDE):
 
         return losses
 
-class ScaledFNN(dd.nn.NN):
+class ScaledFNN(dde.nn.NN):
     """Fully-connected neural network."""
 
     def __init__(self, layer_sizes, activation, kernel_initializer):
