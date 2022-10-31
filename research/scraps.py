@@ -5181,3 +5181,72 @@ t2 = Matrix([-2*y*z, x*z, x*y])
 TensorProduct(t2, t2.T)
 f2 / (1 / (y**3 * z**3))
 history
+
+
+
+
+sc1=ax1.scatter(
+    grid_x1,
+    grid_x2,
+    grid_x3,
+    c=DPHI_DINPUT_T0_X,
+    s=np.abs(DPHI_DINPUT_T0_X*5000),
+    cmap=cm.jet,
+    alpha=1.0)
+plt.colorbar(sc1, shrink=0.25)
+# ax1.set_title('rho0: mu=%.3f, sigma=%.3f, sum=%.3f, min=%.3f, max=%.3f' % (
+#     mu_0,
+#     sigma_0,
+#     np.sum(t0[:, -1]),
+#     np.min(t0[:, -1]),
+#     np.max(t0[:, -1])
+# ))
+ax1.set_xlabel('x')
+ax1.set_ylabel('y')
+ax1.set_zlabel('z')
+
+ax2 = fig.add_subplot(1, 3, 2, projection='3d')
+sc2=ax2.scatter(
+    grid_x1,
+    grid_x2,
+    grid_x3,
+    c=DPHI_DINPUT_T0_Y,
+    s=np.abs(DPHI_DINPUT_T0_Y*5000),
+    cmap=cm.jet,
+    alpha=1.0)
+plt.colorbar(sc2, shrink=0.25)
+# ax2.set_title('rhoT: mu=%.3f, sigma=%.3f, sum=%.3f, min=%.3f, max=%.3f' % (
+#     mu_T,
+#     sigma_T,
+#     np.sum(tT[:, -1]),
+#     np.min(tT[:, -1]),
+#     np.max(tT[:, -1])
+# ))
+ax2.set_xlabel('x')
+ax2.set_ylabel('y')
+ax2.set_zlabel('z')
+
+ax3 = fig.add_subplot(1, 3, 3, projection='3d')
+sc3=ax3.scatter(
+    grid_x1,
+    grid_x2,
+    grid_x3,
+    c=DPHI_DINPUT_T0_Y,
+    s=np.abs(DPHI_DINPUT_T0_Y*5000),
+    cmap=cm.jet,
+    alpha=1.0)
+plt.colorbar(sc3, shrink=0.25)
+# ax3.set_title('rhoT: mu=%.3f, sigma=%.3f, sum=%.3f, min=%.3f, max=%.3f' % (
+#     mu_T,
+#     sigma_T,
+#     np.sum(tT[:, -1]),
+#     np.min(tT[:, -1]),
+#     np.max(tT[:, -1])
+# ))
+ax3.set_xlabel('x')
+ax3.set_ylabel('y')
+ax3.set_zlabel('z')
+
+dphi_dinput_t0_l2_norm = dphi_dinput_t0[:, 0]
+
+# import ipdb; ipdb.set_trace()
