@@ -1095,7 +1095,9 @@ class WASSPDE(dde.data.TimePDE):
 
         return losses
 
-from dde.nn import activations, initializers, config
+
+from deepxde.nn import activations, initializers
+from deepxde import config
 class ScaledFNN(dde.nn.NN):
     """Fully-connected neural network."""
 
