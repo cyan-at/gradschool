@@ -187,7 +187,7 @@ def get_model(
 
     data = WASSPDE(
         geomtime,
-        euler_pdes[5],
+        euler_pdes[6],
         [rho_0_BC,rho_T_BC],
         num_domain=samples_between_initial_and_final,
         num_initial=initial_and_final_samples,
@@ -199,7 +199,7 @@ def get_model(
     # d+1 inputs: <state> + t
     # 5 outputs: 2 eq
     net = dde.nn.FNN(
-        [d+1] + [70] *3  + [3],
+        [d+1] + [70] *3  + [2],
         activations,
         init
         # "zeros",

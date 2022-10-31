@@ -792,12 +792,88 @@ def euler_pde_5(x, y):
         0.01/(torch.min(torch.abs(dpsi_z)) + 1e-10),
     ]
 
+def euler_pde_6(x, y):
+    """Euler system.
+    dy1_t = g(x)-1/2||Dy1_x||^2-<Dy1_x,f>-epsilon*Dy1_xx
+    dy2_t = -D.(y2*(f)+Dy1_x)+epsilon*Dy2_xx
+    All collocation-based residuals are defined here
+    """
+    y1, y2 = y[:, 0:1], y[:, 1:2]
+
+    dy1_x = dde.grad.jacobian(y1, x, j=0)
+    dy1_y = dde.grad.jacobian(y1, x, j=1)
+    dy1_z = dde.grad.jacobian(y1, x, j=2)
+    dy1_t = dde.grad.jacobian(y1, x, j=3)
+    dy1_xx = dde.grad.hessian(y1, x, i=0, j=0)
+    dy1_yy = dde.grad.hessian(y1, x, i=1, j=1)
+    dy1_zz = dde.grad.hessian(y1, x, i=2, j=2)
+
+    dy2_x = dde.grad.jacobian(y2, x, j=0)
+    dy2_y = dde.grad.jacobian(y2, x, j=1)
+    dy2_z = dde.grad.jacobian(y2, x, j=2)
+    dy2_t = dde.grad.jacobian(y2, x, j=3)
+
+    dy2_xx = dde.grad.hessian(y2, x, i=0, j=0)
+    dy2_yy = dde.grad.hessian(y2, x, i=1, j=1)
+    dy2_zz = dde.grad.hessian(y2, x, i=2, j=2)
+
+    """Compute Jacobian matrix J: J[i][j] = dy_i / dx_j, where i = 0, ..., dim_y - 1 and
+    j = 0, ..., dim_x - 1.
+    Use this function to compute first-order derivatives instead of ``tf.gradients()``
+    or ``torch.autograd.grad()``, because
+
+    - It is lazy evaluation, i.e., it only computes J[i][j] when needed.
+    - It will remember the gradients that have already been computed to avoid duplicate
+      computation.
+    """
+
+    """Compute Hessian matrix H: H[i][j] = d^2y / dx_i dx_j, where i,j=0,...,dim_x-1.
+
+    Use this function to compute second-order derivatives instead of ``tf.gradients()``
+    or ``torch.autograd.grad()``, because
+
+    - It is lazy evaluation, i.e., it only computes H[i][j] when needed.
+    - It will remember the gradients that have already been computed to avoid duplicate
+      computation."""
+
+    f1=x[:, 1:2]*x[:, 2:3]*(j2-j3)/j1
+    f2=x[:, 0:1]*x[:, 2:3]*(j3-j1)/j2
+    f3=x[:, 0:1]*x[:, 1:2]*(j1-j2)/j3
+    
+    # d_f1dy1_y2_x=tf.gradients((f1+dy1_x)*y2, x)[0][:, 0:1]
+    # d_f2dy1_y2_y=tf.gradients((f2+dy1_y)*y2, x)[0][:, 1:2]
+    # d_f3dy1_y2_z=tf.gradients((f3+dy1_z)*y2, x)[0][:, 2:3]
+    d_f1dy1_y2_x = dde.grad.jacobian((f1+dy1_x)*y2, x, j=0)
+    d_f2dy1_y2_y = dde.grad.jacobian((f2+dy1_y)*y2, x, j=1)
+    d_f3dy1_y2_z = dde.grad.jacobian((f3+dy1_z)*y2, x, j=2)
+
+    # stay close to origin while searching, penalizes large state distance solutions
+    q = q_statepenalty_gain*(
+        x[:, 0:1] * x[:, 0:1]\
+        + x[:, 1:2] * x[:, 1:2]\
+        + x[:, 2:3] * x[:, 2:3])
+    # also try
+    # q = 0 # minimum effort control
+
+    psi = -dy1_t + q - .5*(dy1_x*dy1_x+dy1_y*dy1_y+dy1_z*dy1_z) - (dy1_x*f1 + dy1_y*f2 + dy1_z*f3) - epsilon*(dy1_xx+dy1_yy+dy1_zz)
+
+    dpsi_x = dde.grad.jacobian(psi, x, j=0)
+    dpsi_y = dde.grad.jacobian(psi, x, j=1)
+    dpsi_z = dde.grad.jacobian(psi, x, j=2)
+
+    # TODO: verify this expression
+    return [
+        psi,
+        -dy2_t-(d_f1dy1_y2_x+d_f2dy1_y2_y+d_f3dy1_y2_z)+epsilon*(dy2_xx+dy2_yy+dy2_zz),
+    ]
+
 euler_pdes = {
     1 : euler_pde_1,
     2 : euler_pde_2,
     3 : euler_pde_3,
     4 : euler_pde_4,
-    5 : euler_pde_5
+    5 : euler_pde_5,
+    6 : euler_pde_6
 }
 
 ######################################
