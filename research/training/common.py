@@ -1256,7 +1256,7 @@ def WASS_batch_2(y_true, y_pred, device, sinkhorn, rho, state):
         y_pred.reshape(-1),
         rhoT_temp_tensor)
 
-    return 20 * p1 + 2 * p2 + dist
+    return 20 * p1 + dist
 
 ######################################
 

@@ -214,7 +214,6 @@ def get_model(
     rhoT_WASS_batch.__name__ = "rhoT_WASS_batch"
     losses=[
         "MSE","MSE",
-        "MSE","MSE","MSE",
         rho0_WASS_batch,
         rhoT_WASS_batch,
     ]
