@@ -199,7 +199,7 @@ def get_model(
     # d+1 inputs: <state> + t
     # 5 outputs: 2 eq
     net = dde.nn.FNN(
-        [d+1] + [70] *3  + [5],
+        [d+1] + [70] *3  + [2],
         activations,
         init
         # "zeros",
