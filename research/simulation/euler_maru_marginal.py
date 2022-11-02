@@ -97,7 +97,7 @@ if __name__ == '__main__':
         # import ipdb; ipdb.set_trace()
 
     initial_sample = np.random.multivariate_normal(
-        np.array([mu_0]*d), np.eye(d)*0.1, args.M) # 100 x 3
+        np.array([mu_0]*d), np.eye(d)*sigma_0, args.M) # 100 x 3
 
     ##############################
 
@@ -332,11 +332,12 @@ if __name__ == '__main__':
     if s is None:
         s = "None"
 
-    plt.suptitle("euler_maru g: with, b: without, T_0 %.3f, T_t %.3f, v_scale=%.2f, bias=%.2f\ncontrol_data=%s\ncontrolled mu=%s, var=%s" % (
+    plt.suptitle("euler_maru g: with, b: without, T_0 %.3f, T_t %.3f, v_scale=%.2f, bias=%.2f, M=%d\ncontrol_data=%s\ncontrolled mu=%s, var=%s" % (
         T_0,
         T_t,
         args.v_scale,
         args.bias,
+        args.M,
         s,
         mu_s,
         var_s,

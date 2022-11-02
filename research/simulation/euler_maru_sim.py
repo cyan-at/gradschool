@@ -8,6 +8,8 @@ import argparse
 
 from common import *
 
+from concurrent.futures import ThreadPoolExecutor
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
@@ -34,6 +36,11 @@ if __name__ == '__main__':
     parser.add_argument('--N',
         type=int,
         default=2000,
+        required=False)
+
+    parser.add_argument('--M',
+        type=int,
+        default=10,
         required=False)
 
     parser.add_argument('--control_data',
@@ -73,7 +80,7 @@ if __name__ == '__main__':
         # import ipdb; ipdb.set_trace()
 
     initial_sample = np.random.multivariate_normal(
-        np.array([mu_0]*d), np.eye(d)*0.1, 100) # 100 x 3
+        np.array([mu_0]*d), np.eye(d)*sigma_0, args.M) # 100 x 3
 
     ##############################
 
@@ -84,11 +91,8 @@ if __name__ == '__main__':
             len(ts),
         ))
 
-    for i in range(initial_sample.shape[0]):
-        # x[i] is sample [i]
-        # y[i] is state dim [i]
-        # z[i] is time [i]
-        print(i)
+    def task(i, target, control_data, affine):
+        print("starting {}".format(i))
         _, tmp = euler_maru(
             initial_sample[i, :],
             t_span,
@@ -99,9 +103,41 @@ if __name__ == '__main__':
             (
                 j1, j2, j3,
                 control_data,
-                lambda v: v * args.v_scale + args.bias
+                affine
             ))
-        with_control[i, :, :] = tmp.T
+        target[i, :, :] = tmp.T
+        return i
+
+    with_control_affine = lambda v: v * args.v_scale + args.bias
+    with ThreadPoolExecutor() as executor:
+        results = executor.map(
+            task,
+            list(range(initial_sample.shape[0])),
+            [with_control]*initial_sample.shape[0],
+            [control_data]*initial_sample.shape[0],
+            [with_control_affine]*initial_sample.shape[0]
+        )
+        for result in results:
+            print("done with {}".format(result))
+
+    # for i in range(initial_sample.shape[0]):
+    #     # x[i] is sample [i]
+    #     # y[i] is state dim [i]
+    #     # z[i] is time [i]
+    #     print(i)
+    #     _, tmp = euler_maru(
+    #         initial_sample[i, :],
+    #         t_span,
+    #         dynamics,
+    #         (t_span[-1] - t_span[0])/(N),
+    #         lambda delta_t: 0.0, # np.random.normal(loc=0.0, scale=np.sqrt(delta_t)),
+    #         lambda y, t: 0.0, # 0.06,
+    #         (
+    #             j1, j2, j3,
+    #             control_data,
+    #             lambda v: v * args.v_scale + args.bias
+    #         ))
+    #     with_control[i, :, :] = tmp.T
 
     without_control = np.empty(
         (
@@ -110,24 +146,35 @@ if __name__ == '__main__':
             len(ts),
         ))
 
-    for i in range(initial_sample.shape[0]):
-        # x[i] is sample [i]
-        # y[i] is state dim [i]
-        # z[i] is time [i]
-        print(i)
-        _, tmp = euler_maru(
-            initial_sample[i, :],
-            t_span,
-            dynamics,
-            (t_span[-1] - t_span[0])/(N),
-            lambda delta_t: 0.0, # np.random.normal(loc=0.0, scale=np.sqrt(delta_t)),
-            lambda y, t: 0.0, # 0.06,
-            (
-                j1, j2, j3,
-                None,
-                None
-            ))
-        without_control[i, :, :] = tmp.T
+    with ThreadPoolExecutor() as executor:
+        results = executor.map(
+            task,
+            list(range(initial_sample.shape[0])),
+            [without_control]*initial_sample.shape[0],
+            [None]*initial_sample.shape[0],
+            [None]*initial_sample.shape[0]
+        )
+        for result in results:
+            print("done with {}".format(result))
+
+    # for i in range(initial_sample.shape[0]):
+    #     # x[i] is sample [i]
+    #     # y[i] is state dim [i]
+    #     # z[i] is time [i]
+    #     print(i)
+    #     _, tmp = euler_maru(
+    #         initial_sample[i, :],
+    #         t_span,
+    #         dynamics,
+    #         (t_span[-1] - t_span[0])/(N),
+    #         lambda delta_t: 0.0, # np.random.normal(loc=0.0, scale=np.sqrt(delta_t)),
+    #         lambda y, t: 0.0, # 0.06,
+    #         (
+    #             j1, j2, j3,
+    #             None,
+    #             None
+    #         ))
+    #     without_control[i, :, :] = tmp.T
 
     ##############################
 
@@ -188,7 +235,7 @@ if __name__ == '__main__':
     if s is None:
         s = "None"
 
-    ax.set_title("euler_maru g: with, b: without, T_0 %.3f, T_t %.3f, v_scale=%.2f\ncontrol_data=%s" % (
+    ax.set_title("euler_maru g: with, b: without, T_0 %.3f, T_t %.3f, v_scale=%.2f, bias=%.2f\ncontrol_data=%s" % (
         T_0,
         T_t,
         args.v_scale,
