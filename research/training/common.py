@@ -1159,7 +1159,7 @@ class ScaledFNN(dde.nn.NN):
 
         # x = self.rho_scale(x)
 
-        print(self.rho_scale)
+        # print(self.rho_scale)
         x[:, 1] *= self.rho_scale
         # must be done 'in-place' or 'out-of-place' consistently above
 
