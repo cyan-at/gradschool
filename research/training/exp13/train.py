@@ -226,6 +226,8 @@ def get_model(
 
     model.compile(optimizer, lr=1e-3,loss=losses)
 
+    print("len(model.net.parameters)", len(model.net.parameters))
+
     return model, meshes
 
 if __name__ == '__main__':
