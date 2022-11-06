@@ -20,6 +20,10 @@ import matplotlib.pyplot as plt
 
 from scipy.spatial.distance import cdist
 
+cuda0 = torch.device('cuda:0')
+cpu = torch.device('cpu')
+device = cuda0
+
 def pdf3d(x,y,z,rv):
     return rv.pdf(np.hstack((x, y, z)))
 
@@ -1117,6 +1121,9 @@ class ScaledFNN(dde.nn.NN):
             initializer(self.linears[-1].weight)
             initializer_zero(self.linears[-1].bias)
 
+        self.rho_scale = torch.nn.parameter.Parameter(
+            torch.FloatTensor([1.0])).to(device).requires_grad_(True)
+
     def forward(self, inputs):
         x = inputs
         if self._input_transform is not None:
@@ -1126,10 +1133,13 @@ class ScaledFNN(dde.nn.NN):
 
         x = self.linears[-1](x)
 
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
 
         if self._output_transform is not None:
             x = self._output_transform(inputs, x)
+
+        x[:, 1] *= self.rho_scale # * x[:, 1]
+
         return x
 
 class Counter(object):
