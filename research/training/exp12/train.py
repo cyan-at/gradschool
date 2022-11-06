@@ -89,6 +89,7 @@ def get_model(
     batchsize,
     model_type,
     activations,
+    optimizer="adam",
     init="Glorot normal"):
     M = N**d
 
@@ -220,7 +221,7 @@ def get_model(
     ]
     # loss functions are based on PDE + BC: eq outputs, BCs
 
-    model.compile("adam", lr=1e-3,loss=losses)
+    model.compile(optimizer, lr=1e-3,loss=losses)
 
     return model, meshes
 
@@ -232,6 +233,7 @@ if __name__ == '__main__':
     parser.add_argument('--ck_path', type=str, default=".", help='')
     parser.add_argument('--debug', type=int, default=False, help='')
     parser.add_argument('--batchsize', type=int, default=500, help='')
+    parser.add_argument('--epochs', type=int, default=-1, help='')
     args = parser.parse_args()
 
     N = args.N
@@ -267,6 +269,9 @@ if __name__ == '__main__':
         verbose=True,
         save_better_only=True,
         period=1)
+
+    if args.epochs > 0:
+        num_epochs = args.epochs
 
     losshistory, train_state = model.train(
         iterations=num_epochs,
