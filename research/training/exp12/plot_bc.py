@@ -304,7 +304,13 @@ if __name__ == '__main__':
 
     ########################################################
 
-    ax1 = fig.add_subplot(1, 3, 1, projection='3d')
+    ax1 = fig.add_subplot(2, 3, 1, projection='3d')
+    ax2 = fig.add_subplot(2, 3, 2, projection='3d')
+    ax3 = fig.add_subplot(2, 3, 3, projection='3d')
+
+    ax4 = fig.add_subplot(2, 3, 4, projection='3d')
+    ax5 = fig.add_subplot(2, 3, 5, projection='3d')
+    ax6 = fig.add_subplot(2, 3, 6, projection='3d')
 
     ########################################################
 
@@ -330,13 +336,16 @@ if __name__ == '__main__':
       method=args.interp_mode,
       fill_value=0.0)
 
-    '''
+    p = 5
+
+    ########################################################
+
     sc1=ax1.scatter(
         grid_x1,
         grid_x2,
         grid_x3,
         c=RHO_0,
-        s=np.abs(RHO_0*10),
+        s=np.abs(RHO_0*p),
         cmap=cm.jet,
         alpha=1.0)
     plt.colorbar(sc1, shrink=0.25)
@@ -351,13 +360,12 @@ if __name__ == '__main__':
     ax1.set_ylabel('y')
     ax1.set_zlabel('z')
 
-    ax2 = fig.add_subplot(1, 3, 2, projection='3d')
     sc2=ax2.scatter(
         grid_x1,
         grid_x2,
         grid_x3,
         c=RHO_T,
-        s=np.abs(RHO_T*10),
+        s=np.abs(RHO_T*p),
         cmap=cm.jet,
         alpha=1.0)
     plt.colorbar(sc2, shrink=0.25)
@@ -372,13 +380,12 @@ if __name__ == '__main__':
     ax2.set_ylabel('y')
     ax2.set_zlabel('z')
 
-    ax3 = fig.add_subplot(1, 3, 3, projection='3d')
     sc3=ax3.scatter(
         grid_x1,
         grid_x2,
         grid_x3,
         c=DPHI_DINPUT_T0_L2_NORM,
-        s=np.abs(DPHI_DINPUT_T0_L2_NORM*5000),
+        s=np.abs(DPHI_DINPUT_T0_L2_NORM*p),
         cmap=cm.jet,
         alpha=1.0)
     plt.colorbar(sc3, shrink=0.25)
@@ -386,6 +393,7 @@ if __name__ == '__main__':
     ax3.set_xlabel('x')
     ax3.set_ylabel('y')
     ax3.set_zlabel('z')
+    '''
     '''
 
     ########################################################
@@ -413,58 +421,61 @@ if __name__ == '__main__':
 
     ########################################################
 
-    sc1=ax1.scatter(
+    '''
+    '''
+    sc4=ax4.scatter(
         grid_x1,
         grid_x2,
         grid_x3,
         c=DPHI_DINPUT_T0_X,
-        s=np.abs(DPHI_DINPUT_T0_X*12000),
+        s=np.abs(DPHI_DINPUT_T0_X*p),
         cmap=cm.jet,
         alpha=1.0)
-    plt.colorbar(sc1, shrink=0.25)
-    ax1.set_title('scaled 12k dpsi_dx\nmin=%.3f, max=%.3f' % (
-        np.min(dphi_dinput[:, 0]*12000),
-        np.max(dphi_dinput[:, 0]*12000)
+    plt.colorbar(sc4, shrink=0.25)
+    ax4.set_title('scaled %.3f dpsi_dx\nmin=%.3f, max=%.3f' % (
+        p,
+        np.min(dphi_dinput[:, 0]*p),
+        np.max(dphi_dinput[:, 0]*p)
     ))
-    ax1.set_xlabel('x')
-    ax1.set_ylabel('y')
-    ax1.set_zlabel('z')
+    ax4.set_xlabel('x')
+    ax4.set_ylabel('y')
+    ax4.set_zlabel('z')
 
-    ax2 = fig.add_subplot(1, 3, 2, projection='3d')
-    sc2=ax2.scatter(
+    sc5=ax5.scatter(
         grid_x1,
         grid_x2,
         grid_x3,
         c=DPHI_DINPUT_T0_Y,
-        s=np.abs(DPHI_DINPUT_T0_Y*12000),
+        s=np.abs(DPHI_DINPUT_T0_Y*p),
         cmap=cm.jet,
         alpha=1.0)
-    plt.colorbar(sc2, shrink=0.25)
-    ax2.set_title('scaled 12k dpsi_dy\nmin=%.3f, max=%.3f' % (
-        np.min(dphi_dinput[:, 1]*12000),
-        np.max(dphi_dinput[:, 1]*12000)
+    plt.colorbar(sc5, shrink=0.25)
+    ax5.set_title('scaled %.3f dpsi_dy\nmin=%.3f, max=%.3f' % (
+        p,
+        np.min(dphi_dinput[:, 1]*p),
+        np.max(dphi_dinput[:, 1]*p)
     ))
-    ax2.set_xlabel('x')
-    ax2.set_ylabel('y')
-    ax2.set_zlabel('z')
+    ax5.set_xlabel('x')
+    ax5.set_ylabel('y')
+    ax5.set_zlabel('z')
 
-    ax3 = fig.add_subplot(1, 3, 3, projection='3d')
-    sc3=ax3.scatter(
+    sc6=ax6.scatter(
         grid_x1,
         grid_x2,
         grid_x3,
         c=DPHI_DINPUT_T0_Z,
-        s=np.abs(DPHI_DINPUT_T0_Z*12000),
+        s=np.abs(DPHI_DINPUT_T0_Z*p),
         cmap=cm.jet,
         alpha=1.0)
-    plt.colorbar(sc3, shrink=0.25)
-    ax3.set_title('scaled 12k dpsi_dz\nmin=%.3f, max=%.3f' % (
-        np.min(dphi_dinput[:, 2]*12000),
-        np.max(dphi_dinput[:, 2]*12000)
+    plt.colorbar(sc6, shrink=0.25)
+    ax6.set_title('scaled %.3f dpsi_dz\nmin=%.3f, max=%.3f' % (
+        p,
+        np.min(dphi_dinput[:, 2]*p),
+        np.max(dphi_dinput[:, 2]*p)
     ))
-    ax3.set_xlabel('x')
-    ax3.set_ylabel('y')
-    ax3.set_zlabel('z')
+    ax6.set_xlabel('x')
+    ax6.set_ylabel('y')
+    ax6.set_zlabel('z')
 
     ########################################################
 
