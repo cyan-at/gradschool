@@ -1139,6 +1139,7 @@ class ScaledFNN(dde.nn.NN):
             x = self._output_transform(inputs, x)
 
         x[:, 1] *= self.rho_scale # * x[:, 1]
+        # above is 'in-place'
 
         return x
 
@@ -1267,6 +1268,34 @@ def WASS_batch_2(y_true, y_pred, device, sinkhorn, rho, state):
         rhoT_temp_tensor)
 
     return 20 * p1 + dist
+
+def WASS_batch_3(y_true, y_pred, device, sinkhorn, rho, state, expected_sum):
+    # import ipdb; ipdb.set_trace()
+    p1 = -torch.sum(y_pred[y_pred < 0])
+
+    # p1 = (y_pred<0).sum() # negative terms
+
+    y_pred = torch.where(y_pred < 0, 0, y_pred)
+
+    # p2 = torch.abs(torch.sum(y_pred) - expected_sum) # l1-norm
+    p2 = torch.norm(torch.sum(y_pred) - expected_sum)
+
+    rhoT_temp_tensor = torch.from_numpy(
+        rho[y_true],
+    ).to(device).requires_grad_(False)
+
+    C_temp_device = torch.from_numpy(
+        cdist(state[y_true, :], state[y_true, :], 'sqeuclidean'))
+    C_temp_device = C_temp_device.to(device).requires_grad_(False)
+
+    # import ipdb; ipdb.set_trace()
+
+    dist, _, _ = sinkhorn(
+        C_temp_device,
+        y_pred.reshape(-1),
+        rhoT_temp_tensor)
+
+    return 20 * p1 + p2 + dist
 
 ######################################
 
