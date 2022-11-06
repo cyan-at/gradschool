@@ -234,6 +234,7 @@ if __name__ == '__main__':
     parser.add_argument('--debug', type=int, default=False, help='')
     parser.add_argument('--batchsize', type=int, default=500, help='')
     parser.add_argument('--epochs', type=int, default=-1, help='')
+    parser.add_argument('--optimizer', type=str, default="adam", help='')
     args = parser.parse_args()
 
     N = args.N
@@ -253,7 +254,8 @@ if __name__ == '__main__':
         N,
         args.batchsize,
         0,
-        "tanh")
+        "tanh",
+        args.optimizer)
 
     ######################################
 
