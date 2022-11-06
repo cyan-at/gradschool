@@ -1102,8 +1102,23 @@ class WASSPDE(dde.data.TimePDE):
 
 from deepxde.nn import activations, initializers
 from deepxde import config
+class ScaleLayer(torch.nn.Module):
+   def __init__(self, init_value=1.0):
+        super().__init__()
+        t = torch.FloatTensor([init_value]).to(device).requires_grad_(True)
+        # it is NECESSARY to declare the tensor WITH GRADIENT, BEFORE declaring it as a parameter
+        self.scale = torch.nn.Parameter(t)
+
+   def forward(self, input):
+        print(self.scale)
+        input[:, 1] *=self.scale
+        return input
+
 class ScaledFNN(dde.nn.NN):
     """Fully-connected neural network."""
+    '''
+    torch.nn.Module
+    '''
 
     def __init__(self, layer_sizes, activation, kernel_initializer):
         super().__init__()
@@ -1121,8 +1136,12 @@ class ScaledFNN(dde.nn.NN):
             initializer(self.linears[-1].weight)
             initializer_zero(self.linears[-1].bias)
 
-        self.rho_scale = torch.nn.parameter.Parameter(
-            torch.FloatTensor([1.0])).to(device).requires_grad_(True)
+        print(self.num_trainable_parameters())
+        # self.rho_scale = ScaleLayer()
+        t = torch.FloatTensor([1.0]).to(device).requires_grad_(True)
+        # it is NECESSARY to declare the tensor WITH GRADIENT, BEFORE declaring it as a parameter
+        self.rho_scale = torch.nn.Parameter(t)
+        print(self.num_trainable_parameters())
 
     def forward(self, inputs):
         x = inputs
@@ -1138,8 +1157,11 @@ class ScaledFNN(dde.nn.NN):
         if self._output_transform is not None:
             x = self._output_transform(inputs, x)
 
-        x[:, 1] *= self.rho_scale # * x[:, 1]
-        # above is 'in-place'
+        # x = self.rho_scale(x)
+
+        print(self.rho_scale)
+        x[:, 1] *= self.rho_scale
+        # must be done 'in-place' or 'out-of-place' consistently above
 
         return x
 

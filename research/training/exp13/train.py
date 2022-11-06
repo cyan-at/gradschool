@@ -226,7 +226,7 @@ def get_model(
 
     model.compile(optimizer, lr=1e-3,loss=losses)
 
-    print("len(model.net.parameters)", len(model.net.parameters))
+    print("len(model.net.parameters)", len(list(model.net.parameters())))
 
     return model, meshes
 
