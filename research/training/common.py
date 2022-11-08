@@ -1300,7 +1300,12 @@ def WASS_batch_3(y_true, y_pred, device, sinkhorn, rho, state, expected_sum):
     y_pred = torch.where(y_pred < 0, 0, y_pred)
 
     # p2 = torch.abs(torch.sum(y_pred) - expected_sum) # l1-norm
-    p2 = torch.norm(torch.sum(y_pred) - expected_sum)
+    # p2 = torch.norm(torch.sum(y_pred) - expected_sum)
+
+    # non-negative output must sum to expected_sum
+    # so the greatest element in output must be 
+    # LESS
+    p2 = torch.sum(y_pred[y_pred > expected_sum])
 
     rhoT_temp_tensor = torch.from_numpy(
         rho[y_true],

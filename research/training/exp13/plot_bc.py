@@ -132,6 +132,8 @@ if __name__ == '__main__':
         type=str, default="linear")
     parser.add_argument('--grid_n',
         type=int, default=30)
+    parser.add_argument('--cosmetic_scale',
+        type=float, default=1.0)
 
     args = parser.parse_args()
 
@@ -252,6 +254,39 @@ if __name__ == '__main__':
             print("moving output off cuda")
             output = output_tensor.detach().cpu().numpy()
 
+        bc0 = output_tensor[:batchsize, -1]
+        bcT = output_tensor[batchsize:2*batchsize, -1]
+
+        p1 = -torch.sum(bc0[bc0 < 0])
+        bc0 = torch.where(bc0 < 0, 0, bc0)
+
+        s = torch.sum(bc0)
+
+        p2 = torch.norm(s - 500 / 3375.0)
+
+        C_temp_device = torch.from_numpy(
+            cdist(state, state, 'sqeuclidean'))
+        # C_temp_device = C_temp_device.to(device).requires_grad_(False)
+
+        rv0 = multivariate_normal([mu_0]*d, sigma_0 * np.eye(d))
+        rho0=rv0.pdf(state)
+        rho0 = np.float32(rho0)
+        rho_temp_tensor = torch.from_numpy(
+            rho0,
+        )#.to(device).requires_grad_(False)
+
+        sinkhorn = SinkhornDistance(eps=0.1, max_iter=200)
+        dist, _, _ = sinkhorn(
+            C_temp_device,
+            bc0,
+            rho_temp_tensor)
+
+        print("p1", p1)
+        print("s", s, 500 / 3375.0)
+        print("p2", p2)
+        print("dist", dist)
+        print("loss", 20 * p1 + p2 + dist)
+
         test = np.hstack((inputs, output))
     else:
         print("no model, using test dat alone")
@@ -314,9 +349,6 @@ if __name__ == '__main__':
 
     ########################################################
 
-
-    ########################################################
-
     dphi_dinput_t0 = dphi_dinput[:batchsize, :]
     dphi_dinput_tT = dphi_dinput[batchsize:2*batchsize, :]
     dphi_dinput_tt = dphi_dinput[2*batchsize:, :]
@@ -336,8 +368,6 @@ if __name__ == '__main__':
       method=args.interp_mode,
       fill_value=0.0)
 
-    p = 5
-
     ########################################################
 
     sc1=ax1.scatter(
@@ -345,7 +375,7 @@ if __name__ == '__main__':
         grid_x2,
         grid_x3,
         c=RHO_0,
-        s=np.abs(RHO_0*p),
+        s=np.abs(RHO_0*args.cosmetic_scale),
         cmap=cm.jet,
         alpha=1.0)
     plt.colorbar(sc1, shrink=0.25)
@@ -365,7 +395,7 @@ if __name__ == '__main__':
         grid_x2,
         grid_x3,
         c=RHO_T,
-        s=np.abs(RHO_T*p),
+        s=np.abs(RHO_T*args.cosmetic_scale),
         cmap=cm.jet,
         alpha=1.0)
     plt.colorbar(sc2, shrink=0.25)
@@ -385,7 +415,7 @@ if __name__ == '__main__':
         grid_x2,
         grid_x3,
         c=DPHI_DINPUT_T0_L2_NORM,
-        s=np.abs(DPHI_DINPUT_T0_L2_NORM*p),
+        s=np.abs(DPHI_DINPUT_T0_L2_NORM*args.cosmetic_scale),
         cmap=cm.jet,
         alpha=1.0)
     plt.colorbar(sc3, shrink=0.25)
@@ -428,14 +458,14 @@ if __name__ == '__main__':
         grid_x2,
         grid_x3,
         c=DPHI_DINPUT_T0_X,
-        s=np.abs(DPHI_DINPUT_T0_X*p),
+        s=np.abs(DPHI_DINPUT_T0_X*args.cosmetic_scale),
         cmap=cm.jet,
         alpha=1.0)
     plt.colorbar(sc4, shrink=0.25)
     ax4.set_title('scaled %.3f dpsi_dx\nmin=%.3f, max=%.3f' % (
-        p,
-        np.min(dphi_dinput[:, 0]*p),
-        np.max(dphi_dinput[:, 0]*p)
+        args.cosmetic_scale,
+        np.min(dphi_dinput[:, 0]),
+        np.max(dphi_dinput[:, 0])
     ))
     ax4.set_xlabel('x')
     ax4.set_ylabel('y')
@@ -446,14 +476,14 @@ if __name__ == '__main__':
         grid_x2,
         grid_x3,
         c=DPHI_DINPUT_T0_Y,
-        s=np.abs(DPHI_DINPUT_T0_Y*p),
+        s=np.abs(DPHI_DINPUT_T0_Y*args.cosmetic_scale),
         cmap=cm.jet,
         alpha=1.0)
     plt.colorbar(sc5, shrink=0.25)
     ax5.set_title('scaled %.3f dpsi_dy\nmin=%.3f, max=%.3f' % (
-        p,
-        np.min(dphi_dinput[:, 1]*p),
-        np.max(dphi_dinput[:, 1]*p)
+        args.cosmetic_scale,
+        np.min(dphi_dinput[:, 1]),
+        np.max(dphi_dinput[:, 1])
     ))
     ax5.set_xlabel('x')
     ax5.set_ylabel('y')
@@ -464,14 +494,14 @@ if __name__ == '__main__':
         grid_x2,
         grid_x3,
         c=DPHI_DINPUT_T0_Z,
-        s=np.abs(DPHI_DINPUT_T0_Z*p),
+        s=np.abs(DPHI_DINPUT_T0_Z*args.cosmetic_scale),
         cmap=cm.jet,
         alpha=1.0)
     plt.colorbar(sc6, shrink=0.25)
     ax6.set_title('scaled %.3f dpsi_dz\nmin=%.3f, max=%.3f' % (
-        p,
-        np.min(dphi_dinput[:, 2]*p),
-        np.max(dphi_dinput[:, 2]*p)
+        args.cosmetic_scale,
+        np.min(dphi_dinput[:, 2]),
+        np.max(dphi_dinput[:, 2])
     ))
     ax6.set_xlabel('x')
     ax6.set_ylabel('y')
