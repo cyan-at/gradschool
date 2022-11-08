@@ -68,19 +68,20 @@ torch for 11.6
 pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu116
 conda install pytorch torchvision torchaudio cudatoolkit=11.6 -c pytorch -c conda-forge
 
-conda install -c conda-forge cudatoolkit=11.6 cudnn
+###############################
 
+conda install -c conda-forge cudatoolkit=11.6 cudnn onednn ipython
 cd /usr/local/home/cyan3/miniforge/envs/tf/
 ls
 mkdir -p nvvm/libdevice/
 cd nvvm/libdevice/
 ls
 ln -s ~/miniforge/pkgs/cudatoolkit-11.6.0-hecad31d_10/lib/libdevice.10.bc .
-
-conda install -c conda-forge cudnn
-
 pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu116
 pip install deepxde cvxpy cvxpylayers jupyterlab ipdb argparse
+
+###############################
+
 pip install tensorflow tensorflow-gpu
 
 scp cyan3@vipersim01:/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/data/pde.py /home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/deepxde/data/pde.py
