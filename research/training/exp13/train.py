@@ -210,7 +210,8 @@ def get_model(
 
     ######################################
 
-    expected_sum = float(batchsize) / N**d
+    # expected_sum = float(batchsize) / N**d
+    expected_sum = 1
     print("expected_sum", expected_sum)
 
     rho0_WASS_batch = lambda y_true, y_pred: WASS_batch_3(y_true, y_pred, device, sinkhorn0, rho0, state, expected_sum)
