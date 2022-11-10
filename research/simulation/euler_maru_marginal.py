@@ -72,11 +72,15 @@ if __name__ == '__main__':
         type=float,
         default=0.0)
 
+    parser.add_argument('--d',
+        type=int,
+        default=3)
+
     args = parser.parse_args()
 
     j1, j2, j3 = [float(x) for x in args.system.split(",")]
 
-    d = 3
+    d = args.d
 
     # T_t = 20.0
 
@@ -220,9 +224,9 @@ if __name__ == '__main__':
 
     h = 0.5
 
-    mus = np.zeros(3)
-    variances = np.zeros(3)
-    for j in range(3):
+    mus = np.zeros(args.d)
+    variances = np.zeros(args.d)
+    for j in range(args.d):
         tmp = with_control[:, j, -1]
         mus[j] = np.mean(tmp)
         variances[j] = np.var(tmp)
@@ -233,7 +237,7 @@ if __name__ == '__main__':
     print("var_s", var_s)
 
     for i in range(initial_sample.shape[0]):
-        for j in range(3):
+        for j in range(args.d):
             axs[j].plot(
                 without_control[i, j, :],
                 ts,

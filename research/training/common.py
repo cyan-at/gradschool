@@ -1383,9 +1383,13 @@ def dynamics(t, state, j1, j2, j3, control_data, affine):
 
     ########################################
 
-    statedot[X1_index] = alpha1 * state[X2_index] * state[X3_index]
-    statedot[X2_index] = alpha2 * state[X3_index] * state[X1_index]
-    statedot[X3_index] = alpha3 * state[X1_index] * state[X2_index]
+    if len(state) == 3:
+        statedot[X1_index] = alpha1 * state[X2_index] * state[X3_index]
+        statedot[X2_index] = alpha2 * state[X3_index] * state[X1_index]
+        statedot[X3_index] = alpha3 * state[X1_index] * state[X2_index]
+    elif len(state) == 2:
+        statedot[X1_index] = alpha1 * state[X2_index]
+        statedot[X2_index] = alpha2 * state[X1_index]
 
     ########################################
 
@@ -1405,12 +1409,11 @@ def dynamics(t, state, j1, j2, j3, control_data, affine):
     else:
         t_key = 'tt'
 
-
     t_control_data = control_data[t_key]
 
     query = state
     # if t_key == 'tt':
-    if t_control_data['grid'].shape[1] == 4:
+    if t_control_data['grid'].shape[1] == len(state) + 1:
         query = np.append(query, t)
 
     # if np.abs(t - T_0) < 1e-8:
@@ -1426,20 +1429,25 @@ def dynamics(t, state, j1, j2, j3, control_data, affine):
     #     closest_grid_idx,
     #     t_control_data['grid'][closest_grid_idx],
     #     t_control_data['0'][closest_grid_idx],
-    #     t_control_data['1'][closest_grid_idx],
-    #     t_control_data['2'][closest_grid_idx])
+    #     t_control_data['1'][closest_grid_idx])
 
     v_x = t_control_data['0'][closest_grid_idx]
     v_y = t_control_data['1'][closest_grid_idx]
-    v_z = t_control_data['2'][closest_grid_idx]
 
     if affine is not None:
         v_x = affine(v_x)
         v_y = affine(v_y)
-        v_z = affine(v_z)
+
+    # print("v_x", v_x)
+    # print("v_y", v_y)
 
     statedot[X1_index] = statedot[X1_index] + v_x
     statedot[X2_index] = statedot[X2_index] + v_y
-    statedot[X3_index] = statedot[X3_index] + v_z
+
+    if '2' in t_control_data:
+        v_z = t_control_data['2'][closest_grid_idx]
+        if affine is not None:
+            v_z = affine(v_z)
+        statedot[X3_index] = statedot[X3_index] + v_z
 
     return statedot

@@ -133,6 +133,9 @@ if __name__ == '__main__':
     parser.add_argument('--grid_n',
         type=int, default=30)
 
+    parser.add_argument('--optimizer', type=str, default="adam", help='')
+    parser.add_argument('--mu_T', type=str, default="", help='')
+
     args = parser.parse_args()
 
     test = np.loadtxt(args.testdat)
@@ -151,9 +154,22 @@ if __name__ == '__main__':
         T_t = inputs[batchsize, -1]
         print("found T_t", T_t)
 
+        if len(args.mu_T) > 0:
+            mu_T = float(args.mu_T)
+
         inputs = np.float32(inputs)
 
-        model, meshes = get_model(d, N, 1, "sigmoid")
+        activation = "tanh"
+
+        model, meshes = get_model(
+            d,
+            N,
+            0,
+            activation,
+            mu_0,
+            mu_T,
+            args.optimizer,
+            )
         model.restore(args.modelpt)
 
         # output = model.predict(inputs)
@@ -311,7 +327,7 @@ if __name__ == '__main__':
 
     x_1_ = np.linspace(state_min, state_max, args.grid_n)
     x_2_ = np.linspace(state_min, state_max, args.grid_n)
-    t_ = np.linspace(T_0, T_t, args.grid_n)
+    t_ = np.linspace(T_0, T_t, args.grid_n * 2)
     grid_x1, grid_x2, grid_t = np.meshgrid(
         x_1_,
         x_2_,
@@ -328,13 +344,13 @@ if __name__ == '__main__':
       (tt[:, 0], tt[:, 1], tt[:, 2]),
       dphi_dinput_tt[:, 0],
       (grid_x1, grid_x2, grid_t),
-      method='nearest')
+      method=args.interp_mode)
 
     DPHI_DINPUT_tt_1 = gd(
       (tt[:, 0], tt[:, 1], tt[:, 2]),
       dphi_dinput_tt[:, 1],
       (grid_x1, grid_x2, grid_t),
-      method='nearest')
+      method=args.interp_mode)
 
     tt={
         '0': DPHI_DINPUT_tt_0.reshape(-1),
@@ -436,7 +452,12 @@ if __name__ == '__main__':
 
     title_str = args.modelpt
     title_str += "\n"
-    title_str += "N=15, d=2, T_t=%.3f, batch=full, sigmoid + clamped weights" % (T_t)
+    title_str += "N=15, d=%d, T_t=%.3f, batch=full, %s, mu_0=%.3f, mu_T=%.3f" % (
+        d,
+        T_t,
+        activation,
+        mu_0,
+        mu_T,)
 
     title_str += "\n"
     title_str += "rho0_sum=%.3f, rhoT_sum=%.3f" % (
