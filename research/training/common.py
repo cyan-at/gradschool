@@ -1244,7 +1244,9 @@ def WASS_2(y_true, y_pred, sinkhorn, rho_tensor, C):
     # p2 = torch.sum(y_pred[y_pred > 1.0])
     # p2 = torch.sum(y_pred) / 1.0
     p2 = (torch.sum(y_pred)-1)**2
-    y_pred = y_pred / torch.sum(y_pred)
+
+    # normalizing can introduce nans
+    # y_pred = y_pred / torch.sum(y_pred)
 
     dist, _, _ = sinkhorn(C, y_pred.reshape(-1), rho_tensor)
     # print("Sinkhorn distance: {:.3f}".format(dist.item()))
