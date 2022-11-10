@@ -80,6 +80,8 @@ def get_model(
     N,
     model_type,
     activations, # sigmoid, tanh
+    mu_0,
+    mu_T,
     optimizer="adam",
     init="Glorot normal",
     ):
@@ -216,6 +218,7 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=-1, help='')
     parser.add_argument('--optimizer', type=str, default="adam", help='')
     parser.add_argument('--restore', type=str, default="", help='')
+    parser.add_argument('--mu_T', type=str, default="", help='')
     args = parser.parse_args()
 
     N = args.N
@@ -224,6 +227,9 @@ if __name__ == '__main__':
     print("N: ", N)
     print("js: ", j1, j2, j3)
     print("q: ", q_statepenalty_gain)
+
+    if len(args.mu_T) > 0:
+        mu_T = float(args.mu_T)
 
     d = 2
 
@@ -235,6 +241,8 @@ if __name__ == '__main__':
         N,
         0,
         "tanh",
+        mu_0,
+        mu_T,
         args.optimizer,
         )
     if len(args.restore) > 0:
