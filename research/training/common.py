@@ -1338,6 +1338,22 @@ def WASS_2(y_true, y_pred, sinkhorn, rho_tensor, C):
 
     return 10 * p1 + p2 + dist
 
+def WASS_3(y_true, y_pred, sinkhorn, rho_tensor, C):
+    p1 = -torch.sum(y_pred[y_pred < 0])
+    y_pred = torch.where(y_pred < 0, 0, y_pred)
+
+    # p2 = torch.sum(y_pred[y_pred > 1.0])
+    # p2 = torch.sum(y_pred) / 1.0
+    # p2 = (torch.sum(y_pred)-1)**2
+
+    # normalizing can introduce nans
+    # y_pred = y_pred / torch.sum(y_pred)
+
+    dist, _, _ = sinkhorn(C, y_pred.reshape(-1), rho_tensor)
+    # print("Sinkhorn distance: {:.3f}".format(dist.item()))
+
+    return 10 * p1 + dist
+
 def WASS_batch_1(y_true, y_pred, device, sinkhorn, rho, state):
     # import ipdb; ipdb.set_trace()
     p1 = -torch.sum(y_pred[y_pred < 0])
