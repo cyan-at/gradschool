@@ -219,8 +219,9 @@ if __name__ == '__main__':
                     [None]*initial_sample.shape[0],
                     [None]*initial_sample.shape[0]
                 )
-                for result in results:
-                    print("done with {}".format(result))
+                if len(v_scales) == 1:
+                    for result in results:
+                        print("done with {}".format(result))
 
             # for i in range(initial_sample.shape[0]):
             #     # x[i] is sample [i]
