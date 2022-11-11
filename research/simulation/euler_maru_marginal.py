@@ -186,6 +186,8 @@ if __name__ == '__main__':
 
                 all_results[hash_func(vs, b)] = [mus, variances]
 
+                del with_control
+
             # for i in range(initial_sample.shape[0]):
             #     # x[i] is sample [i]
             #     # y[i] is state dim [i]
@@ -205,6 +207,7 @@ if __name__ == '__main__':
             #         ))
             #     with_control[i, :, :] = tmp.T
 
+            '''
             without_control = np.empty(
                 (
                     initial_sample.shape[0],
@@ -222,6 +225,7 @@ if __name__ == '__main__':
                 if len(v_scales) == 1:
                     for result in results:
                         print("done with {}".format(result))
+            '''
 
             # for i in range(initial_sample.shape[0]):
             #     # x[i] is sample [i]
