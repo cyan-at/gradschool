@@ -2286,6 +2286,78 @@ vs01: d=3, T_t = 5, q=0
 run05
 
 #########################################################
+
+
+
+
+vs01
+
+vs07
+vs04
+
+vs05
+ImportError: /lib/x86_64-linux-gnu/libstdc++.so.6: version `GLIBCXX_3.4.30' not found (required by /usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/scipy/optimize/_highs/_highs_wrapper.cpython-39-x86_64-linux-gnu.so)
+fixed
+
+
+vs06
+vs09
+RuntimeError: Found no NVIDIA driver on your system. Please check that you have an NVIDIA GPU and installed a driver from http://www.nvidia.com/Download/index.aspx
+
+
+scp cyan3@vipersim01.ndc.nasa.gov:/home/cyan3/Desktop/gradschool/research/training/exp13/model-26236.pt .
+
+./plot_bc.py --modelpt ./model-46792.pt --testdat ./model-46792-46792.dat --fullstate 1 --grid_n 30
+
+
+scp cyan3@vipersim01.ndc.nasa.gov:/home/cyan3/Desktop/gradschool/research/training/exp13/model-26236.pt .
+./plot_bc.py --modelpt ./model-26236.pt --testdat ./model-26236-26236.dat --fullstate 1 --grid_n 30
+Epoch 26236: train loss improved from 4.67e-02 to 4.44e-02, x, y_pred
+
+
+/home/cyan3/Desktop/gradschool/research/training/exp14/model*
+
+Epoch 46037: train loss improved from 9.30e-02 to 8.16e-02, x, y_pred
+
+
+
+Epoch 53451: train loss improved from 8.16e-02 to 7.06e-02, x, y_pred
+
+
+./euler_maru_marginal.py --control_data ../training/exp15/b/model-53451_225_1_linear_30_5_all_control_data.npy --v_scale 1.0,100.0 --bias -5.0,5.0 --M 100 --d 2 --workers 8 --search_grid 15
+
+
+
+cyan3@vipersim01:~/Desktop/gradschool/research/training/exp15$ ls
+common.py@             model-53451.pt         model-96121-96121.dat
+layers.py@             model-62719-62719.dat  model-96121.pt
+loss.dat               model-62719.pt         model-99300-99300.dat
+model-100000.pt        model-69080-69080.dat  model-99300.pt
+model-41387-41387.dat  model-69080.pt         plot_bc.py*
+model-41387.pt         model-74535-74535.dat  __pycache__/
+model-46035-46035.dat  model-74535.pt         test.dat
+model-46035.pt         model-86555-86555.dat  train.dat
+model-46037-46037.dat  model-86555.pt         train.py*
+model-46037.pt         model-91983-91983.dat
+model-53451-53451.dat  model-91983.pt
+
+
+scp cyan3@vipersim01.ndc.nasa.gov:/home/cyan3/Desktop/gradschool/research/training/exp15/model-99300* .
+
+Epoch 99300: train loss improved from 5.99e-02 to 5.74e-02, x, y_pred
+
+
+./euler_maru_marginal.py --control_data ../training/exp13/model-100000_3375_1_1_linear_30_all_control_data.npy --v_scale 1.0 --bias 0.0 --M 100
+
+state, space, dynamics, transforms, trajectories
+
+
+#########################################
+
+vs07: 15a on -1
+vs04: 15c
+vs05: 15d
+
 #########################################################
 #########################################################
 #########################################################

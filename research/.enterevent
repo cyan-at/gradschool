@@ -98,6 +98,19 @@ using Distributions
 using LinearAlgebra
 using Parameters
 
+######################################
+
+if you run into 
+https://stackoverflow.com/questions/48453497/anaconda-libstdc-so-6-version-glibcxx-3-4-20-not-found
+https://github.com/rstudio/reticulate/issues/1282
+
+locate libstdc++.so.6
+strings /usr/local/home/cyan3/miniforge/lib/libstdc++.so.6.0.30 | grep GLIBCXX
+strings /usr/local/home/cyan3/miniforge/lib/libstdc++.so.6.0.30 | grep GLIBCXX | grep 3.4.30
+echo $LD_LIBRARY_PATH 
+echo $LD_LIBRARY_PATH | grep miniforge
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/home/cyan3/miniforge/lib/
+
 setup
 
 echo "hello, starting tf conda"
@@ -115,3 +128,6 @@ conda activate ""
 
 echo "loading tf environment for tensorflow"
 conda activate tf
+
+echo "adding miniforge to LD_LIBRARY_PATH"
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/home/cyan3/miniforge/lib/
