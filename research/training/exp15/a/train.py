@@ -228,8 +228,11 @@ if __name__ == '__main__':
     print("js: ", j1, j2, j3)
     print("q: ", q_statepenalty_gain)
 
+    print("mu_0", mu_0)
+
     if len(args.mu_T) > 0:
         mu_T = float(args.mu_T)
+    print("mu_T", mu_T)
 
     d = 2
 
