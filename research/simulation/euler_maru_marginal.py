@@ -27,6 +27,9 @@ matplotlib.use("TkAgg")
 
 from concurrent.futures import ThreadPoolExecutor
 
+def hash_func(v_scale, bias):
+    return "%.3f_%.3f" % (v_scale, bias)
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
@@ -66,17 +69,38 @@ if __name__ == '__main__':
         required=False)
 
     parser.add_argument('--v_scale',
-        type=float,
-        default=1.0)
+        type=str,
+        default="1.0")
     parser.add_argument('--bias',
-        type=float,
-        default=0.0)
+        type=str,
+        default="0.0")
 
     parser.add_argument('--d',
         type=int,
         default=3)
 
+    parser.add_argument('--workers',
+        type=int,
+        default=4)
+
+    parser.add_argument('--search_grid',
+        type=int,
+        default=10)
+
+    parser.add_argument('--headless',
+        action='store_true') 
+
     args = parser.parse_args()
+
+    v_scales = [float(x) for x in args.v_scale.split(",")]
+    biases = [float(x) for x in args.bias.split(",")]
+
+    if len(v_scales) > 1:
+        v_scales = np.linspace(
+            v_scales[0], v_scales[-1], args.search_grid)
+    if len(biases) > 1:
+        biases = np.linspace(
+            biases[0], biases[-1], args.search_grid)
 
     j1, j2, j3 = [float(x) for x in args.system.split(",")]
 
@@ -105,15 +129,10 @@ if __name__ == '__main__':
 
     ##############################
 
-    with_control = np.empty(
-        (
-            initial_sample.shape[0],
-            initial_sample.shape[1],
-            len(ts),
-        ))
+    all_results = {}
 
     def task(i, target, control_data, affine):
-        print("starting {}".format(i))
+        # print("starting {}".format(i))
         _, tmp = euler_maru(
             initial_sample[i, :],
             t_span,
@@ -129,75 +148,111 @@ if __name__ == '__main__':
         target[i, :, :] = tmp.T
         return i
 
-    with_control_affine = lambda v: v * args.v_scale + args.bias
-    with ThreadPoolExecutor() as executor:
-        results = executor.map(
-            task,
-            list(range(initial_sample.shape[0])),
-            [with_control]*initial_sample.shape[0],
-            [control_data]*initial_sample.shape[0],
-            [with_control_affine]*initial_sample.shape[0]
-        )
-        for result in results:
-            print("done with {}".format(result))
+    for vs in v_scales:
+        for b in biases:
+            if len(args.control_data) > 0:
+                with_control_affine = lambda v: v * vs + b
+                with_control = np.empty(
+                    (
+                        initial_sample.shape[0],
+                        initial_sample.shape[1],
+                        len(ts),
+                    ))
+                with ThreadPoolExecutor(max_workers=args.workers) as executor:
+                    results = executor.map(
+                        task,
+                        list(range(initial_sample.shape[0])),
+                        [with_control]*initial_sample.shape[0],
+                        [control_data]*initial_sample.shape[0],
+                        [with_control_affine]*initial_sample.shape[0]
+                    )
+                    if len(v_scales) == 1:
+                        for result in results:
+                            print("done with {}".format(result))
 
-    # for i in range(initial_sample.shape[0]):
-    #     # x[i] is sample [i]
-    #     # y[i] is state dim [i]
-    #     # z[i] is time [i]
-    #     print(i)
-    #     _, tmp = euler_maru(
-    #         initial_sample[i, :],
-    #         t_span,
-    #         dynamics,
-    #         (t_span[-1] - t_span[0])/(N),
-    #         lambda delta_t: 0.0, # np.random.normal(loc=0.0, scale=np.sqrt(delta_t)),
-    #         lambda y, t: 0.0, # 0.06,
-    #         (
-    #             j1, j2, j3,
-    #             control_data,
-    #             lambda v: v * args.v_scale + args.bias
-    #         ))
-    #     with_control[i, :, :] = tmp.T
+                ##############################
 
-    without_control = np.empty(
-        (
-            initial_sample.shape[0],
-            initial_sample.shape[1],
-            len(ts),
-        ))
+                mus = np.zeros(args.d)
+                variances = np.zeros(args.d)
+                for j in range(args.d):
+                    tmp = with_control[:, j, -1]
+                    mus[j] = np.mean(tmp)
+                    variances[j] = np.var(tmp)
+                mu_s = "{}".format(mus)
+                var_s = "{}".format(variances)
+                print("vs %.3f, b %.3f" % (vs, b))
+                print("mu_s", mu_s)
+                print("var_s", var_s)
 
-    with ThreadPoolExecutor() as executor:
-        results = executor.map(
-            task,
-            list(range(initial_sample.shape[0])),
-            [without_control]*initial_sample.shape[0],
-            [None]*initial_sample.shape[0],
-            [None]*initial_sample.shape[0]
-        )
-        for result in results:
-            print("done with {}".format(result))
+                all_results[hash_func(vs, b)] = [mus, variances]
 
-    # for i in range(initial_sample.shape[0]):
-    #     # x[i] is sample [i]
-    #     # y[i] is state dim [i]
-    #     # z[i] is time [i]
-    #     print(i)
-    #     _, tmp = euler_maru(
-    #         initial_sample[i, :],
-    #         t_span,
-    #         dynamics,
-    #         (t_span[-1] - t_span[0])/(N),
-    #         lambda delta_t: 0.0, # np.random.normal(loc=0.0, scale=np.sqrt(delta_t)),
-    #         lambda y, t: 0.0, # 0.06,
-    #         (
-    #             j1, j2, j3,
-    #             None,
-    #             None
-    #         ))
-    #     without_control[i, :, :] = tmp.T
+            # for i in range(initial_sample.shape[0]):
+            #     # x[i] is sample [i]
+            #     # y[i] is state dim [i]
+            #     # z[i] is time [i]
+            #     print(i)
+            #     _, tmp = euler_maru(
+            #         initial_sample[i, :],
+            #         t_span,
+            #         dynamics,
+            #         (t_span[-1] - t_span[0])/(N),
+            #         lambda delta_t: 0.0, # np.random.normal(loc=0.0, scale=np.sqrt(delta_t)),
+            #         lambda y, t: 0.0, # 0.06,
+            #         (
+            #             j1, j2, j3,
+            #             control_data,
+            #             lambda v: v * args.v_scale + args.bias
+            #         ))
+            #     with_control[i, :, :] = tmp.T
+
+            without_control = np.empty(
+                (
+                    initial_sample.shape[0],
+                    initial_sample.shape[1],
+                    len(ts),
+                ))
+            with ThreadPoolExecutor(max_workers=args.workers) as executor:
+                results = executor.map(
+                    task,
+                    list(range(initial_sample.shape[0])),
+                    [without_control]*initial_sample.shape[0],
+                    [None]*initial_sample.shape[0],
+                    [None]*initial_sample.shape[0]
+                )
+                for result in results:
+                    print("done with {}".format(result))
+
+            # for i in range(initial_sample.shape[0]):
+            #     # x[i] is sample [i]
+            #     # y[i] is state dim [i]
+            #     # z[i] is time [i]
+            #     print(i)
+            #     _, tmp = euler_maru(
+            #         initial_sample[i, :],
+            #         t_span,
+            #         dynamics,
+            #         (t_span[-1] - t_span[0])/(N),
+            #         lambda delta_t: 0.0, # np.random.normal(loc=0.0, scale=np.sqrt(delta_t)),
+            #         lambda y, t: 0.0, # 0.06,
+            #         (
+            #             j1, j2, j3,
+            #             None,
+            #             None
+            #         ))
+            #     without_control[i, :, :] = tmp.T
+
+    if len(args.control_data) > 0:
+        np.save(
+            "%s_all_results.dat" % (args.control_data),
+            all_results)
+    else:
+        print("no control data, no all_results")
 
     ##############################
+
+    if args.headless:
+        print("headless, no plot")
+        sys.exit(0)
 
     fig = plt.figure()
 
@@ -223,18 +278,6 @@ if __name__ == '__main__':
     ##############################
 
     h = 0.5
-
-    mus = np.zeros(args.d)
-    variances = np.zeros(args.d)
-    for j in range(args.d):
-        tmp = with_control[:, j, -1]
-        mus[j] = np.mean(tmp)
-        variances[j] = np.var(tmp)
-    mu_s = "{}".format(mus)
-    var_s = "{}".format(variances)
-
-    print("mu_s", mu_s)
-    print("var_s", var_s)
 
     for i in range(initial_sample.shape[0]):
         for j in range(args.d):
@@ -339,8 +382,8 @@ if __name__ == '__main__':
     plt.suptitle("euler_maru g: with, b: without, T_0 %.3f, T_t %.3f, v_scale=%.2f, bias=%.2f, M=%d\ncontrol_data=%s\ncontrolled mu=%s, var=%s" % (
         T_0,
         T_t,
-        args.v_scale,
-        args.bias,
+        v_scales[-1],
+        biases[-1],
         args.M,
         s,
         mu_s,
