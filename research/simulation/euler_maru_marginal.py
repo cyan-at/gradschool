@@ -23,7 +23,10 @@ from common import *
 from RSB_traj import plot_params
 
 import matplotlib
-matplotlib.use("TkAgg")
+try:
+    matplotlib.use("TkAgg")
+except:
+    print("no tkagg")
 
 from concurrent.futures import ThreadPoolExecutor
 
