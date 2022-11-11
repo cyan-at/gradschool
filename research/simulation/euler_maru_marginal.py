@@ -244,7 +244,7 @@ if __name__ == '__main__':
 
     if len(args.control_data) > 0:
         np.save(
-            "%s_all_results.dat" % (args.control_data),
+            "%s_all_results" % (args.control_data),
             all_results)
     else:
         print("no control data, no all_results")
