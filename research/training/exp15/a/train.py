@@ -218,6 +218,7 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=-1, help='')
     parser.add_argument('--optimizer', type=str, default="adam", help='')
     parser.add_argument('--restore', type=str, default="", help='')
+    parser.add_argument('--mu_0', type=str, default="", help='')
     parser.add_argument('--mu_T', type=str, default="", help='')
     args = parser.parse_args()
 
@@ -228,6 +229,8 @@ if __name__ == '__main__':
     print("js: ", j1, j2, j3)
     print("q: ", q_statepenalty_gain)
 
+    if len(args.mu_0) > 0:
+        mu_0 = float(args.mu_0)
     print("mu_0", mu_0)
 
     if len(args.mu_T) > 0:

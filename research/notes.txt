@@ -2291,9 +2291,15 @@ run05
 
 
 vs01
-
-vs07
+vs02: not set up yet
+vs03
 vs04
+vs05
+vs06
+vs07
+vs08
+vs09: no gpu
+
 
 vs05
 ImportError: /lib/x86_64-linux-gnu/libstdc++.so.6: version `GLIBCXX_3.4.30' not found (required by /usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/scipy/optimize/_highs/_highs_wrapper.cpython-39-x86_64-linux-gnu.so)
@@ -2357,6 +2363,7 @@ state, space, dynamics, transforms, trajectories
 vs07: 15a on -1
 vs04: 15c
 vs05: 15d
+vs03: 15c
 
 #########################################################
 #########################################################
