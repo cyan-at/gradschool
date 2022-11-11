@@ -251,7 +251,11 @@ if __name__ == '__main__':
 
     if len(args.control_data) > 0:
         np.save(
-            "%s_all_results" % (args.control_data),
+            "%s_all_results_%s_%s" % (
+                args.control_data,
+                args.v_scale,
+                args.bias
+            ),
             all_results)
     else:
         print("no control data, no all_results")
