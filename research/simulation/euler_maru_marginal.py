@@ -93,6 +93,9 @@ if __name__ == '__main__':
     parser.add_argument('--headless',
         action='store_true') 
 
+    parser.add_argument('--noise',
+        action='store_true')
+
     args = parser.parse_args()
 
     v_scales = [float(x) for x in args.v_scale.split(",")]
@@ -136,18 +139,33 @@ if __name__ == '__main__':
 
     def task(i, target, control_data, affine):
         # print("starting {}".format(i))
-        _, tmp = euler_maru(
-            initial_sample[i, :],
-            t_span,
-            dynamics,
-            (t_span[-1] - t_span[0])/(N),
-            lambda delta_t: 0.0, # np.random.normal(loc=0.0, scale=np.sqrt(delta_t)),
-            lambda y, t: 0.0, # 0.06,
-            (
-                j1, j2, j3,
-                control_data,
-                affine
-            ))
+
+        if args.noise:
+            _, tmp = euler_maru(
+                initial_sample[i, :],
+                t_span,
+                dynamics,
+                (t_span[-1] - t_span[0])/(N),
+                lambda delta_t: np.random.normal(loc=0.0, scale=np.sqrt(delta_t)),
+                lambda y, t: 0.06,
+                (
+                    j1, j2, j3,
+                    control_data,
+                    affine
+                ))
+        else:
+            _, tmp = euler_maru(
+                initial_sample[i, :],
+                t_span,
+                dynamics,
+                (t_span[-1] - t_span[0])/(N),
+                lambda delta_t: 0.0, # np.random.normal(loc=0.0, scale=np.sqrt(delta_t)),
+                lambda y, t: 0.0, # 0.06,
+                (
+                    j1, j2, j3,
+                    control_data,
+                    affine
+                ))
         target[i, :, :] = tmp.T
         return i
 
@@ -189,7 +207,8 @@ if __name__ == '__main__':
 
                 all_results[hash_func(vs, b)] = [mus, variances]
 
-                del with_control
+                if len(v_scales) > 1:
+                    del with_control
 
             # for i in range(initial_sample.shape[0]):
             #     # x[i] is sample [i]
@@ -210,25 +229,24 @@ if __name__ == '__main__':
             #         ))
             #     with_control[i, :, :] = tmp.T
 
-            '''
-            without_control = np.empty(
-                (
-                    initial_sample.shape[0],
-                    initial_sample.shape[1],
-                    len(ts),
-                ))
-            with ThreadPoolExecutor(max_workers=args.workers) as executor:
-                results = executor.map(
-                    task,
-                    list(range(initial_sample.shape[0])),
-                    [without_control]*initial_sample.shape[0],
-                    [None]*initial_sample.shape[0],
-                    [None]*initial_sample.shape[0]
-                )
-                if len(v_scales) == 1:
-                    for result in results:
-                        print("done with {}".format(result))
-            '''
+            if not args.headless:
+                without_control = np.empty(
+                    (
+                        initial_sample.shape[0],
+                        initial_sample.shape[1],
+                        len(ts),
+                    ))
+                with ThreadPoolExecutor(max_workers=args.workers) as executor:
+                    results = executor.map(
+                        task,
+                        list(range(initial_sample.shape[0])),
+                        [without_control]*initial_sample.shape[0],
+                        [None]*initial_sample.shape[0],
+                        [None]*initial_sample.shape[0]
+                    )
+                    if len(v_scales) == 1:
+                        for result in results:
+                            print("done with {}".format(result))
 
             # for i in range(initial_sample.shape[0]):
             #     # x[i] is sample [i]
