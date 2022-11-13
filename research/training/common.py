@@ -942,13 +942,16 @@ def euler_pde_7(x, y):
     # q = 0 # minimum effort control
 
     psi = -dy1_t + q - .5*(dy1_x*dy1_x+dy1_y*dy1_y) - (dy1_x*f1 + dy1_y*f2) - epsilon*(dy1_xx+dy1_yy)
+    
+    # print(torch.min(torch.abs(y1)))
+    # print(torch.min(torch.abs(dy1_x)))
 
     # TODO: verify this expression
     return [
         psi,
         -dy2_t-(d_f1dy1_y2_x+d_f2dy1_y2_y)+epsilon*(dy2_xx+dy2_yy),
-        0.01/(torch.min(torch.abs(dy1_x)) + 1e-10),
-        0.01/(torch.min(torch.abs(dy1_y)) + 1e-10),
+        0.001/(torch.max(torch.abs(dy1_x)) + 1e-10),
+        0.001/(torch.max(torch.abs(dy1_y)) + 1e-10),
     ]
 
 def euler_pde_8(x, y):
