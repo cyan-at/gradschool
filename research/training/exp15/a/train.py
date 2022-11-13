@@ -82,6 +82,7 @@ def get_model(
     activations, # sigmoid, tanh
     mu_0,
     mu_T,
+    T_t,
     optimizer="adam",
     init="Glorot normal",
     ):
@@ -220,6 +221,7 @@ if __name__ == '__main__':
     parser.add_argument('--restore', type=str, default="", help='')
     parser.add_argument('--mu_0', type=str, default="", help='')
     parser.add_argument('--mu_T', type=str, default="", help='')
+    parser.add_argument('--T_t', type=str, default="", help='')
     args = parser.parse_args()
 
     N = args.N
@@ -237,6 +239,10 @@ if __name__ == '__main__':
         mu_T = float(args.mu_T)
     print("mu_T", mu_T)
 
+    if len(args.T_t) > 0:
+        T_t = float(args.T_t)
+    print("T_t", T_t)
+
     d = 2
 
     if args.debug:
@@ -249,6 +255,7 @@ if __name__ == '__main__':
         "tanh",
         mu_0,
         mu_T,
+        T_t,
         args.optimizer,
         )
     if len(args.restore) > 0:
