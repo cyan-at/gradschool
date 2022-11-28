@@ -6,13 +6,28 @@ USAGE:
 ./double_pendulum.py --playback 100 --initial "10,0,1,0.1" --mode 0 --t_stop 500 --plot phase
 ./double_pendulum.py --playback 100 --initial "10,0,1,0" --mode 0 --t_stop 500 --plot phase
 
-./double_pendulum.py --playback 100 --initial "10,0,1,0" --mode 1 --t_stop 500 --plot analysis
-
 ./double_pendulum.py --playback 100 --initial "5,0,1,0" --mode 2 --t_stop 500 --plot analysis --system 10,1,1,1,0
+
 ./double_pendulum.py --playback 100 --initial "5,0,1,0" --mode 2 --t_stop 500 --plot analysis --system 10,1,1,1,0.1
-./double_pendulum.py --playback 100 --initial "10,0,1,0.1" --mode 2 --t_stop 500 --plot analysis --system 10,1,1,1,1
 
 ./double_pendulum.py --playback 20 --initial "20,0,1,0" --mode 3 --t_stop 500 --plot analysis --system 10,1,1,1,0
+
+##########################################################
+
+fig:simulation2
+./double_pendulum.py --playback 100 --initial "10,0,1,0" --mode 1 --t_stop 250 --plot analysis
+fig:phase2
+./double_pendulum.py --playback 100 --initial "10,0,1,0" --mode 1 --t_stop 500 --plot phase
+
+fig:simulation4
+./double_pendulum.py --playback 100 --initial "10,0,1,0.1" --mode 2 --t_stop 150 --plot analysis --system 10,1,1,1,0.1
+fig:phase4
+./double_pendulum.py --playback 100 --initial "10,0,1,0.1" --mode 2 --t_stop 150 --plot phase --system 10,1,1,1,0.1
+
+fig:simulation3
+./double_pendulum.py --playback 100 --initial "10,0,1,0" --mode 2 --t_stop 500 --plot analysis --system 10,1,1,1,0
+fig:phase5
+./double_pendulum.py --playback 100 --initial "10,0,1,0" --mode 2 --t_stop 500 --plot phase --system 10,1,1,1,0
 
 ##########################################################
 
@@ -1080,7 +1095,7 @@ if __name__ == '__main__':
             fig,
             system.draw_func,
             system.data_gen,
-            interval=args.dt*1000/args.playback,
+            interval=1.0/args.playback,
             blit=True)
         plt.show()
     elif args.plot == "phase":
@@ -1098,8 +1113,9 @@ if __name__ == '__main__':
 
         line, = plt.plot(q1, q1dot, 'b', linewidth=0.1)
 
-        indices = np.linspace(0, len(q1), max(100, len(q1) / 300))
+        print(len(q1))
 
+        indices = np.linspace(0, len(q1), max(100, int(len(q1) / 300)))
         add_arrow_indices(line, indices=[int(x) for x in indices[:-1]], index_width=2)
 
         # fig.tight_layout()
