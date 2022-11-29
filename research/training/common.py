@@ -1038,6 +1038,39 @@ def euler_pde_8(x, y):
         0.01/(torch.sum(torch.abs(dy1_y)) + 1e-10),
     ]
 
+S3 = dde.Variable(1.0)
+sa_a, sa_b, sa_c, sa_d, sa_f= 10., 2.1, 0.75, .0045, 0.0005
+sa_K, sa_T=1.38066*10**-23, 293.
+def self_assembly(x, y):
+    """Self assembly system.
+    dy1_t = 1/2*(y3^2)-dy1_x*D1-dy1_xx*D2
+    dy2_t = -dD1y2_x +dD2y2_xx
+    y3=dy1_x*dD1_y3+dy1_xx*dD2_y3
+    All collocation-based residuals are defined here
+    Including a penalty function for negative solutions
+    """
+    y1, y2, y3 = y[:, 0:1], y[:, 1:2], y[:, 2:]
+    dy1_t = dde.grad.jacobian(y1, x, j=1)
+    dy1_x = dde.grad.jacobian(y1, x, j=0)
+    dy1_xx = dde.grad.hessian(y1, x, j=0)
+
+    D2=sa_d*torch.exp(-(x[:, 0:1]-sa_b-sa_c*y3)*(x[:, 0:1]-sa_b-sa_c*y3))+sa_f
+    F=sa_a*sa_K*sa_T*(x[:, 0:1]-sa_b-sa_c*y3)*(x[:, 0:1]-sa_b-sa_c*y3)
+    D1=-2*(x[:, 0:1]-sa_b-sa_c*y3)*((sa_d*torch.exp(-(x[:, 0:1]-sa_b-sa_c*y3)*(x[:, 0:1]-sa_b-sa_c*y3)))+sa_a*D2)
+    dy2_t = dde.grad.jacobian(y2, x, j=1)
+    dD1y2_x=dde.grad.jacobian(D1*y2, x, j=0)
+    dD2y2_xx = dde.grad.hessian(D2*y2, x,  j=0)
+    dD1_y3=dde.grad.jacobian(D1, y3)
+    dD2_y3=dde.grad.jacobian(D2, y3)
+
+    return [
+        dy1_t-.5*(S3*y3*S3*y3)+D1*dy1_x+D2*dy1_xx,
+        dy2_t+dD1y2_x-dD2y2_xx,
+        S3*y3-dy1_x*dD1_y3-dy1_xx*dD2_y3,
+#         neg_loss,
+#         neg_loss_y2,
+    ]
+
 euler_pdes = {
     1 : euler_pde_1,
     2 : euler_pde_2,
@@ -1046,7 +1079,8 @@ euler_pdes = {
     5 : euler_pde_5,
     6 : euler_pde_6,
     7 : euler_pde_7,
-    8 : euler_pde_8
+    8 : euler_pde_8,
+    9 : self_assembly,
 }
 
 ######################################
