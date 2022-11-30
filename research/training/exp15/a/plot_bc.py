@@ -168,6 +168,7 @@ if __name__ == '__main__':
             activation,
             mu_0,
             mu_T,
+            T_t,
             args.optimizer,
             )
         model.restore(args.modelpt)

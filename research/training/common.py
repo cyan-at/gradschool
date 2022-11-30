@@ -950,8 +950,8 @@ def euler_pde_7(x, y):
     return [
         psi,
         -dy2_t-(d_f1dy1_y2_x+d_f2dy1_y2_y)+epsilon*(dy2_xx+dy2_yy),
-        0.001/(torch.max(torch.abs(dy1_x)) + 1e-10),
-        0.001/(torch.max(torch.abs(dy1_y)) + 1e-10),
+        0.001/(torch.max(torch.abs(dy1_x)) + 1e-10), # [:N**2]
+        0.001/(torch.max(torch.abs(dy1_y)) + 1e-10), # [:N**2]
     ]
 
 def euler_pde_8(x, y):

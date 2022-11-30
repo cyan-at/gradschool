@@ -2303,7 +2303,7 @@ vs09: no gpu
 
 vs05
 ImportError: /lib/x86_64-linux-gnu/libstdc++.so.6: version `GLIBCXX_3.4.30' not found (required by /usr/local/home/cyan3/miniforge/envs/tf/lib/python3.9/site-packages/scipy/optimize/_highs/_highs_wrapper.cpython-39-x86_64-linux-gnu.so)
-fixed
+fixed, solution related to LD_LIBRARY_PATH in .enterevent now
 
 
 vs06
@@ -2366,6 +2366,21 @@ vs04: 15c
 vs05: 15d
 
 #########################################################
+
+vs05: 15a reproduce the success
+/usr/local/home/cyan3/Dev/jim/gradschool/research/training/exp15/a/reproduce_a$ scp cyan3@vipersim05.ndc.nasa.gov:/usr/local/home/cyan3/Dev/jim/gradschool/research/training/exp15/a/*.pt .
+/usr/local/home/cyan3/Dev/jim/gradschool/research/training/exp15/a/reproduce_a$ ../plot_bc.py --modelpt ./model-100000.pt --testdat ./test.dat --grid_n 30 --interp_mode nearest
+saved control_data to ./model-100000_225_1_nearest_30_10_all_control_data.npy
+../../../../simulation/euler_maru_marginal.py --v_scale 1.0 --bias 0.0 --M 100 --d 2 --control_data ./model-100000_225_1_nearest_30_10_all_control_data.npy
+./../../plot_loss_func.py --lossdat ./loss.dat --modelpt ./model-100000.pt
+SUCCESS!!!! LIGHTNING STRIKES 2X!!!!
+
+vs07: 15a on 2 -> -1, epsilon = 0.005
+the epsilon doesn't help really
+
+
+vs04: 16, self-assembly dynamics
+
 #########################################################
 #########################################################
 #########################################################
