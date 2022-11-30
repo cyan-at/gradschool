@@ -2375,13 +2375,19 @@ saved control_data to ./model-100000_225_1_nearest_30_10_all_control_data.npy
 ./../../plot_loss_func.py --lossdat ./loss.dat --modelpt ./model-100000.pt
 SUCCESS!!!! LIGHTNING STRIKES 2X!!!!
 
-vs07: 15a on 2 -> -1, epsilon = 0.005
+vs07: 15a on 2 -> -1, 10s, epsilon = 0.005
 the epsilon doesn't help really
-
+/usr/local/home/cyan3/Dev/jim/gradschool/research/training/exp15/a/eps2_-1$ scp cyan3@vipersim07.ndc.nasa.gov://usr/local/home/cyan3/gradschool/research/training/exp15/a/*.pt .
+scp cyan3@vipersim07.ndc.nasa.gov://usr/local/home/cyan3/gradschool/research/training/exp15/a/*.dat .
+../plot_bc.py --modelpt ./model-100000.pt --testdat ./test.dat --grid_n 30 --interp_mode nearest
 
 vs04: 16, self-assembly dynamics
 
 #########################################################
+
+vs07: 3->0, 5s, epsilon=0.001, NO DYNAMICS
+vs05: 2->0, 5s, epsilon=0.001, NO DYNAMICS
+
 #########################################################
 #########################################################
 #########################################################
