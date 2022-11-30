@@ -67,6 +67,9 @@ if __name__ == '__main__':
   ax.set_yscale('log')
   ax.set_xscale('log')
 
+  ax.yaxis.set_label_position("right")
+  ax.yaxis.tick_right()
+
   # plot_fname = "%s/loss.png" % (os.path.abspath("./"))
   # plt.savefig(plot_fname, dpi=300)
   # print("saved plot")
