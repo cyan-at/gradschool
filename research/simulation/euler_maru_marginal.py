@@ -420,4 +420,12 @@ if __name__ == '__main__':
         var_s,
     ))
 
+    c = Counter()
+    fig.canvas.mpl_connect('key_press_event', lambda e: c.on_press_saveplot(e,
+            'euler_maru_marginal_%s.png' % (
+                os.path.basename(args.control_data).replace(".npy", ""),
+            )
+        )
+    )
+
     plt.show()
