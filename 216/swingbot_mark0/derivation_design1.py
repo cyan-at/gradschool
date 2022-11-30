@@ -6,6 +6,7 @@ from sympy.physics.mechanics import *
 sympy.init_printing()
 
 from sympy_utils import *
+import numpy as np
 
 '''
 ---------------------------------------------------------------
@@ -13,8 +14,8 @@ from sympy_utils import *
 '''
 
 t = Symbol('t')
-m1, l1, m2, l2, m3, l3, g, p1_damping =\
-    symbols('m1 l1 m2 l2 m3 l3 g p1_damping', nonzero=True, positive=True)
+m1, l1, m2, l2, m3, l3, g, beta_damping, v =\
+    symbols('m1 l1 m2 l2 m3 l3 g beta_damping v', nonzero=True, positive=True)
 t1, t2, t3 = dynamicsymbols('t1 t2 t3') # state vars
 
 '''
@@ -42,7 +43,7 @@ v2_2 = simplify(x2dot**2 + y2dot**2)
 
 '''
 ---------------------------------------------------------------
-# Lagrange
+# Lagrange mechanics: the Lagrangian
 '''
 
 T = m1 / 2 * v1_2 + m2 / 2 * v2_2
@@ -141,10 +142,15 @@ print(tau_g_latex)
 ---------------------------------------------------------------
 now we have Mq** + Cq* + tau_g = 0
 we can add external forces Q to the RHS
-and then solve for Mq** = Q - Cq* - tau_g
+and then solve for 
+Mq** = Q - Cq* - tau_g
+Mq** = tau (unrelated to tau_g, just a symbol for the RHS)
 '''
 
-Q = Matrix([[-p1_damping * dt1], [0]])
+Q = Matrix([[-beta_damping * dt1], [v]])
+# v is theoretical, we do PD control on theta2** directly
+# but we need a v so it is nonzero
+# B is nonzero, system symbolic dynamics is theoretically controllable
 tau = rhs = simplify(Q - tau_g - C * Matrix([[dt1], [dt2]]))
 
 Q_latex = latex(Q)
@@ -170,7 +176,7 @@ print(tau_latex)
 we can solve for dynamics of the system in free-fall with no external control
 '''
 M_inv = simplify(M.inv())
-M_inv * tau
+# M_inv * tau
 qdotdot = simplify(M_inv * tau)
 
 qdotdot_latex = latex(qdotdot)
@@ -209,3 +215,65 @@ print(expr)
 
 expr_expected = "(-G*M1*sin(t1) - G*M2*sin(t1) - L2*M2*sin(t1 - t2)*t2_dot**2 - L2*M2*cos(t1 - t2)*Derivative(t2, (t, 2)) - Q1_DAMPING*t1_dot)/(L1*M1 + L1*M2)"
 assert(expr, expr_expected)
+
+'''
+---------------------------------------------------------------
+we can do linearization around an (unstable) fixed point such as the upright position
+'''
+
+x = Matrix([t1, dt1, t2, dt2])
+xdot = f = Matrix([[dt1, qdotdot[0], dt2, qdotdot[1]]])
+
+dfdx = f.jacobian(x)
+dfdx = nsimplify(
+    dfdx,
+    tolerance=1e-8,
+    rational=True)
+
+dfdv = f.jacobian(Matrix([v]))
+dfdv = nsimplify(
+    dfdv,
+    tolerance=1e-8,
+    rational=True)
+
+#########################################################
+
+x_desiredfixedpt = Matrix([np.pi, 0, 0, 0])
+v_desiredfixedpt = 0.0
+
+dfdx_at_desiredfixedpt = simplify(dfdx.subs([
+    (t1, x_desiredfixedpt[0]),
+    (dt1, x_desiredfixedpt[1]),
+    (t2, x_desiredfixedpt[2]),
+    (dt2, x_desiredfixedpt[3]),
+    (v, v_desiredfixedpt)
+    ]))
+dfdx_at_desiredfixedpt = nsimplify(
+    dfdx_at_desiredfixedpt,
+    tolerance=1e-8,
+    rational=True)
+
+dfdv_at_desiredfixedpt = simplify(dfdv.subs([
+    (t1, x_desiredfixedpt[0]),
+    (dt1, x_desiredfixedpt[1]),
+    (t2, x_desiredfixedpt[2]),
+    (dt2, x_desiredfixedpt[3]),
+    (v, v_desiredfixedpt)
+    ]))
+dfdv_at_desiredfixedpt = nsimplify(
+    dfdv_at_desiredfixedpt,
+    tolerance=1e-8,
+    rational=True)
+
+Alin = dfdx_at_desiredfixedpt
+Blin = dfdv_at_desiredfixedpt
+
+#########################################################
+
+Alin_np = np.array(Alin)
+Blin_np = np.array(Blin)
+
+print(python(Alin_np))
+print(python(Blin_np))
+
+import ipdb; ipdb.set_trace();

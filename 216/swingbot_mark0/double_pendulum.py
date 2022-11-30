@@ -129,6 +129,7 @@ import argparse
 
 # performance eval deps
 from scipy.signal import hilbert, butter, filtfilt
+import scipy
 
 # constants
 G = 9.8  # acceleration due to gravity, in m/s^2
@@ -261,6 +262,12 @@ K1 = L1*(M1+M2)
 K2 = L1*(M1+M2)
 
 ALPHA2 = np.pi / 3
+
+# https://stackoverflow.com/questions/1628386/normalise-orientation-between-0-and-360
+def normalize(v, lower_bound, upper_bound):
+    range_ = upper_bound - lower_bound
+    offset_ = v - upper_bound
+    return (offset_ - (np.floor(offset_  / range_) * range_)) + lower_bound
 
 def insert_into_dict_of_arrays(d, k, v, mode="append"):
     """ Aggregates or assigns a dictionary with k, v
@@ -458,6 +465,32 @@ def add_arrow_indices(line, indices, index_width = 5, direction='right', size=5,
             size=size
         )
 
+def euler_maru(
+    y0,
+    t_span,
+    mu_func,
+    dt,
+    dw_func,
+    sigma_func,
+    args=()
+    ):
+    '''
+    https://en.wikipedia.org/wiki/Euler%E2%80%93Maruyama_method
+
+    # #recall
+    '''
+    ts = np.arange(t_span[0], t_span[1] + dt, dt)
+    ys = np.zeros((len(ts), len(y0)))
+
+    ys[0, :] = y0
+
+    for i in range(1, ts.size):
+        t = t_span[0] + (i - 1) * dt
+        y = ys[i - 1, :]
+        ys[i, :] = y + np.array(mu_func(y, t, *args)) * dt + sigma_func(y, t) * dw_func(dt)
+
+    return ts, ys
+
 class Acrobot(object):
     def __init__(self,
         args,
@@ -480,6 +513,8 @@ class Acrobot(object):
             self.derivs_pfl_collocated_energy2,
 
             self.derivs_pfl_noncollocated,
+
+            self.uprightlinearized_lqr,
         ]
 
         self.state = None
@@ -487,10 +522,72 @@ class Acrobot(object):
         self._data_gen_cb = None
 
     def init_data(self):
-        self.state = integrate.odeint(
-            self._modes[self._args.mode],
-            self.initial_state,
-            self.sampletimes)
+        self.upright_A_lin = np.array([[0, 1, 0, 0],
+            [(G*M1 + G*M2)/(L1*M1), -Q1_DAMPING/(L1*M1), -G*M2/(L1*M1), 0],
+            [0,0,0,1],
+            [(G*M1 + G*M2)/(L2*M1), -Q1_DAMPING/(L2*M1), -G*(M1 + M2)/(L2*M1), 0]])
+
+        self.upright_B_lin = np.array([[0],
+            [M2/(L1*M1)],
+            [0],
+            [(M1 + M2)/(L2*M1)]])
+
+        self.upright_Q = np.eye(4)
+        self.upright_R = np.eye(1)
+
+        self.uprightP = scipy.linalg.solve_continuous_are(
+            self.upright_A_lin,
+            self.upright_B_lin,
+            self.upright_Q,
+            self.upright_R
+            )
+        self.uprightK = np.linalg.inv(self.upright_R).dot(self.upright_B_lin.T).dot(self.uprightP)
+        print("SOLVED ARE!")
+        print(self.uprightK)
+
+        self.state = np.zeros((len(self.sampletimes), self.initial_state.shape[0]))
+        i = 0
+        state = self.initial_state
+
+        dynamics_handler = self._modes[self._args.mode]
+
+        while i < len(self.sampletimes) - 1:
+            # solve differential equation, take final result only
+            state = integrate.odeint(
+                dynamics_handler,
+                state,
+                self.sampletimes[i:i+2])[-1]
+            self.state[i+1, :] = state
+
+            # t_span = self.sampletimes[i:i+2]
+
+            # _, tmp = euler_maru(
+            #     state,
+            #     t_span,
+            #     dynamics_handler,
+            #     (t_span[-1] - t_span[0])/(100),
+            #     lambda delta_t: 0.0, # np.random.normal(loc=0.0, scale=np.sqrt(delta_t)),
+            #     lambda y, t: 0.0, # 0.06,
+            #     ())
+
+            # self.state[i+1, :] = tmp[-1, :]
+
+            #############################################
+
+            t = (state[0] + np.pi) % 2*np.pi - np.pi
+            if np.abs(t) > 0.95*np.pi:
+                # print("close enough!!! SWITCHING TO LQR")
+                dynamics_handler = self.uprightlinearized_lqr
+            else:
+                # print("going back to swing-up")
+                dynamics_handler = self._modes[self._args.mode]
+
+            i += 1
+
+        # self.state = integrate.odeint(
+        #     dynamics_handler,
+        #     self.initial_state,
+        #     self.sampletimes)
 
         # extra data
         aux = np.zeros((self.state.shape[0], 5))
@@ -606,6 +703,12 @@ class Acrobot(object):
         sympy_to_expr(double_q2dot) dydx[3]
         sympy_to_expr(double_q1dot_with_damping) dydx[1]
         '''
+        # state[0] = (state[0] + np.pi) % 2*np.pi - np.pi
+        # state[0] = (state[0] + np.pi) % 2*np.pi - np.pi
+
+        # state[0] = normalize(state[0], 0, 2*np.pi)
+        # state[2] = normalize(state[2], 0, 2*np.pi)
+
         dydx = np.zeros_like(state)
 
         dydx[0] = state[1]
@@ -639,6 +742,9 @@ class Acrobot(object):
 
         we would define v to INCLUDE the q2d** but we are assuming that is not measurable realistically
         '''
+
+        if np.abs(state[0]) > np.pi * 0.95:
+            v = 0.0
 
         dydx[3] = v # our control law/strategy includes a choice that v is the acceleration(?)
 
@@ -887,6 +993,25 @@ class Acrobot(object):
 
         return dydx
 
+    def uprightlinearized_lqr(self, state, t):
+
+        t1 = state[0]
+        t1_dot = state[1]
+        t2 = state[2]
+        t2_dot = state[3]
+
+        xbar = state - np.array([np.pi, 0.0, 0.0, 0.0])
+
+        u = -np.dot(self.uprightK, xbar)
+        # now we relate u to t2 acceleration
+
+        # dydx = np.zeros_like(state)
+        # return dydx
+
+        print("u", u)
+
+        return self.derivs_freebody(state, t)
+
     def init_plot(self, fig, ax, texts):
         self.line, = ax.plot([], [], 'o-', lw=2)
         self.trace, = ax.plot([], [], '.-', lw=1, ms=2)
@@ -980,6 +1105,11 @@ if __name__ == '__main__':
     times = np.arange(0, args.t_stop, args.dt)
     system = Acrobot(args, system_params, controller_params, initial_state, times)
     system.init_data()
+
+    ####################################
+
+    system.state[:, 0] = (system.state[:, 0] + np.pi) % 2*np.pi - np.pi
+    system.state[:, 2] = (system.state[:, 2] + np.pi) % 2*np.pi - np.pi
 
     ####################################
 
