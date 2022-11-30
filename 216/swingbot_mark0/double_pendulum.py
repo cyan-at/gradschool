@@ -535,7 +535,7 @@ class Acrobot(object):
         self.upright_Q = np.eye(4)
         self.upright_R = np.eye(1)
 
-        self.uprightP = scipy.linalg.solve_continuous_are(
+        self.uprightP = scipy.linalg.solve_discrete_are(
             self.upright_A_lin,
             self.upright_B_lin,
             self.upright_Q,
@@ -994,23 +994,28 @@ class Acrobot(object):
         return dydx
 
     def uprightlinearized_lqr(self, state, t):
+        dydx = np.zeros_like(state)
 
         t1 = state[0]
         t1_dot = state[1]
         t2 = state[2]
         t2_dot = state[3]
+        t1_t2 = t1 - t2
 
         xbar = state - np.array([np.pi, 0.0, 0.0, 0.0])
+        print(xbar)
 
-        u = -np.dot(self.uprightK, xbar)
+        v = -np.dot(self.uprightK, xbar)
+        print(np.abs(v))
         # now we relate u to t2 acceleration
 
-        # dydx = np.zeros_like(state)
-        # return dydx
+        dydx[0] = state[1]
+        dydx[2] = state[3]
 
-        print("u", u)
+        dydx[3] = v # ((-M1 - M2)*(-G*sin(t2) + L1*sin(t1 - t2)*t1_dot**2 + v) - (Q1_DAMPING*t1_dot + G*M1*sin(t1) + G*M2*sin(t1) + L2*M2*sin(t1 - t2)*t2_dot**2)*cos(t1 - t2))/(L2*(-M1 + M2*cos(t1 - t2)**2 - M2))
 
-        return self.derivs_freebody(state, t)
+        dydx[1] = (-G*M1*sin(t1) - G*M2*sin(t1) - L2*M2*sin(t1 - t2)*t2_dot**2 - L2*M2*cos(t1 - t2)*dydx[3] - Q1_DAMPING*t1_dot)/(L1*M1 + L1*M2)
+        return dydx
 
     def init_plot(self, fig, ax, texts):
         self.line, = ax.plot([], [], 'o-', lw=2)

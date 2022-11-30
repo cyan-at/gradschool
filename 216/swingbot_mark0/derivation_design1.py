@@ -204,6 +204,10 @@ y = q2
 '''
 q1dotdot = 1 / M[0, 0] * (tau[0] - M[0, 1] * dt2.diff(t))
 
+M_blob2 = (M[1,1] - M[1,0]/M[0,0]*M[0,1])
+q2dotdot = simplify(1/M_blob2*(tau[1] - M[1,0]/M[0,0]*tau[0]))
+q2dotdot_expr = sympy_to_expression(q2dotdot)
+
 q1dotdot_latex = latex(q1dotdot)
 q1dotdot_latex = q1dotdot_latex.replace("t_{1}", "\\theta_{1}")
 q1dotdot_latex = q1dotdot_latex.replace("t_{2}", "\\theta_{2}")
@@ -277,3 +281,6 @@ print(python(Alin_np))
 print(python(Blin_np))
 
 import ipdb; ipdb.set_trace();
+
+
+

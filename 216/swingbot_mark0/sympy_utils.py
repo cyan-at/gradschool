@@ -79,7 +79,7 @@ def pull_out_manipulator_matrices(euler_lagrange_eqs, statevar_dots, t):
 def sympy_to_expression(sympy_expr, replacements = []):
     expr = python(sympy_expr).split("\n")[-1].split(" = ")[-1]
 
-    expr = expr.replace("p1_damping", "Q1_DAMPING")
+    expr = expr.replace("beta_damping", "Q1_DAMPING")
 
     expr = expr.replace("t2(t)", "t2")
     expr = expr.replace("t1(t)", "t1")

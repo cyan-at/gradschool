@@ -96,7 +96,13 @@ if __name__ == '__main__':
     parser.add_argument('--noise',
         action='store_true')
 
+    parser.add_argument('--T_t', type=str, default="", help='')
+
     args = parser.parse_args()
+
+    if len(args.T_t) > 0:
+        T_t = float(args.T_t)
+    print("T_t", T_t)
 
     v_scales = [float(x) for x in args.v_scale.split(",")]
     biases = [float(x) for x in args.bias.split(",")]
@@ -129,6 +135,8 @@ if __name__ == '__main__':
             allow_pickle=True).item()
 
         # import ipdb; ipdb.set_trace()
+
+    mu_0 = args.mu_0
 
     initial_sample = np.random.multivariate_normal(
         np.array([mu_0]*d), np.eye(d)*sigma_0, args.M) # 100 x 3
@@ -299,11 +307,13 @@ if __name__ == '__main__':
         bottom=0.15,
         hspace=0.05,
         wspace=0.02)
-    ax1 = fig.add_subplot(1, 3, 1, projection='3d')
-    ax2 = fig.add_subplot(1, 3, 2, projection='3d')
-    ax3 = fig.add_subplot(1, 3, 3, projection='3d')
+    ax1 = fig.add_subplot(1, d, 1, projection='3d')
+    ax2 = fig.add_subplot(1, d, 2, projection='3d')
+    axs = [ax1, ax2]
 
-    axs = [ax1, ax2, ax3]
+    if d == 3:
+        ax3 = fig.add_subplot(1, d, 3, projection='3d')
+        axs.append(ax3)
 
     ##############################
 
@@ -397,11 +407,15 @@ if __name__ == '__main__':
 
     ax1.set_aspect('equal', 'box')
     ax2.set_aspect('equal', 'box')
-    ax3.set_aspect('equal', 'box')
 
-    ax1.set_zlim(-0.1, 2*h)
-    ax2.set_zlim(-0.1, 2*h)
-    ax3.set_zlim(-0.1, 2*h)
+    b = -0.05
+
+    ax1.set_zlim(b, 2*h)
+    ax2.set_zlim(b, 2*h)
+
+    if d == 3:
+        ax3.set_aspect('equal', 'box')
+        ax3.set_zlim(b, 2*h)
 
     ##############################
 
