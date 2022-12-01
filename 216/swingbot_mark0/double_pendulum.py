@@ -535,7 +535,7 @@ class Acrobot(object):
         self.upright_Q = np.eye(4)
         self.upright_R = np.eye(1)
 
-        self.uprightP = scipy.linalg.solve_discrete_are(
+        self.uprightP = scipy.linalg.solve_continuous_are(
             self.upright_A_lin,
             self.upright_B_lin,
             self.upright_Q,
@@ -1003,18 +1003,20 @@ class Acrobot(object):
         t1_t2 = t1 - t2
 
         xbar = state - np.array([np.pi, 0.0, 0.0, 0.0])
-        print(xbar)
+        # print(xbar)
 
         v = -np.dot(self.uprightK, xbar)
-        print(np.abs(v))
+        # print(np.abs(v))
         # now we relate u to t2 acceleration
 
-        dydx[0] = state[1]
-        dydx[2] = state[3]
+        # dydx[0] = state[1]
+        # dydx[2] = state[3]
 
-        dydx[3] = v # ((-M1 - M2)*(-G*sin(t2) + L1*sin(t1 - t2)*t1_dot**2 + v) - (Q1_DAMPING*t1_dot + G*M1*sin(t1) + G*M2*sin(t1) + L2*M2*sin(t1 - t2)*t2_dot**2)*cos(t1 - t2))/(L2*(-M1 + M2*cos(t1 - t2)**2 - M2))
+        # dydx[3] = v # ((-M1 - M2)*(-G*sin(t2) + L1*sin(t1 - t2)*t1_dot**2 + v) - (Q1_DAMPING*t1_dot + G*M1*sin(t1) + G*M2*sin(t1) + L2*M2*sin(t1 - t2)*t2_dot**2)*cos(t1 - t2))/(L2*(-M1 + M2*cos(t1 - t2)**2 - M2))
 
-        dydx[1] = (-G*M1*sin(t1) - G*M2*sin(t1) - L2*M2*sin(t1 - t2)*t2_dot**2 - L2*M2*cos(t1 - t2)*dydx[3] - Q1_DAMPING*t1_dot)/(L1*M1 + L1*M2)
+        # dydx[1] = (-G*M1*sin(t1) - G*M2*sin(t1) - L2*M2*sin(t1 - t2)*t2_dot**2 - L2*M2*cos(t1 - t2)*dydx[3] - Q1_DAMPING*t1_dot)/(L1*M1 + L1*M2)
+
+        dydx = np.dot(self.upright_A_lin, state) + np.dot(self.upright_B_lin, v)
         return dydx
 
     def init_plot(self, fig, ax, texts):
