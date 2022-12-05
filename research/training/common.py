@@ -1371,7 +1371,7 @@ class WASSPDE(dde.data.TimePDE):
         bcs_start = np.cumsum([0] + self.num_bcs)
         bcs_start = list(map(int, bcs_start))
 
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
 
         losses = []
         for i, fi in enumerate(f):
