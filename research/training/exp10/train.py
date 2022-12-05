@@ -190,7 +190,7 @@ def get_model(
         euler_pdes[5],
         [rho_0_BC,rho_T_BC],
         num_domain=samples_between_initial_and_final,
-        num_initial=initial_and_final_samples,
+        num_initial=initial_samples,
         # num_boundary=50,
         # train_distribution="pseudo",
         # num_initial=10,

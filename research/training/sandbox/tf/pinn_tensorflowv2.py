@@ -127,7 +127,7 @@ sigma_T = 1.0
 ######################################
 
 samples_between_initial_and_final = 12000 # 10^4 order, 20k = out of memory
-initial_and_final_samples = 1000 # some 10^3 order
+initial_samples = 1000 # some 10^3 order
 
 ######################################
 
@@ -144,7 +144,7 @@ id_prefix = "run_%s_%.3f_%.3f__%.3f__%d__%.3f__%d_%d_%d__%.3f__%.3f_%.3f__%.3f_%
     q_statepenalty_gain,
     mu_0, sigma_0,
     mu_T, sigma_T,
-    samples_between_initial_and_final, initial_and_final_samples,
+    samples_between_initial_and_final, initial_samples,
     num_epochs
 )
 
@@ -296,7 +296,7 @@ data = dde.data.TimePDE(
     pde, 
     [rho_0_BC,rho_T_BC],
     num_domain=samples_between_initial_and_final,
-    num_initial=initial_and_final_samples)
+    num_initial=initial_samples)
 
 net = dde.nn.FNN([4] + [70] *3  + [2], "tanh", "Glorot normal")
 

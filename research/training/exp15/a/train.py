@@ -170,14 +170,14 @@ def get_model(
         [state_min]*d,
         [state_max]*d)
     timedomain = dde.geometry.TimeDomain(0., T_t)
-    geomtime = dde.geometry.GeometryXTime(geom, timedomain)
+    geomtime = CustomGeometryXTime2(geom, timedomain)
 
     data = WASSPDE(
         geomtime,
         euler_pdes[d],
         [rho_0_BC,rho_T_BC],
         num_domain=samples_between_initial_and_final,
-        num_initial=initial_and_final_samples,
+        num_initial=initial_samples,
         train_distribution="uniform")
 
     # d+1 inputs: <state> + t

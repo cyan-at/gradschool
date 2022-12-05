@@ -351,7 +351,7 @@ f = 'float32'
 dt = torch.float32
 
 samples_between_initial_and_final = 12000 # 10^4 order, 20k = out of memory
-initial_and_final_samples = 2000 # some 10^3 order
+initial_samples = 2000 # some 10^3 order
 
 num_epochs = 100000
 
@@ -642,7 +642,7 @@ def euler_pde_3(x, y):
         -dy2_t-(d_f1dy1_y2_x+d_f2dy1_y2_y+d_f3dy1_y2_z)+epsilon*(dy2_xx+dy2_yy+dy2_zz),
     ]
 
-U1 = dde.Variable(torch.ones(samples_between_initial_and_final + initial_and_final_samples + 2*500), dtype=torch.float32)
+U1 = dde.Variable(torch.ones(samples_between_initial_and_final + initial_samples + 2*500), dtype=torch.float32)
 def euler_pde_4(x, y):
     """Euler system.
     dy1_t = g(x)-1/2||Dy1_x||^2-<Dy1_x,f>-epsilon*Dy1_xx

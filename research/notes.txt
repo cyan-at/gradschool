@@ -2389,6 +2389,11 @@ vs07: 3->0, 5s, epsilon=0.001, NO DYNAMICS
 vs05: 2->0, 5s, epsilon=0.001, NO DYNAMICS
 
 #########################################################
+
+vs06: run ./train.py --js 1,1,1 --T_t 5.0 --mu_0 3.0 --mu_T 0.0 --model_name nodynamics_3_0_5
+
+vs07: run ./train.py --js 1,1,1 --T_t 5.0 --mu_0 2.0 --mu_T 0.0 --model_name nodynamics_2_0_5
+
 #########################################################
 #########################################################
 #########################################################
@@ -3125,3 +3130,4 @@ https://www.ebay.com/sch/i.html?_from=R40&_nkw=men%27s+climbing+harness+medium&_
 https://www.ebay.com/itm/314180295320?hash=item49269ada98%3Ag%3AS24AAOSwhVpjQd67&amdata=enc%3AAQAHAAAAsGXQUzcHYvo2tnOT8BgRTNe5qqkWhzsRlmvPwlikFWUeHhRKiz79cyeEVw879laBKkW8Z4a0xsRVZGSo%2BDyKVjRzM81A9sV9DsQiTQX3PR3YxvP9OMeGBBS%2BD9hZuZzgNNkLCJro028dm%2BLJKUj7IYxpJgYovFbBxZxKAFEZrWL319%2FV7OfQrFIVlZwxFLxBGLgNCPhyzZbjnZQdquwGlXFOaU6arW01A0WqHoNEXne1%7Ctkp%3ABk9SR6T45er3YA&LH_BIN=1
 https://www.ebay.com/itm/274877871147?var=575138996871&hash=item3fffff742b%3Ag%3A0wkAAOSwbdNg-uvp&amdata=enc%3AAQAHAAAAsDkOBCeabrrUXHfRNptWnGT3%2FTPlo6dVjnNjdPgrtdrzdvyqcEuoq%2B0KKVkoWob0Mh6jIBXzIOH4WnuDPx0hoZ%2FATNLQ7lQFswem9wKS7Hxg3W5wqNOOthHggaCihIaJQyC5e7Vbhfc3PmLBFbbPA1CfWNJhywnUGk7BNqK%2BN%2FILA3P1UNWMkvdWZVg9S9kJy6TE5Eg1Lt2ECDFGb%2BTCuIyRmVKiOuV1RjbL3f0COlbm%7Ctkp%3ABk9SR6T45er3YA&LH_BIN=1
 https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.griddata.html
+

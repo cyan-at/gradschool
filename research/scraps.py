@@ -761,7 +761,7 @@ T_t=50. #Terminal time
 epsilon=.001
 
 samples_between_initial_and_final = 20000 # 10^4 order, 20k = out of memory
-initial_and_final_samples = 2000 # some 10^3 order
+initial_samples = 2000 # some 10^3 order
 
 num_epochs = 100000
 
@@ -1872,7 +1872,7 @@ T_t=50. #Terminal time
 epsilon=.001
 
 samples_between_initial_and_final = 12000 # 10^4 order, 20k = out of memory
-initial_and_final_samples = 1000 # some 10^3 order
+initial_samples = 1000 # some 10^3 order
 
 num_epochs = 100000
 
@@ -2301,7 +2301,7 @@ data = dde.data.TimePDE(
     euler_pde,
     [rho_0_BC,rho_T_BC],
     num_domain=samples_between_initial_and_final,
-    num_initial=initial_and_final_samples)
+    num_initial=initial_samples)
 
 # 4 inputs: x,y,z,t
 # 5 outputs: 2 eq + 3 control vars
@@ -5003,7 +5003,7 @@ data = dde.data.TimePDE(
     euler_pde,
     [rho_0_BC,rho_T_BC],
     num_domain=samples_between_initial_and_final,
-    num_initial=initial_and_final_samples)
+    num_initial=initial_samples)
 
 # 4 inputs: x,y,z,t
 # 5 outputs: 2 eq + 3 control vars

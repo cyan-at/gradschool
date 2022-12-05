@@ -351,7 +351,7 @@ f = 'float32'
 dt = torch.float32
 
 samples_between_initial_and_final = 12000 # 10^4 order, 20k = out of memory
-initial_and_final_samples = 2000 # some 10^3 order
+initial_samples = 500 # some 10^3 order
 
 num_epochs = 100000
 
@@ -642,7 +642,7 @@ def euler_pde_3(x, y):
         -dy2_t-(d_f1dy1_y2_x+d_f2dy1_y2_y+d_f3dy1_y2_z)+epsilon*(dy2_xx+dy2_yy+dy2_zz),
     ]
 
-U1 = dde.Variable(torch.ones(samples_between_initial_and_final + initial_and_final_samples + 2*500), dtype=torch.float32)
+U1 = dde.Variable(torch.ones(samples_between_initial_and_final + initial_samples + 2*500), dtype=torch.float32)
 def euler_pde_4(x, y):
     """Euler system.
     dy1_t = g(x)-1/2||Dy1_x||^2-<Dy1_x,f>-epsilon*Dy1_xx
@@ -1229,6 +1229,114 @@ model_types = {
     1 : NonNeg_LastLayer_Model
 }
 
+class CustomGeometryXTime1(dde.geometry.GeometryXTime):
+    def __init__(self, geometry, timedomain, nt_override=None):
+        self.geometry = geometry
+        self.timedomain = timedomain
+        self.dim = geometry.dim + timedomain.dim
+
+        self.nt_override = nt_override
+
+    def uniform_points(self, n, boundary=True):
+        """Uniform points on the spatio-temporal domain.
+
+        Geometry volume ~ bbox.
+        Time volume ~ diam.
+        """
+        nx = int(
+            np.ceil(
+                (
+                    n
+                    * np.prod(self.geometry.bbox[1] - self.geometry.bbox[0])
+                    / self.timedomain.diam
+                )
+                ** 0.5
+            )
+        )
+        nt = int(np.ceil(n / nx))
+
+        if self.nt_override is not None:
+            print("overriding")
+            nt = self.nt_override
+            nx = int(np.ceil(n / nt))
+
+        print(n, nx, nt)
+
+        x = self.geometry.uniform_points(nx, boundary=boundary)
+        nx = len(x)
+
+        if boundary:
+            t = self.timedomain.uniform_points(nt, boundary=True)
+        else:
+            t = np.linspace(
+                self.timedomain.t1,
+                self.timedomain.t0,
+                num=nt,
+                endpoint=False,
+                dtype=config.real(np),
+            )[:, None]
+        xt = []
+        for ti in t:
+            xt.append(np.hstack((x, np.full([nx, 1], ti[0]))))
+        xt = np.vstack(xt)
+        if n != len(xt):
+            print(
+                "Warning: {} points required, but {} points sampled.".format(n, len(xt))
+            )
+        return xt
+
+class CustomGeometryXTime2(dde.geometry.GeometryXTime):
+    def __init__(self, geometry, timedomain):
+        self.geometry = geometry
+        self.timedomain = timedomain
+        self.dim = geometry.dim + timedomain.dim
+
+    def uniform_points(self, n, boundary=True):
+        """Uniform points on the spatio-temporal domain.
+
+        Geometry volume ~ bbox.
+        Time volume ~ diam.
+        """
+        nx = int(
+            np.ceil(
+                (
+                    n
+                    * np.prod(self.geometry.bbox[1] - self.geometry.bbox[0])
+                    / self.timedomain.diam
+                )
+                ** 0.5
+            )
+        )
+
+        # order here implies memory weight
+        nx = initial_samples
+        nt = int(np.ceil(n / nx))
+
+        print(n, nx, nt)
+
+        x = self.geometry.uniform_points(nx, boundary=boundary)
+        nx = len(x)
+
+        if boundary:
+            t = self.timedomain.uniform_points(nt, boundary=True)
+        else:
+            t = np.linspace(
+                self.timedomain.t1,
+                self.timedomain.t0,
+                num=nt,
+                endpoint=False,
+                dtype=config.real(np),
+            )[:, None]
+        xt = []
+        for ti in t:
+            xt.append(np.hstack((x, np.full([nx, 1], ti[0]))))
+        xt = np.vstack(xt)
+        if n != len(xt):
+            print(
+                "Warning: {} points required, but {} points sampled.".format(n, len(xt))
+            )
+        return xt
+
 class WASSPDE(dde.data.TimePDE):
     def losses(self, targets, outputs, loss_fn, inputs, model, aux=None):
         if dde.backend.backend_name in ["tensorflow.compat.v1", "tensorflow", "pytorch", "paddle"]:
@@ -1263,7 +1371,7 @@ class WASSPDE(dde.data.TimePDE):
         bcs_start = np.cumsum([0] + self.num_bcs)
         bcs_start = list(map(int, bcs_start))
 
-        # import ipdb; ipdb.set_trace()
+        import ipdb; ipdb.set_trace()
 
         losses = []
         for i, fi in enumerate(f):
@@ -1305,7 +1413,6 @@ class WASSPDE(dde.data.TimePDE):
         # print(len(losses))
 
         return losses
-
 
 from deepxde.nn import activations, initializers
 from deepxde import config
