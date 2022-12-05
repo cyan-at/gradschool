@@ -2394,6 +2394,12 @@ vs06: run ./train.py --js 1,1,1 --T_t 5.0 --mu_0 3.0 --mu_T 0.0 --model_name nod
 
 vs07: run ./train.py --js 1,1,1 --T_t 5.0 --mu_0 2.0 --mu_T 0.0 --model_name nodynamics_2_0_5
 
+CustomGeometryXTime2
+
+vs03: run ./train.py --js 1,1,1 --T_t 5.0 --mu_0 3.0 --mu_T 0.0 --model_name nodynamics_3_0_5
+
+vs05: run ./train.py --js 1,1,1 --T_t 5.0 --mu_0 2.0 --mu_T 0.0 --model_name nodynamics_2_0_5
+
 #########################################################
 #########################################################
 #########################################################
