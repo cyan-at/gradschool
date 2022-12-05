@@ -177,7 +177,8 @@ def get_model(
         euler_pdes[d],
         [rho_0_BC,rho_T_BC],
         num_domain=samples_between_initial_and_final,
-        num_initial=initial_and_final_samples)
+        num_initial=initial_and_final_samples,
+        train_distribution="uniform")
 
     # d+1 inputs: <state> + t
     # 5 outputs: 2 eq
