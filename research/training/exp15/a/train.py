@@ -216,6 +216,7 @@ if __name__ == '__main__':
     parser.add_argument('--js', type=str, default="1,1,2", help='')
     parser.add_argument('--q', type=float, default=0.5, help='')
     parser.add_argument('--ck_path', type=str, default=".", help='')
+    parser.add_argument('--model_name', type=str, default="", help='')
     parser.add_argument('--debug', type=int, default=False, help='')
     parser.add_argument('--epochs', type=int, default=-1, help='')
     parser.add_argument('--optimizer', type=str, default="adam", help='')
@@ -264,7 +265,12 @@ if __name__ == '__main__':
 
     de = 1
 
-    ck_path = "%s/model" % (args.ck_path)
+    model_name = "model"
+    if len(args.model_name) > 0:
+        model_name = args.model_name
+
+    ck_path = "%s/%s" % (args.ck_path, model_name)
+
     earlystop_cb = EarlyStoppingFixed(
         ck_path,
         baseline=1e-3,
@@ -281,7 +287,8 @@ if __name__ == '__main__':
     losshistory, train_state = model.train(
         iterations=num_epochs,
         display_every=de,
-        callbacks=[earlystop_cb, modelcheckpt_cb])
+        callbacks=[earlystop_cb, modelcheckpt_cb],
+        model_save_path=ck_path)
 
     ######################################
 
