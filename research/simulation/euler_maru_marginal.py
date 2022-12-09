@@ -46,6 +46,11 @@ if __name__ == '__main__':
         default=2.0,
         required=False)
 
+    parser.add_argument('--mu_T',
+        type=float,
+        default=0.0,
+        required=False)
+
     parser.add_argument('--sampling',
         type=str,
         default="15,15,15,15,15,15,100,200",
@@ -137,6 +142,7 @@ if __name__ == '__main__':
         # import ipdb; ipdb.set_trace()
 
     mu_0 = args.mu_0
+    mu_T = args.mu_T
 
     initial_sample = np.random.multivariate_normal(
         np.array([mu_0]*d), np.eye(d)*sigma_0, args.M) # 100 x 3

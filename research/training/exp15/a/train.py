@@ -170,7 +170,9 @@ def get_model(
         [state_min]*d,
         [state_max]*d)
     timedomain = dde.geometry.TimeDomain(0., T_t)
-    geomtime = CustomGeometryXTime2(geom, timedomain)
+
+    # geomtime = CustomGeometryXTime2(geom, timedomain)
+    geomtime = dde.geometry.GeometryXTime(geom, timedomain)
 
     data = WASSPDE(
         geomtime,
