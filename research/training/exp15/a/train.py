@@ -180,7 +180,8 @@ def get_model(
         [rho_0_BC,rho_T_BC],
         num_domain=samples_between_initial_and_final,
         num_initial=initial_samples,
-        train_distribution="uniform")
+        # train_distribution="uniform"
+    )
 
     # d+1 inputs: <state> + t
     # 5 outputs: 2 eq
