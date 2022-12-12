@@ -136,18 +136,48 @@ if __name__ == '__main__':
         type=str, default="linear")
     parser.add_argument('--grid_n',
         type=int, default=30)
+    parser.add_argument('--optimizer',
+        type=str, default="adam", help='')
 
-    parser.add_argument('--optimizer', type=str, default="adam", help='')
-    parser.add_argument('--mu_T', type=str, default="", help='')
+    parser.add_argument('--mu_0',
+        type=str, default="", help='')
+    parser.add_argument('--mu_T',
+        type=str, default="", help='')
+    parser.add_argument('--system',
+        type=str,
+        default="1,1,2", # 3,2,1
+        required=False)
+    parser.add_argument('--integrate_N',
+        type=int,
+        default=2000,
+        required=False)
+    parser.add_argument('--M',
+        type=int,
+        default=100,
+        required=False)
+    parser.add_argument('--workers',
+        type=int,
+        default=4)
+    parser.add_argument('--noise',
+        action='store_true')
+    parser.add_argument('--v_scale',
+        type=str,
+        default="1.0")
+    parser.add_argument('--bias',
+        type=str,
+        default="0.0")
 
     args = parser.parse_args()
 
     test = np.loadtxt(args.testdat)
 
+    d = test.shape[1] - 1 - 2 # one for time, 2 for pinn output
+    print("found %d dimension state space" % (d))
+
     if os.path.exists(args.modelpt):
         print("loading model")
 
-        d = 2; N = 15;
+        N = 15;
         M = N**d
         batchsize = M
 
@@ -160,6 +190,8 @@ if __name__ == '__main__':
 
         if len(args.mu_T) > 0:
             mu_T = float(args.mu_T)
+        if len(args.mu_0) > 0:
+            mu_0 = float(args.mu_0)
 
         inputs = np.float32(inputs)
 
@@ -259,7 +291,7 @@ if __name__ == '__main__':
 
     ########################################################
 
-    ax1 = fig.add_subplot(1, 3, 1, projection='3d')
+    ax1 = fig.add_subplot(2, 3, 1, projection='3d')
 
     z1 = T_0
     z2 = T_t
@@ -373,7 +405,7 @@ if __name__ == '__main__':
 
     ########################################################
 
-    ax2 = fig.add_subplot(1, 3, 2, projection='3d')
+    ax2 = fig.add_subplot(2, 3, 2, projection='3d')
 
     z1 = T_0
     z2 = T_t
@@ -420,7 +452,7 @@ if __name__ == '__main__':
 
     ########################################################
 
-    ax3 = fig.add_subplot(1, 3, 3, projection='3d')
+    ax3 = fig.add_subplot(2, 3, 3, projection='3d')
 
     z1 = T_0
     z2 = T_t
@@ -533,8 +565,6 @@ if __name__ == '__main__':
         )
     )
 
-    plt.show()
-
     gen_control_data = input("generate control data? ")
     print(gen_control_data)
 
@@ -549,11 +579,199 @@ if __name__ == '__main__':
             args.grid_n,
             T_t,
         )
-    np.save(
-        fname, 
-        {
+    control_data = {
             't0' : t0,
             'tT' : tT,
             'tt' : tt
-        })
+        }
+    np.save(
+        fname, 
+        control_data
+    )
     print("saved control_data to %s" % (fname))
+
+    n = input("run marginal? ")
+    print(n)
+
+    if n != "1":
+        sys.exit(0)
+
+    ##############################
+
+    t_span = (T_0, T_t)
+    dt = (t_span[-1] - t_span[0])/(args.integrate_N)
+    ts = np.arange(t_span[0], t_span[1] + dt, dt)
+
+    initial_sample = np.random.multivariate_normal(
+        np.array([mu_0]*d), np.eye(d)*sigma_0, args.M) # 100 x 3
+
+    v_scales = [float(x) for x in args.v_scale.split(",")]
+    biases = [float(x) for x in args.bias.split(",")]
+
+    ##############################
+
+    all_results = {}
+
+    t_span = (T_0, T_t)
+
+    integrator = Integrator(initial_sample, t_span, args, dynamics)
+
+    without_control = np.empty(
+        (
+            initial_sample.shape[0],
+            initial_sample.shape[1],
+            len(ts),
+        ))
+    with ThreadPoolExecutor(max_workers=args.workers) as executor:
+        results = executor.map(
+            integrator.task,
+            list(range(initial_sample.shape[0])),
+            [without_control]*initial_sample.shape[0],
+            [None]*initial_sample.shape[0],
+            [None]*initial_sample.shape[0]
+        )
+        if len(v_scales) == 1:
+            for result in results:
+                print("done with {}".format(result))
+
+    for vs in v_scales:
+        for b in biases:
+            with_control_affine = lambda v: v * vs + b
+            with_control = np.empty(
+                (
+                    initial_sample.shape[0],
+                    initial_sample.shape[1],
+                    len(ts),
+                ))
+            with ThreadPoolExecutor(max_workers=args.workers) as executor:
+                results = executor.map(
+                    integrator.task,
+                    list(range(initial_sample.shape[0])),
+                    [with_control]*initial_sample.shape[0],
+                    [control_data]*initial_sample.shape[0],
+                    [with_control_affine]*initial_sample.shape[0]
+                )
+                if len(v_scales) == 1:
+                    for result in results:
+                        print("done with {}".format(result))
+
+            ##############################
+
+            mus = np.zeros(d)
+            variances = np.zeros(d)
+            for j in range(d):
+                tmp = with_control[:, j, -1]
+                mus[j] = np.mean(tmp)
+                variances[j] = np.var(tmp)
+            mu_s = "{}".format(mus)
+            var_s = "{}".format(variances)
+            print("vs %.3f, b %.3f" % (vs, b))
+            print("mu_s", mu_s)
+            print("var_s", var_s)
+
+            all_results[hash_func(vs, b)] = [mus, variances]
+
+            if len(v_scales) > 1:
+                del with_control
+
+    ax1 = fig.add_subplot(2, 3, 4, projection='3d')
+    ax2 = fig.add_subplot(2, 3, 5, projection='3d')
+    axs = [ax1, ax2]
+
+    h = 0.5
+
+    for i in range(initial_sample.shape[0]):
+        for j in range(d):
+            axs[j].plot(
+                without_control[i, j, :],
+                ts,
+                [0.0]*len(ts),
+                lw=.3,
+                c='b')
+
+            ########################################
+
+            axs[j].plot(
+                with_control[i, j, :],
+                ts,
+                [0.0]*len(ts),
+                lw=.3,
+                c='g')
+
+            ########################################
+            ########################################
+
+            axs[j].plot(
+                [with_control[i, j, 0]]*2,
+                [ts[0]]*2,
+                [0.0, h],
+                lw=1,
+                c='g')
+
+            axs[j].scatter(
+                with_control[i, j, 0],
+                ts[0],
+                h,
+                c='g',
+                s=50,
+            )
+
+            axs[j].plot(
+                [with_control[i, j, -1]]*2,
+                [ts[-1]]*2,
+                [0.0, h],
+                lw=1,
+                c='g')
+
+            axs[j].scatter(
+                with_control[i, j, -1],
+                ts[-1],
+                h,
+                c='g',
+                s=50,
+            )
+
+            ########################################
+            ########################################
+
+            axs[j].plot(
+                [without_control[i, j, 0]]*2,
+                [ts[0]]*2,
+                [0.0, h],
+                lw=1,
+                c='b')
+
+            axs[j].scatter(
+                without_control[i, j, 0],
+                ts[0],
+                h,
+                c='b',
+                s=50,
+            )
+
+            axs[j].plot(
+                [without_control[i, j, -1]]*2,
+                [ts[-1]]*2,
+                [0.0, h],
+                lw=1,
+                c='b')
+
+            axs[j].scatter(
+                without_control[i, j, -1],
+                ts[-1],
+                h,
+                c='b',
+                s=50,
+            )
+
+    ##############################
+
+    ax1.set_aspect('equal', 'box')
+    ax2.set_aspect('equal', 'box')
+
+    b = -0.05
+
+    ax1.set_zlim(b, 2*h)
+    ax2.set_zlim(b, 2*h)
+
+    plt.show()

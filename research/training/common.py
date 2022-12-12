@@ -16,6 +16,11 @@ from deepxde import backend as bkd
 from deepxde.backend import backend_name
 from deepxde.utils import get_num_args, run_if_all_none
 
+import matplotlib
+try:
+    matplotlib.use("TkAgg")
+except:
+    print("no tkagg")
 import matplotlib.pyplot as plt
 
 from scipy.spatial.distance import cdist
@@ -1801,3 +1806,52 @@ def dynamics(t, state, j1, j2, j3, control_data, affine):
         statedot[X3_index] = statedot[X3_index] + v_z
 
     return statedot
+
+from concurrent.futures import ThreadPoolExecutor
+
+def hash_func(v_scale, bias):
+    return "%.3f_%.3f" % (v_scale, bias)
+
+class Integrator(object):
+    def __init__(self, initial_sample, t_span, args, dynamics):
+        self.initial_sample = initial_sample
+        self.t_span = t_span
+        self.args = args
+        self.dynamics = dynamics
+        self.j1, self.j2, self.j3 = [float(x) for x in args.system.split(",")]
+
+    def task(self, i, target, control_data, affine):
+        # print("starting {}".format(i))
+
+        if self.args.noise:
+            _, tmp = euler_maru(
+                self.initial_sample[i, :],
+                self.t_span,
+                self.dynamics,
+                (self.t_span[-1] - self.t_span[0])/(self.args.integrate_N),
+                lambda delta_t: np.random.normal(
+                    loc=0.0,
+                    scale=np.sqrt(delta_t)),
+                lambda y, t: 0.06,
+                (
+                    self.j1, self.j2, self.j3,
+                    control_data,
+                    affine
+                ))
+        else:
+            _, tmp = euler_maru(
+                self.initial_sample[i, :],
+                self.t_span,
+                self.dynamics,
+                (self.t_span[-1] - self.t_span[0])/(self.args.integrate_N),
+                lambda delta_t: 0.0,
+                # np.random.normal(loc=0.0, scale=np.sqrt(delta_t)),
+                lambda y, t: 0.0,
+                # 0.06,
+                (
+                    self.j1, self.j2, self.j3,
+                    control_data,
+                    affine
+                ))
+        target[i, :, :] = tmp.T
+        return i

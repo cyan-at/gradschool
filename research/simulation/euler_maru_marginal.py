@@ -22,59 +22,51 @@ from common import *
 
 from RSB_traj import plot_params
 
-import matplotlib
-try:
-    matplotlib.use("TkAgg")
-except:
-    print("no tkagg")
-
-from concurrent.futures import ThreadPoolExecutor
-
-def hash_func(v_scale, bias):
-    return "%.3f_%.3f" % (v_scale, bias)
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-
-    parser.add_argument('--times',
-        type=str,
-        default="0,1.0,2.0,3.0,4.0,5.0",
-        required=False)
 
     parser.add_argument('--mu_0',
         type=float,
         default=2.0,
         required=False)
-
     parser.add_argument('--mu_T',
         type=float,
         default=0.0,
         required=False)
-
-    parser.add_argument('--sampling',
-        type=str,
-        default="15,15,15,15,15,15,100,200",
-        required=False)
-
+    parser.add_argument('--T_t', type=str, default="", help='')
     parser.add_argument('--system',
         type=str,
         default="1,1,2", # 3,2,1
         required=False)
+    parser.add_argument('--d',
+        type=int,
+        default=3)
 
+    # parser.add_argument('--times',
+    #     type=str,
+    #     default="0,1.0,2.0,3.0,4.0,5.0",
+    #     required=False)
+    # parser.add_argument('--sampling',
+    #     type=str,
+    #     default="15,15,15,15,15,15,100,200",
+    #     required=False)
     parser.add_argument('--N',
         type=int,
         default=2000,
         required=False)
-
     parser.add_argument('--M',
         type=int,
         default=10,
         required=False)
-
     parser.add_argument('--control_data',
         type=str,
         default="",
         required=False)
+    parser.add_argument('--workers',
+        type=int,
+        default=4)
+    parser.add_argument('--noise',
+        action='store_true')
 
     parser.add_argument('--v_scale',
         type=str,
@@ -82,26 +74,11 @@ if __name__ == '__main__':
     parser.add_argument('--bias',
         type=str,
         default="0.0")
-
-    parser.add_argument('--d',
-        type=int,
-        default=3)
-
-    parser.add_argument('--workers',
-        type=int,
-        default=4)
-
     parser.add_argument('--search_grid',
         type=int,
         default=10)
-
     parser.add_argument('--headless',
         action='store_true') 
-
-    parser.add_argument('--noise',
-        action='store_true')
-
-    parser.add_argument('--T_t', type=str, default="", help='')
 
     args = parser.parse_args()
 
@@ -151,41 +128,42 @@ if __name__ == '__main__':
 
     all_results = {}
 
-    def task(i, target, control_data, affine):
-        # print("starting {}".format(i))
+    integrator = Integrator(initial_sample, t_span, args, dynamics)
+    # def task(i, target, control_data, affine):
+    #     # print("starting {}".format(i))
 
-        if args.noise:
-            _, tmp = euler_maru(
-                initial_sample[i, :],
-                t_span,
-                dynamics,
-                (t_span[-1] - t_span[0])/(N),
-                lambda delta_t: np.random.normal(
-                    loc=0.0,
-                    scale=np.sqrt(delta_t)),
-                lambda y, t: 0.06,
-                (
-                    j1, j2, j3,
-                    control_data,
-                    affine
-                ))
-        else:
-            _, tmp = euler_maru(
-                initial_sample[i, :],
-                t_span,
-                dynamics,
-                (t_span[-1] - t_span[0])/(N),
-                lambda delta_t: 0.0,
-                # np.random.normal(loc=0.0, scale=np.sqrt(delta_t)),
-                lambda y, t: 0.0,
-                # 0.06,
-                (
-                    j1, j2, j3,
-                    control_data,
-                    affine
-                ))
-        target[i, :, :] = tmp.T
-        return i
+    #     if args.noise:
+    #         _, tmp = euler_maru(
+    #             initial_sample[i, :],
+    #             t_span,
+    #             dynamics,
+    #             (t_span[-1] - t_span[0])/(N),
+    #             lambda delta_t: np.random.normal(
+    #                 loc=0.0,
+    #                 scale=np.sqrt(delta_t)),
+    #             lambda y, t: 0.06,
+    #             (
+    #                 j1, j2, j3,
+    #                 control_data,
+    #                 affine
+    #             ))
+    #     else:
+    #         _, tmp = euler_maru(
+    #             initial_sample[i, :],
+    #             t_span,
+    #             dynamics,
+    #             (t_span[-1] - t_span[0])/(N),
+    #             lambda delta_t: 0.0,
+    #             # np.random.normal(loc=0.0, scale=np.sqrt(delta_t)),
+    #             lambda y, t: 0.0,
+    #             # 0.06,
+    #             (
+    #                 j1, j2, j3,
+    #                 control_data,
+    #                 affine
+    #             ))
+    #     target[i, :, :] = tmp.T
+    #     return i
 
     for vs in v_scales:
         for b in biases:
@@ -199,7 +177,7 @@ if __name__ == '__main__':
                     ))
                 with ThreadPoolExecutor(max_workers=args.workers) as executor:
                     results = executor.map(
-                        task,
+                        integrator.task,
                         list(range(initial_sample.shape[0])),
                         [with_control]*initial_sample.shape[0],
                         [control_data]*initial_sample.shape[0],
@@ -247,24 +225,24 @@ if __name__ == '__main__':
             #         ))
             #     with_control[i, :, :] = tmp.T
 
-            if not args.headless:
-                without_control = np.empty(
-                    (
-                        initial_sample.shape[0],
-                        initial_sample.shape[1],
-                        len(ts),
-                    ))
-                with ThreadPoolExecutor(max_workers=args.workers) as executor:
-                    results = executor.map(
-                        task,
-                        list(range(initial_sample.shape[0])),
-                        [without_control]*initial_sample.shape[0],
-                        [None]*initial_sample.shape[0],
-                        [None]*initial_sample.shape[0]
-                    )
-                    if len(v_scales) == 1:
-                        for result in results:
-                            print("done with {}".format(result))
+    if not args.headless:
+        without_control = np.empty(
+            (
+                initial_sample.shape[0],
+                initial_sample.shape[1],
+                len(ts),
+            ))
+        with ThreadPoolExecutor(max_workers=args.workers) as executor:
+            results = executor.map(
+                integrator.task,
+                list(range(initial_sample.shape[0])),
+                [without_control]*initial_sample.shape[0],
+                [None]*initial_sample.shape[0],
+                [None]*initial_sample.shape[0]
+            )
+            if len(v_scales) == 1:
+                for result in results:
+                    print("done with {}".format(result))
 
             # for i in range(initial_sample.shape[0]):
             #     # x[i] is sample [i]
