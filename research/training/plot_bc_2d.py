@@ -112,7 +112,6 @@ import numpy as np
 
 import argparse
 
-
 from common import *
 
 call_dir = os.getcwd()
