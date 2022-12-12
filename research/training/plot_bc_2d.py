@@ -112,8 +112,12 @@ import numpy as np
 
 import argparse
 
+
 from common import *
 
+call_dir = os.getcwd()
+sys.path.insert(0,call_dir)
+print("expect train.py in %s" % (call_dir))
 from train import *
 
 if __name__ == '__main__':

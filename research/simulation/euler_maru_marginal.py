@@ -160,7 +160,9 @@ if __name__ == '__main__':
                 t_span,
                 dynamics,
                 (t_span[-1] - t_span[0])/(N),
-                lambda delta_t: np.random.normal(loc=0.0, scale=np.sqrt(delta_t)),
+                lambda delta_t: np.random.normal(
+                    loc=0.0,
+                    scale=np.sqrt(delta_t)),
                 lambda y, t: 0.06,
                 (
                     j1, j2, j3,
@@ -173,8 +175,10 @@ if __name__ == '__main__':
                 t_span,
                 dynamics,
                 (t_span[-1] - t_span[0])/(N),
-                lambda delta_t: 0.0, # np.random.normal(loc=0.0, scale=np.sqrt(delta_t)),
-                lambda y, t: 0.0, # 0.06,
+                lambda delta_t: 0.0,
+                # np.random.normal(loc=0.0, scale=np.sqrt(delta_t)),
+                lambda y, t: 0.0,
+                # 0.06,
                 (
                     j1, j2, j3,
                     control_data,
