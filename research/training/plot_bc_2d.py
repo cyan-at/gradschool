@@ -634,6 +634,9 @@ if __name__ == '__main__':
             for result in results:
                 print("done with {}".format(result))
 
+    mus = np.zeros(d)
+    variances = np.zeros(d)
+
     for vs in v_scales:
         for b in biases:
             with_control_affine = lambda v: v * vs + b
@@ -657,8 +660,6 @@ if __name__ == '__main__':
 
             ##############################
 
-            mus = np.zeros(d)
-            variances = np.zeros(d)
             for j in range(d):
                 tmp = with_control[:, j, -1]
                 mus[j] = np.mean(tmp)
@@ -679,6 +680,7 @@ if __name__ == '__main__':
     axs = [ax1, ax2]
 
     h = 0.5
+    b = -0.05
 
     for i in range(initial_sample.shape[0]):
         for j in range(d):
@@ -766,12 +768,9 @@ if __name__ == '__main__':
 
     ##############################
 
-    ax1.set_aspect('equal', 'box')
-    ax2.set_aspect('equal', 'box')
-
-    b = -0.05
-
-    ax1.set_zlim(b, 2*h)
-    ax2.set_zlim(b, 2*h)
+    for j, ax in enumerate(axs):
+        ax.set_aspect('equal', 'box')
+        ax.set_zlim(b, 2*h)
+        ax.set_title('mu %.2f, var %.2f' % (mus[j], variances[j]))
 
     plt.show()
