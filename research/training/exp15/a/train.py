@@ -85,6 +85,7 @@ def get_model(
     T_t,
     optimizer="adam",
     init="Glorot normal",
+    train_distribution="Hammersley",
     ):
     M = N**d
 
@@ -180,7 +181,7 @@ def get_model(
         [rho_0_BC,rho_T_BC],
         num_domain=samples_between_initial_and_final,
         num_initial=initial_samples,
-        # train_distribution="uniform"
+        train_distribution=train_distribution
     )
 
     # d+1 inputs: <state> + t
@@ -215,18 +216,22 @@ def get_model(
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="")
-    parser.add_argument('--N', type=int, default=15, help='')
     parser.add_argument('--js', type=str, default="1,1,2", help='')
     parser.add_argument('--q', type=float, default=0.5, help='')
+    parser.add_argument('--mu_0', type=str, default="", help='')
+    parser.add_argument('--mu_T', type=str, default="", help='')
+    parser.add_argument('--T_t', type=str, default="", help='')
+
+    parser.add_argument('--N', type=int, default=15, help='')
+    parser.add_argument('--optimizer', type=str, default="adam", help='')
+    parser.add_argument('--train_distribution', type=str, default="Hammersley", help='')
+
     parser.add_argument('--ck_path', type=str, default=".", help='')
     parser.add_argument('--model_name', type=str, default="", help='')
     parser.add_argument('--debug', type=int, default=False, help='')
     parser.add_argument('--epochs', type=int, default=-1, help='')
-    parser.add_argument('--optimizer', type=str, default="adam", help='')
     parser.add_argument('--restore', type=str, default="", help='')
-    parser.add_argument('--mu_0', type=str, default="", help='')
-    parser.add_argument('--mu_T', type=str, default="", help='')
-    parser.add_argument('--T_t', type=str, default="", help='')
+
     args = parser.parse_args()
 
     N = args.N
@@ -262,6 +267,7 @@ if __name__ == '__main__':
         mu_T,
         T_t,
         args.optimizer,
+        train_distribution=args.train_distribution
         )
     if len(args.restore) > 0:
         model.restore(args.restore)
