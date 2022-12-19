@@ -86,6 +86,8 @@ def get_model(
     optimizer="adam",
     init="Glorot normal",
     train_distribution="Hammersley",
+    timemode=0,
+    ni=0,
     ):
     M = N**d
 
@@ -172,15 +174,17 @@ def get_model(
         [state_max]*d)
     timedomain = dde.geometry.TimeDomain(0., T_t)
 
-    # geomtime = CustomGeometryXTime2(geom, timedomain)
-    geomtime = dde.geometry.GeometryXTime(geom, timedomain)
+    if timemode == 0:
+        geomtime = dde.geometry.GeometryXTime(geom, timedomain)
+    elif timemode == 1:
+        geomtime = CustomGeometryXTime2(geom, timedomain, M)
 
     data = WASSPDE(
         geomtime,
         euler_pdes[d],
         [rho_0_BC,rho_T_BC],
         num_domain=samples_between_initial_and_final,
-        num_initial=initial_samples,
+        num_initial=ni, # initial_samples,
         train_distribution=train_distribution
     )
 
@@ -210,6 +214,8 @@ def get_model(
 
     model.compile("adam", lr=1e-3,loss=losses)
 
+    # import ipdb; ipdb.set_trace()
+
     return model, meshes
 
 ######################################
@@ -225,6 +231,9 @@ if __name__ == '__main__':
     parser.add_argument('--N', type=int, default=15, help='')
     parser.add_argument('--optimizer', type=str, default="adam", help='')
     parser.add_argument('--train_distribution', type=str, default="Hammersley", help='')
+    parser.add_argument('--timemode', type=int, default=0, help='')
+    # timemode  0 = linspace, 1 = even time samples
+    parser.add_argument('--ni', type=int, default=-1, help='')
 
     parser.add_argument('--ck_path', type=str, default=".", help='')
     parser.add_argument('--model_name', type=str, default="", help='')
@@ -258,6 +267,10 @@ if __name__ == '__main__':
     if args.debug:
         torch.autograd.set_detect_anomaly(True)
 
+    ni = initial_samples
+    if args.ni >= 0:
+        ni = args.ni
+
     model, _ = get_model(
         d,
         N,
@@ -267,7 +280,9 @@ if __name__ == '__main__':
         mu_T,
         T_t,
         args.optimizer,
-        train_distribution=args.train_distribution
+        train_distribution=args.train_distribution,
+        timemode=args.timemode,
+        ni=ni
         )
     if len(args.restore) > 0:
         model.restore(args.restore)

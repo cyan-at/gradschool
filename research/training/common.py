@@ -1291,10 +1291,11 @@ class CustomGeometryXTime1(dde.geometry.GeometryXTime):
         return xt
 
 class CustomGeometryXTime2(dde.geometry.GeometryXTime):
-    def __init__(self, geometry, timedomain):
+    def __init__(self, geometry, timedomain, space_samples):
         self.geometry = geometry
         self.timedomain = timedomain
         self.dim = geometry.dim + timedomain.dim
+        self.space_samples = space_samples
 
     def uniform_points(self, n, boundary=True):
         """Uniform points on the spatio-temporal domain.
@@ -1314,12 +1315,17 @@ class CustomGeometryXTime2(dde.geometry.GeometryXTime):
         )
 
         # order here implies memory weight
-        nx = initial_samples
+        print("larger nx => fewer time slices")
+        nx = self.space_samples # initial_samples * 4
         nt = int(np.ceil(n / nx))
 
         print(n, nx, nt)
 
-        x = self.geometry.uniform_points(nx, boundary=boundary)
+        # boundary is False, but overriden here to True
+        # so that boundary space sampling covers the same as
+        # non-boundary, and includes the boundary line
+        # otherwise it will be shrunk slightly
+        x = self.geometry.uniform_points(nx, boundary=True)
         nx = len(x)
 
         if boundary:
@@ -1332,14 +1338,20 @@ class CustomGeometryXTime2(dde.geometry.GeometryXTime):
                 endpoint=False,
                 dtype=config.real(np),
             )[:, None]
+
+        # this block REPEATS x for every time sample ti
         xt = []
-        for ti in t:
+        for ti in t[1:]: # omit t1 boundary condition
             xt.append(np.hstack((x, np.full([nx, 1], ti[0]))))
         xt = np.vstack(xt)
+
         if n != len(xt):
             print(
                 "Warning: {} points required, but {} points sampled.".format(n, len(xt))
             )
+
+        # import ipdb; ipdb.set_trace()
+
         return xt
 
 class WASSPDE(dde.data.TimePDE):
