@@ -83,6 +83,7 @@ def get_model(
     mu_0,
     mu_T,
     T_t,
+    loss_func_key,
     optimizer="adam",
     init="Glorot normal",
     train_distribution="Hammersley",
@@ -201,9 +202,9 @@ def get_model(
 
     ######################################
 
-    rho0_WASS = lambda y_true, y_pred: WASS_3(y_true, y_pred, sinkhorn, rho0_tensor, C)
+    rho0_WASS = lambda y_true, y_pred: loss_func_dict[loss_func_key](y_true, y_pred, sinkhorn, rho0_tensor, C)
     rho0_WASS.__name__ = "rho0_WASS"
-    rhoT_WASS = lambda y_true, y_pred: WASS_3(y_true, y_pred, sinkhorn, rhoT_tensor, C)
+    rhoT_WASS = lambda y_true, y_pred: loss_func_dict[loss_func_key](y_true, y_pred, sinkhorn, rhoT_tensor, C)
     rhoT_WASS.__name__ = "rhoT_WASS"
     losses=[
         "MSE","MSE",
@@ -234,6 +235,7 @@ if __name__ == '__main__':
     parser.add_argument('--timemode', type=int, default=0, help='')
     # timemode  0 = linspace, 1 = even time samples
     parser.add_argument('--ni', type=int, default=-1, help='')
+    parser.add_argument('--loss_func', type=str, default="wass3", help='')
 
     parser.add_argument('--ck_path', type=str, default=".", help='')
     parser.add_argument('--model_name', type=str, default="", help='')
@@ -279,6 +281,7 @@ if __name__ == '__main__':
         mu_0,
         mu_T,
         T_t,
+        args.loss_func,
         args.optimizer,
         train_distribution=args.train_distribution,
         timemode=args.timemode,

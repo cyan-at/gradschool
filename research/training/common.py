@@ -1530,30 +1530,6 @@ def WASS_0(y_true, y_pred, sinkhorn, rho_tensor, C):
 
     return dist + p2 # + p1
 
-def WASS_batch_0(y_true, y_pred, device, sinkhorn, rho, state):
-    rhoT_temp_tensor = torch.from_numpy(
-        rho[y_true],
-    ).to(device).requires_grad_(False)
-
-    C_temp_device = torch.from_numpy(
-        cdist(state[y_true, :], state[y_true, :], 'sqeuclidean'))
-    C_temp_device = C_temp_device.to(device).requires_grad_(False)
-
-    p2 = torch.abs(torch.sum(y_pred) - 1)
-
-    y_pred = torch.where(y_pred < 0, 0, y_pred)
-
-    # import ipdb; ipdb.set_trace()
-
-    dist, _, _ = sinkhorn(
-        C_temp_device,
-        y_pred.reshape(-1),
-        rhoT_temp_tensor)
-
-    return dist + p2 # + p1
-
-######################################
-
 # this one gets stuck in local minima
 def WASS_1(y_true, y_pred, sinkhorn, rho_tensor, C):
     p1 = (y_pred<0).sum() # negative terms
@@ -1619,6 +1595,29 @@ def WASS_4(y_true, y_pred, sinkhorn, rho_tensor, C, n, dx):
 
     return 10*p1 + p2 + dist
 
+######################################
+
+def WASS_batch_0(y_true, y_pred, device, sinkhorn, rho, state):
+    rhoT_temp_tensor = torch.from_numpy(
+        rho[y_true],
+    ).to(device).requires_grad_(False)
+
+    C_temp_device = torch.from_numpy(
+        cdist(state[y_true, :], state[y_true, :], 'sqeuclidean'))
+    C_temp_device = C_temp_device.to(device).requires_grad_(False)
+
+    p2 = torch.abs(torch.sum(y_pred) - 1)
+
+    y_pred = torch.where(y_pred < 0, 0, y_pred)
+
+    # import ipdb; ipdb.set_trace()
+
+    dist, _, _ = sinkhorn(
+        C_temp_device,
+        y_pred.reshape(-1),
+        rhoT_temp_tensor)
+
+    return dist + p2 # + p1
 
 def WASS_batch_1(y_true, y_pred, device, sinkhorn, rho, state):
     # import ipdb; ipdb.set_trace()
@@ -1706,6 +1705,21 @@ def WASS_batch_3(y_true, y_pred, device, sinkhorn, rho, state, expected_sum):
         rhoT_temp_tensor)
 
     return 20 * p1 + p2 + dist
+
+######################################
+
+loss_func_dict = {
+    "wass0" : WASS_0,
+    "wass1" : WASS_1,
+    "wass2" : WASS_2,
+    "wass3" : WASS_3,
+    "wass4" : WASS_4,
+
+    "wassbatch0" : WASS_batch_0,
+    "wassbatch1" : WASS_batch_1,
+    "wassbatch2" : WASS_batch_2,
+    "wassbatch3" : WASS_batch_3,
+}
 
 ######################################
 
