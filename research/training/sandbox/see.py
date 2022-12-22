@@ -128,7 +128,18 @@ if __name__ == '__main__':
         print("bad dat")
         sys.exit(0)
 
-    x = np.load(args.dat)
+    x = None
+    try:
+        x = np.load(args.dat)
+    except Exception as e:
+        pass
+    if x is None:
+        try:
+            x = np.loadtxt(args.dat)
+        except Exception as e:
+            pass
+
+    print("x.shape", x.shape)
 
     x = np.float32(x)
 

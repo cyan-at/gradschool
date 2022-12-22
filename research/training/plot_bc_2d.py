@@ -143,10 +143,16 @@ if __name__ == '__main__':
         type=str, default="", help='')
     parser.add_argument('--mu_T',
         type=str, default="", help='')
+    parser.add_argument('--T_t',
+        type=float, default=5.0, help='')
     parser.add_argument('--system',
         type=str,
         default="1,1,2", # 3,2,1
         required=False)
+
+    parser.add_argument('--do_integration',
+        type=int,
+        default=1)
     parser.add_argument('--integrate_N',
         type=int,
         default=2000,
@@ -186,7 +192,8 @@ if __name__ == '__main__':
         inputs = test[:, :d+1]
 
         T_t = inputs[batchsize, -1]
-        print("found T_t", T_t)
+        args.T_t = T_t
+        print("found T_t", args.T_t)
 
         if len(args.mu_T) > 0:
             mu_T = float(args.mu_T)
@@ -289,9 +296,13 @@ if __name__ == '__main__':
 
     fig = plt.figure()
 
+    ax_count = 3
+    if args.do_integration > 0:
+        ax_count += d
+
     ########################################################
 
-    ax1 = fig.add_subplot(2, 3, 1, projection='3d')
+    ax1 = fig.add_subplot(1, ax_count, 1, projection='3d')
 
     z1 = T_0
     z2 = T_t
@@ -337,8 +348,55 @@ if __name__ == '__main__':
 
     ########################################################
 
-    meshes[0].reshape(-1)
-    meshes[1].reshape(-1)
+    # bin by unique times
+    uniq = np.unique(test[:, 2])
+
+    time_steps = np.matrix(uniq)
+
+    indices = np.ones(test.shape[0])
+    for d_i, _ in enumerate(dphi_dinput):
+        indices[d_i] = np.linalg.norm(test[d_i, 2] - time_steps, ord=1, axis=0).argmin()
+
+    grid_x1, grid_x2 = np.meshgrid(
+        x_1_,
+        x_2_, copy=False) # each is NxNxN
+
+    grid1 = np.array((
+        grid_x1.reshape(-1),
+        grid_x2.reshape(-1),
+    )).T
+
+    time_slices = {
+        'grid' : grid1,
+        'uniq' : uniq,
+        'times' : time_steps,
+    }
+    for t_i, t in enumerate(uniq):
+        coordinates = test[indices == t_i]
+        d_value = dphi_dinput[indices == t_i]
+
+        DPHI_DINPUT_tt_0 = gd(
+          (coordinates[:, 0], coordinates[:, 1]),
+          d_value[:, 0],
+          (grid_x1, grid_x2),
+          method=args.interp_mode)
+
+        DPHI_DINPUT_tt_1 = gd(
+          (coordinates[:, 0], coordinates[:, 1]),
+          d_value[:, 1],
+          (grid_x1, grid_x2),
+          method=args.interp_mode)
+
+        DPHI_DINPUT_tt_0 = np.nan_to_num(DPHI_DINPUT_tt_0)
+        DPHI_DINPUT_tt_1 = np.nan_to_num(DPHI_DINPUT_tt_1)
+
+        time_slices[t] = {
+            '0': DPHI_DINPUT_tt_0.reshape(-1),
+            '1': DPHI_DINPUT_tt_1.reshape(-1),
+        }
+
+    ########################################################
+
     grid0 = np.array((
         meshes[0].reshape(-1),
         meshes[1].reshape(-1),
@@ -362,9 +420,6 @@ if __name__ == '__main__':
         'grid' : grid0,
     }
 
-    x_1_ = np.linspace(state_min, state_max, args.grid_n)
-    x_2_ = np.linspace(state_min, state_max, args.grid_n)
-    t_ = np.linspace(T_0, T_t, args.grid_n * 2)
     grid_x1, grid_x2, grid_t = np.meshgrid(
         x_1_,
         x_2_,
@@ -405,7 +460,7 @@ if __name__ == '__main__':
 
     ########################################################
 
-    ax2 = fig.add_subplot(2, 3, 2, projection='3d')
+    ax2 = fig.add_subplot(1, ax_count, 2, projection='3d')
 
     z1 = T_0
     z2 = T_t
@@ -452,7 +507,7 @@ if __name__ == '__main__':
 
     ########################################################
 
-    ax3 = fig.add_subplot(2, 3, 3, projection='3d')
+    ax3 = fig.add_subplot(1, ax_count, 3, projection='3d')
 
     z1 = T_0
     z2 = T_t
@@ -565,212 +620,205 @@ if __name__ == '__main__':
         )
     )
 
-    gen_control_data = input("generate control data? ")
-    print(gen_control_data)
-
-    if gen_control_data != "1":
-        sys.exit(0)
-
-    fname = '%s_%d_%d_%s_%d_%d_all_control_data.npy' % (
-            args.modelpt.replace(".pt", ""),
-            batchsize,
-            args.diff_on_cpu,
-            args.interp_mode,
-            args.grid_n,
-            T_t,
-        )
     control_data = {
             't0' : t0,
             'tT' : tT,
-            'tt' : tt
+            'tt' : tt,
+            'time_slices' : time_slices,
         }
-    np.save(
-        fname, 
-        control_data
-    )
-    print("saved control_data to %s" % (fname))
 
-    n = input("run marginal? ")
-    print(n)
-
-    if n != "1":
-        sys.exit(0)
-
-    ##############################
-
-    t_span = (T_0, T_t)
-    dt = (t_span[-1] - t_span[0])/(args.integrate_N)
-    ts = np.arange(t_span[0], t_span[1] + dt, dt)
-
-    initial_sample = np.random.multivariate_normal(
-        np.array([mu_0]*d), np.eye(d)*sigma_0, args.M) # 100 x 3
-
-    v_scales = [float(x) for x in args.v_scale.split(",")]
-    biases = [float(x) for x in args.bias.split(",")]
-
-    ##############################
-
-    all_results = {}
-
-    t_span = (T_0, T_t)
-
-    integrator = Integrator(initial_sample, t_span, args, dynamics)
-
-    without_control = np.empty(
-        (
-            initial_sample.shape[0],
-            initial_sample.shape[1],
-            len(ts),
-        ))
-    with ThreadPoolExecutor(max_workers=args.workers) as executor:
-        results = executor.map(
-            integrator.task,
-            list(range(initial_sample.shape[0])),
-            [without_control]*initial_sample.shape[0],
-            [None]*initial_sample.shape[0],
-            [None]*initial_sample.shape[0]
+    if args.do_integration > 0:
+        fname = '%s_%d_%d_%s_%d_%d_all_control_data.npy' % (
+                args.modelpt.replace(".pt", ""),
+                batchsize,
+                args.diff_on_cpu,
+                args.interp_mode,
+                args.grid_n,
+                T_t,
+            )
+        np.save(
+            fname, 
+            control_data
         )
-        if len(v_scales) == 1:
-            for result in results:
-                print("done with {}".format(result))
+        print("saved control_data to %s" % (fname))
 
-    mus = np.zeros(d)
-    variances = np.zeros(d)
+        ##############################
 
-    for vs in v_scales:
-        for b in biases:
-            with_control_affine = lambda v: v * vs + b
-            with_control = np.empty(
-                (
-                    initial_sample.shape[0],
-                    initial_sample.shape[1],
-                    len(ts),
-                ))
-            with ThreadPoolExecutor(max_workers=args.workers) as executor:
-                results = executor.map(
-                    integrator.task,
-                    list(range(initial_sample.shape[0])),
-                    [with_control]*initial_sample.shape[0],
-                    [control_data]*initial_sample.shape[0],
-                    [with_control_affine]*initial_sample.shape[0]
-                )
-                if len(v_scales) == 1:
-                    for result in results:
-                        print("done with {}".format(result))
+        t_span = (T_0, T_t)
+        dt = (t_span[-1] - t_span[0])/(args.integrate_N)
+        ts = np.arange(t_span[0], t_span[1] + dt, dt)
 
-            ##############################
+        initial_sample = np.random.multivariate_normal(
+            np.array([mu_0]*d), np.eye(d)*sigma_0, args.M) # 100 x 3
 
+        v_scales = [float(x) for x in args.v_scale.split(",")]
+        biases = [float(x) for x in args.bias.split(",")]
+
+        ##############################
+
+        all_results = {}
+
+        t_span = (T_0, T_t)
+
+        integrator = Integrator(initial_sample, t_span, args, dynamics)
+
+        without_control = np.empty(
+            (
+                initial_sample.shape[0],
+                initial_sample.shape[1],
+                len(ts),
+            ))
+        with ThreadPoolExecutor(max_workers=args.workers) as executor:
+            results = executor.map(
+                integrator.task,
+                list(range(initial_sample.shape[0])),
+                [without_control]*initial_sample.shape[0],
+                [None]*initial_sample.shape[0],
+                [None]*initial_sample.shape[0]
+            )
+            if len(v_scales) == 1:
+                for result in results:
+                    print("done with {}".format(result))
+
+        mus = np.zeros(d)
+        variances = np.zeros(d)
+
+        for vs in v_scales:
+            for b in biases:
+                with_control_affine = lambda v: v * vs + b
+                with_control = np.empty(
+                    (
+                        initial_sample.shape[0],
+                        initial_sample.shape[1],
+                        len(ts),
+                    ))
+                with ThreadPoolExecutor(max_workers=args.workers) as executor:
+                    results = executor.map(
+                        integrator.task,
+                        list(range(initial_sample.shape[0])),
+                        [with_control]*initial_sample.shape[0],
+                        [control_data]*initial_sample.shape[0],
+                        [with_control_affine]*initial_sample.shape[0]
+                    )
+                    if len(v_scales) == 1:
+                        for result in results:
+                            print("done with {}".format(result))
+
+                ##############################
+
+                for j in range(d):
+                    tmp = with_control[:, j, -1]
+                    mus[j] = np.mean(tmp)
+                    variances[j] = np.var(tmp)
+                mu_s = "{}".format(mus)
+                var_s = "{}".format(variances)
+                print("vs %.3f, b %.3f" % (vs, b))
+                print("mu_s", mu_s)
+                print("var_s", var_s)
+
+                all_results[hash_func(vs, b)] = [mus, variances]
+
+                if len(v_scales) > 1:
+                    del with_control
+
+        ax1 = fig.add_subplot(1, ax_count, 4, projection='3d')
+        ax2 = fig.add_subplot(1, ax_count, 5, projection='3d')
+        axs = [ax1, ax2]
+
+        h = 0.5
+        b = -0.05
+
+        for i in range(initial_sample.shape[0]):
             for j in range(d):
-                tmp = with_control[:, j, -1]
-                mus[j] = np.mean(tmp)
-                variances[j] = np.var(tmp)
-            mu_s = "{}".format(mus)
-            var_s = "{}".format(variances)
-            print("vs %.3f, b %.3f" % (vs, b))
-            print("mu_s", mu_s)
-            print("var_s", var_s)
+                axs[j].plot(
+                    without_control[i, j, :],
+                    ts,
+                    [0.0]*len(ts),
+                    lw=.3,
+                    c='b')
 
-            all_results[hash_func(vs, b)] = [mus, variances]
+                ########################################
 
-            if len(v_scales) > 1:
-                del with_control
+                axs[j].plot(
+                    with_control[i, j, :],
+                    ts,
+                    [0.0]*len(ts),
+                    lw=.3,
+                    c='g')
 
-    ax1 = fig.add_subplot(2, 3, 4, projection='3d')
-    ax2 = fig.add_subplot(2, 3, 5, projection='3d')
-    axs = [ax1, ax2]
+                ########################################
+                ########################################
 
-    h = 0.5
-    b = -0.05
+                axs[j].plot(
+                    [with_control[i, j, 0]]*2,
+                    [ts[0]]*2,
+                    [0.0, h],
+                    lw=1,
+                    c='g')
 
-    for i in range(initial_sample.shape[0]):
-        for j in range(d):
-            axs[j].plot(
-                without_control[i, j, :],
-                ts,
-                [0.0]*len(ts),
-                lw=.3,
-                c='b')
+                axs[j].scatter(
+                    with_control[i, j, 0],
+                    ts[0],
+                    h,
+                    c='g',
+                    s=50,
+                )
 
-            ########################################
+                axs[j].plot(
+                    [with_control[i, j, -1]]*2,
+                    [ts[-1]]*2,
+                    [0.0, h],
+                    lw=1,
+                    c='g')
 
-            axs[j].plot(
-                with_control[i, j, :],
-                ts,
-                [0.0]*len(ts),
-                lw=.3,
-                c='g')
+                axs[j].scatter(
+                    with_control[i, j, -1],
+                    ts[-1],
+                    h,
+                    c='g',
+                    s=50,
+                )
 
-            ########################################
-            ########################################
+                ########################################
+                ########################################
 
-            axs[j].plot(
-                [with_control[i, j, 0]]*2,
-                [ts[0]]*2,
-                [0.0, h],
-                lw=1,
-                c='g')
+                axs[j].plot(
+                    [without_control[i, j, 0]]*2,
+                    [ts[0]]*2,
+                    [0.0, h],
+                    lw=1,
+                    c='b')
 
-            axs[j].scatter(
-                with_control[i, j, 0],
-                ts[0],
-                h,
-                c='g',
-                s=50,
-            )
+                axs[j].scatter(
+                    without_control[i, j, 0],
+                    ts[0],
+                    h,
+                    c='b',
+                    s=50,
+                )
 
-            axs[j].plot(
-                [with_control[i, j, -1]]*2,
-                [ts[-1]]*2,
-                [0.0, h],
-                lw=1,
-                c='g')
+                axs[j].plot(
+                    [without_control[i, j, -1]]*2,
+                    [ts[-1]]*2,
+                    [0.0, h],
+                    lw=1,
+                    c='b')
 
-            axs[j].scatter(
-                with_control[i, j, -1],
-                ts[-1],
-                h,
-                c='g',
-                s=50,
-            )
+                axs[j].scatter(
+                    without_control[i, j, -1],
+                    ts[-1],
+                    h,
+                    c='b',
+                    s=50,
+                )
 
-            ########################################
-            ########################################
+        ##############################
 
-            axs[j].plot(
-                [without_control[i, j, 0]]*2,
-                [ts[0]]*2,
-                [0.0, h],
-                lw=1,
-                c='b')
+        for j, ax in enumerate(axs):
+            ax.set_aspect('equal', 'box')
+            ax.set_zlim(b, 2*h)
+            ax.set_title('mu %.2f, var %.2f' % (mus[j], variances[j]))
 
-            axs[j].scatter(
-                without_control[i, j, 0],
-                ts[0],
-                h,
-                c='b',
-                s=50,
-            )
-
-            axs[j].plot(
-                [without_control[i, j, -1]]*2,
-                [ts[-1]]*2,
-                [0.0, h],
-                lw=1,
-                c='b')
-
-            axs[j].scatter(
-                without_control[i, j, -1],
-                ts[-1],
-                h,
-                c='b',
-                s=50,
-            )
-
-    ##############################
-
-    for j, ax in enumerate(axs):
-        ax.set_aspect('equal', 'box')
-        ax.set_zlim(b, 2*h)
-        ax.set_title('mu %.2f, var %.2f' % (mus[j], variances[j]))
+        ##############################
 
     plt.show()

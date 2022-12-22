@@ -1753,7 +1753,64 @@ def euler_maru(
 
     return ts, ys
 
-def dynamics(t, state, j1, j2, j3, control_data, affine):
+def apply_control_strategy0(state, t, T_0, T_t, control_data, affine, statedot):
+    if np.abs(t - T_0) < 1e-8:
+        t_key = 't0'
+    elif np.abs(t - T_t) < 1e-8:
+        t_key = 'tT'
+    else:
+        t_key = 'tt'
+    t_control_data = control_data[t_key]
+
+    query = state
+    if t_control_data['grid'].shape[1] == len(state) + 1:
+        query = np.append(query, t)
+
+    closest_grid_idx = np.linalg.norm(query - t_control_data['grid'], ord=1, axis=1).argmin()
+    v_x = t_control_data['0'][closest_grid_idx]
+    v_y = t_control_data['1'][closest_grid_idx]
+
+    if affine is not None:
+        v_x = affine(v_x)
+        v_y = affine(v_y)
+
+    statedot[X1_index] = statedot[X1_index] + v_x
+    statedot[X2_index] = statedot[X2_index] + v_y
+
+    if '2' in t_control_data:
+        v_z = t_control_data['2'][closest_grid_idx]
+        if affine is not None:
+            v_z = affine(v_z)
+        statedot[X3_index] = statedot[X3_index] + v_z
+
+    return statedot
+
+def apply_control_strategy1(state, t, T_0, T_t, control_data, affine, statedot):
+    closest_idx = np.linalg.norm(t - control_data['time_slices']['times'], ord=1, axis=0).argmin()
+    time_idx = control_data['time_slices']['uniq'][closest_idx]
+    # print("time_idx", time_idx, "t", t)
+
+    state_idx = np.linalg.norm(state - control_data['time_slices']['grid'], ord=1, axis=1).argmin()
+
+    v_x = control_data['time_slices'][time_idx]['0'][state_idx]
+    v_y = control_data['time_slices'][time_idx]['1'][state_idx]
+
+    if affine is not None:
+        v_x = affine(v_x)
+        v_y = affine(v_y)
+
+    statedot[X1_index] = statedot[X1_index] + v_x
+    statedot[X2_index] = statedot[X2_index] + v_y
+
+    if '2' in control_data['time_slices'][time_idx]:
+        v_z = control_data['time_slices'][time_idx]['2'][state_idx]
+        if affine is not None:
+            v_z = affine(v_z)
+        statedot[X3_index] = statedot[X3_index] + v_z
+
+    return statedot
+
+def dynamics(t, state, j1, j2, j3, T_t, control_data, affine):
     statedot = np.zeros_like(state)
     # implicit is that all state dimension NOT set
     # have 0 dynamics == do not change in value
@@ -1783,55 +1840,7 @@ def dynamics(t, state, j1, j2, j3, control_data, affine):
     #     statedot[X3_index] += np.random.uniform(-0.2, 0.5)
     #     return statedot
 
-    if np.abs(t - T_0) < 1e-8:
-        t_key = 't0'
-    elif np.abs(t - T_t) < 1e-8:
-        t_key = 'tT'
-    else:
-        t_key = 'tt'
-
-    t_control_data = control_data[t_key]
-
-    query = state
-    # if t_key == 'tt':
-    if t_control_data['grid'].shape[1] == len(state) + 1:
-        query = np.append(query, t)
-
-    # if np.abs(t - T_0) < 1e-8:
-    #     print("t_key", t_key)
-    #     print("state", query)
-
-    # grid_l2_norms = np.linalg.norm(query - t_control_data['grid'], ord=2, axis=1)
-    # closest_grid_idx = grid_l2_norms.argmin()
-
-    closest_grid_idx = np.linalg.norm(query - t_control_data['grid'], ord=1, axis=1).argmin()
-    # print("query",
-    #     query,
-    #     closest_grid_idx,
-    #     t_control_data['grid'][closest_grid_idx],
-    #     t_control_data['0'][closest_grid_idx],
-    #     t_control_data['1'][closest_grid_idx])
-
-    v_x = t_control_data['0'][closest_grid_idx]
-    v_y = t_control_data['1'][closest_grid_idx]
-
-    if affine is not None:
-        v_x = affine(v_x)
-        v_y = affine(v_y)
-
-    # print("v_x", v_x)
-    # print("v_y", v_y)
-
-    statedot[X1_index] = statedot[X1_index] + v_x
-    statedot[X2_index] = statedot[X2_index] + v_y
-
-    if '2' in t_control_data:
-        v_z = t_control_data['2'][closest_grid_idx]
-        if affine is not None:
-            v_z = affine(v_z)
-        statedot[X3_index] = statedot[X3_index] + v_z
-
-    return statedot
+    return apply_control_strategy1(state, t, T_0, T_t, control_data, affine, statedot)
 
 from concurrent.futures import ThreadPoolExecutor
 
@@ -1845,6 +1854,8 @@ class Integrator(object):
         self.args = args
         self.dynamics = dynamics
         self.j1, self.j2, self.j3 = [float(x) for x in args.system.split(",")]
+        self.T_t = args.T_t
+        print("self.T_t", self.T_t)
 
     def task(self, i, target, control_data, affine):
         # print("starting {}".format(i))
@@ -1876,6 +1887,7 @@ class Integrator(object):
                 # 0.06,
                 (
                     self.j1, self.j2, self.j3,
+                    self.T_t,
                     control_data,
                     affine
                 ))
