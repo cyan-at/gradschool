@@ -130,60 +130,108 @@ if __name__ == '__main__':
 
     x = None
     try:
-        x = np.load(args.dat)
+        x = np.load(args.dat, allow_pickle=True)
     except Exception as e:
-        pass
+        print(str(e))
+
     if x is None:
         try:
             x = np.loadtxt(args.dat)
+            print("loaded as txt")
         except Exception as e:
-            pass
-
-    print("x.shape", x.shape)
-
-    x = np.float32(x)
-
-    if len(x.shape) == 1:
-        x = x[:, np.newaxis]
-
-    ########################################################
-
-    if len(args.indices) > 0:
-        indices = [int(x) for x in args.indices.split(",")]
+            print("unable to load", str(e))
+            sys.exit(1)
     else:
-        indices = list(range(x.shape[1]))
+        print("loaded numpy data")
 
-    print(indices)
-
-    if len(indices) > 3:
-        print("bad indices")
-        sys.exit(0)
+    try:
+        x = x.item()
+    except Exception as e:
+        print(e)
 
     ########################################################
 
+    all_data_to_plot = []
+
+    if type(x) == dict:
+        while type(x) == dict:
+            t = [type(y) for y in x.keys()]
+            print(t)
+
+            s = [str(y) for y in x.keys()]
+
+            s_to_t = {}
+            for s_i, q in enumerate(s):
+                s_to_t[q] = t[s_i]
+
+            k = input('found dict, enter keys (%s): ' % (",".join(s)))
+            k_tokens = k.strip().split(",")
+
+            pending_level = x[s_to_t[k_tokens[0]](k_tokens[0])]
+
+            for k in k_tokens:
+                if type(pending_level) != dict:
+                    print('k', k, type(pending_level))
+                    all_data_to_plot.append(x[s_to_t[k](k)])
+
+            x = pending_level
+    else:
+        all_data_to_plot.append(x)
+
+    ########################################################
+
+    colors = 'rgbymck'
     fig = plt.figure()
 
-    ########################################################
+    for x_i, x in enumerate(all_data_to_plot):
+        # import ipdb; ipdb.set_trace()
+        c = colors[x_i % len(colors)]
 
-    if len(indices) == 3:
-        ax1 = fig.add_subplot(1, 1, 1, projection='3d')
+        print("x.shape", x.shape)
 
-        sc1=ax1.scatter(
-            x[:, 0],
-            x[:, 1],
-            x[:, 2],
-            c=0.5*np.ones(x.shape[0]),
-            s=1.0*np.ones(x.shape[0]),
-            cmap=cm.jet,
-            alpha=1.0)
-        plt.colorbar(sc1, shrink=0.25)
-        ax1.set_xlabel('x')
-        ax1.set_ylabel('y')
-        ax1.set_zlabel('z')
-    elif len(indices) == 2:
-        plt.plot(x[:, indices[0]], x[:, indices[1]])
-    elif len(indices) == 1:
-        plt.plot(x[:, indices[0]])
+        x = np.float32(x)
+
+        if len(x.shape) == 1:
+            x = x[:, np.newaxis]
+
+        ########################################################
+
+        if len(args.indices) > 0:
+            indices = [int(x) for x in args.indices.split(",")]
+        else:
+            indices = list(range(x.shape[1]))
+
+        print(indices)
+
+        if len(indices) > 3:
+            print("bad indices")
+            sys.exit(0)
+
+        ########################################################
+
+        if len(indices) == 3:
+            ax1 = fig.add_subplot(1, 1, 1, projection='3d')
+
+            sc1=ax1.scatter(
+                x[:, 0],
+                x[:, 1],
+                x[:, 2],
+                c=0.5*np.ones(x.shape[0]),
+                s=1.0*np.ones(x.shape[0]),
+                cmap=cm.jet,
+                alpha=1.0)
+            plt.colorbar(sc1, shrink=0.25)
+            ax1.set_xlabel('x')
+            ax1.set_ylabel('y')
+            ax1.set_zlabel('z')
+        elif len(indices) == 2:
+            plt.plot(x[:, indices[0]], x[:, indices[1]],
+                c=c,
+                alpha=1/len(all_data_to_plot))
+        elif len(indices) == 1:
+            plt.plot(x[:, indices[0]],
+                c=c,
+                alpha=1/len(all_data_to_plot))
 
     ########################################################
 
@@ -196,6 +244,8 @@ if __name__ == '__main__':
             )
         )
     )
+
+    ########################################################
 
     plt.grid(True)
     plt.tight_layout()

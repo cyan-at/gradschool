@@ -145,15 +145,33 @@ def main():
         print("Not using GPU.")
     # set model to evaluation mode
     sde.eval()
+
+    all_trajs = {}
+
     for traj in range(2):
         y0 = eval_data[traj % 2, 0, :2] # call sections of data loader corresponding to c10/c12 for first time step
         y0 = torch.reshape(y0, [1, -1]) # reshape y) for correct input
+
         r = eval_data[traj % 2, 0, 2:4] # call data loader for ramp rates 
         r = torch.reshape(r, [-1, 2]) # reshape ramp rates for model input
         sde.r = r # assign r as sde.r for correct cat
+
         y_pred = torchsde.sdeint(sde, y0, ts, method='euler').squeeze() # calculate predictions
+
         # call data loader corresponding to c10/c12, this is the ground truth values of c10/c12, only here for comparison, not for running the model
         y_gt = eval_data[0, 1:, :2]
+
+        # import ipdb; ipdb.set_trace();
+
+        y_pred_down = y_pred.cpu().detach().numpy()
+        y_gt_down = y_gt.cpu().detach().numpy()
+
+        all_trajs[traj] = {
+            'pred' : y_pred_down,
+            'gt' : y_gt_down
+        }
+
+    np.save('all_trajs.npy', all_trajs)
     
 if __name__ == '__main__':
     main()

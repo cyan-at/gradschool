@@ -1496,6 +1496,97 @@ class ScaledFNN(dde.nn.NN):
 
         return x
 
+class Util:
+    # constants
+    NUM0S = 7
+    VID_PREFIX = "vid"
+    VID_SUFFIX = "avi"
+    IMG_PREFIX = "img"
+    IMG_SUFFIX = "jpg"
+
+    # methods
+    @staticmethod
+    def make_name(path, prefix, n, suffix, extension, numZeros=7):
+        """ makes a filename in a certain formatting
+        i.e., make_name('./', 'test', 52, 'experiment1', 'png')
+        returns ./test_0000052_experiment1.png
+
+        Parameters
+        ----------
+        path : str
+            the folder/path/dir to search in
+        prefix : str
+            the prefix string
+        n: int
+            the number between prefix and suffix
+        suffix : str
+            the suffix string
+        extension : str
+            the extension string, assumed to be valid
+        numZeros : int
+            the number of digits in the number between prefix and suffix
+
+        Returns
+        -------
+        name : str
+            the filename except the extension
+        fname : str
+            the entire filename including extension
+        """
+        tokens = []
+        if (prefix != ''):
+            tokens.append(prefix)
+        tokens.append(str(n).zfill(numZeros))
+        if (suffix != ''):
+            tokens.append(suffix)
+        name = path + "/" + '_'.join(tokens)
+        fname = ".".join([name, extension])
+        return name, fname
+
+    @staticmethod
+    def get_next_valid_name_increment(path, prefix, n, suffix, extension, numZeros=7):
+        """ get the next 'valid' name in a path given a certain formatting
+        i.e., make_name('./', 'test', 52, 'experiment1', 'png')
+        if ./ contains ./test_0000052_experiment1.png
+        will return ./test_0000053_experiment1.png, 53
+
+        Notes
+        -----
+        'valid' in this sense means the file doesn't already exist
+        function does not allow overwriting!
+
+        Parameters
+        ----------
+        path : str
+            the folder/path/dir to search in
+        prefix : str
+            the prefix string
+        n: int
+            the number between prefix and suffix
+        suffix : str
+            the suffix string
+        extension : str
+            the extension string, assumed to be valid
+        numZeros : int
+            the number of digits in the number between prefix and suffix
+
+        Returns
+        -------
+        fname : str
+            the entire filename including extension
+        n : int
+            the count at which the valid file was found
+        """
+
+        if (not os.path.isdir(path)):
+            raise ValueError('get_next_valid_name:no_such_path', path)
+
+        name, fname = Util.make_name(path, prefix, n, suffix, extension, numZeros)
+        while (os.path.isfile(fname)):
+            n = n + 1
+            name, fname = Util.make_name(path, prefix, n, suffix, extension, numZeros)
+        return fname, n
+
 class Counter(object):
     def __init__(self):
         self.count = 0
@@ -1508,8 +1599,14 @@ class Counter(object):
             # xl.set_visible(not visible)
             # fig.canvas.draw()
 
-            fname = png_name.replace(".png", "_%d.png" % (
-                self.count))
+            dir_name = os.path.dirname(png_name)
+            print(dir_name)
+            bname = os.path.basename(png_name)
+            fname, _ = Util.get_next_valid_name_increment(
+                dir_name, bname, 0, '', 'png')
+
+            # fname = png_name.replace(".png", "_%d.png" % (
+            #     self.count))
 
             plt.savefig(
                 fname,
