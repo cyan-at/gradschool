@@ -150,6 +150,10 @@ if __name__ == '__main__':
         default="1,1,2", # 3,2,1
         required=False)
 
+    parser.add_argument('--control_strategy',
+        type=int,
+        default=0)
+
     parser.add_argument('--do_integration',
         type=int,
         default=1)
@@ -176,6 +180,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     test = np.loadtxt(args.testdat)
+
+    print("test.shape", test.shape)
 
     d = test.shape[1] - 1 - 2 # one for time, 2 for pinn output
     print("found %d dimension state space" % (d))
@@ -348,52 +354,55 @@ if __name__ == '__main__':
 
     ########################################################
 
-    # bin by unique times
-    uniq = np.unique(test[:, 2])
+    time_slices = None
 
-    time_steps = np.matrix(uniq)
+    if args.control_strategy == 1:
+        # bin by unique times
+        uniq = np.unique(test[:, 2])
 
-    indices = np.ones(test.shape[0])
-    for d_i, _ in enumerate(dphi_dinput):
-        indices[d_i] = np.linalg.norm(test[d_i, 2] - time_steps, ord=1, axis=0).argmin()
+        time_steps = np.matrix(uniq)
 
-    grid_x1, grid_x2 = np.meshgrid(
-        x_1_,
-        x_2_, copy=False) # each is NxNxN
+        indices = np.ones(test.shape[0])
+        for d_i, _ in enumerate(dphi_dinput):
+            indices[d_i] = np.linalg.norm(test[d_i, 2] - time_steps, ord=1, axis=0).argmin()
 
-    grid1 = np.array((
-        grid_x1.reshape(-1),
-        grid_x2.reshape(-1),
-    )).T
+        grid_x1, grid_x2 = np.meshgrid(
+            x_1_,
+            x_2_, copy=False) # each is NxNxN
 
-    time_slices = {
-        'grid' : grid1,
-        'uniq' : uniq,
-        'times' : time_steps,
-    }
-    for t_i, t in enumerate(uniq):
-        coordinates = test[indices == t_i]
-        d_value = dphi_dinput[indices == t_i]
+        grid1 = np.array((
+            grid_x1.reshape(-1),
+            grid_x2.reshape(-1),
+        )).T
 
-        DPHI_DINPUT_tt_0 = gd(
-          (coordinates[:, 0], coordinates[:, 1]),
-          d_value[:, 0],
-          (grid_x1, grid_x2),
-          method=args.interp_mode)
-
-        DPHI_DINPUT_tt_1 = gd(
-          (coordinates[:, 0], coordinates[:, 1]),
-          d_value[:, 1],
-          (grid_x1, grid_x2),
-          method=args.interp_mode)
-
-        DPHI_DINPUT_tt_0 = np.nan_to_num(DPHI_DINPUT_tt_0)
-        DPHI_DINPUT_tt_1 = np.nan_to_num(DPHI_DINPUT_tt_1)
-
-        time_slices[t] = {
-            '0': DPHI_DINPUT_tt_0.reshape(-1),
-            '1': DPHI_DINPUT_tt_1.reshape(-1),
+        time_slices = {
+            'grid' : grid1,
+            'uniq' : uniq,
+            'times' : time_steps,
         }
+        for t_i, t in enumerate(uniq):
+            coordinates = test[indices == t_i]
+            d_value = dphi_dinput[indices == t_i]
+
+            DPHI_DINPUT_tt_0 = gd(
+              (coordinates[:, 0], coordinates[:, 1]),
+              d_value[:, 0],
+              (grid_x1, grid_x2),
+              method=args.interp_mode)
+
+            DPHI_DINPUT_tt_1 = gd(
+              (coordinates[:, 0], coordinates[:, 1]),
+              d_value[:, 1],
+              (grid_x1, grid_x2),
+              method=args.interp_mode)
+
+            DPHI_DINPUT_tt_0 = np.nan_to_num(DPHI_DINPUT_tt_0)
+            DPHI_DINPUT_tt_1 = np.nan_to_num(DPHI_DINPUT_tt_1)
+
+            time_slices[t] = {
+                '0': DPHI_DINPUT_tt_0.reshape(-1),
+                '1': DPHI_DINPUT_tt_1.reshape(-1),
+            }
 
     ########################################################
 
@@ -674,7 +683,8 @@ if __name__ == '__main__':
                 list(range(initial_sample.shape[0])),
                 [without_control]*initial_sample.shape[0],
                 [None]*initial_sample.shape[0],
-                [None]*initial_sample.shape[0]
+                [None]*initial_sample.shape[0],
+                [args.control_strategy]*initial_sample.shape[0],
             )
             if len(v_scales) == 1:
                 for result in results:
@@ -698,7 +708,8 @@ if __name__ == '__main__':
                         list(range(initial_sample.shape[0])),
                         [with_control]*initial_sample.shape[0],
                         [control_data]*initial_sample.shape[0],
-                        [with_control_affine]*initial_sample.shape[0]
+                        [with_control_affine]*initial_sample.shape[0],
+                        [args.control_strategy]*initial_sample.shape[0]
                     )
                     if len(v_scales) == 1:
                         for result in results:

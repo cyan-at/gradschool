@@ -314,11 +314,15 @@ if __name__ == '__main__':
     if args.epochs > 0:
         num_epochs = args.epochs
 
+    start = time.time()
     losshistory, train_state = model.train(
         iterations=num_epochs,
         display_every=de,
         callbacks=[earlystop_cb, modelcheckpt_cb],
         model_save_path=ck_path)
+    end = time.time()
+
+    print("training dt", end - start)
 
     ######################################
 

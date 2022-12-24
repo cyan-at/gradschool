@@ -1908,7 +1908,12 @@ def apply_control_strategy1(state, t, T_0, T_t, control_data, affine, statedot):
 
     return statedot
 
-def dynamics(t, state, j1, j2, j3, T_t, control_data, affine):
+control_query_strategies = {
+    0 : apply_control_strategy0,
+    1 : apply_control_strategy1
+}
+
+def dynamics(t, state, j1, j2, j3, T_t, control_data, affine, strategy_key):
     statedot = np.zeros_like(state)
     # implicit is that all state dimension NOT set
     # have 0 dynamics == do not change in value
@@ -1938,7 +1943,9 @@ def dynamics(t, state, j1, j2, j3, T_t, control_data, affine):
     #     statedot[X3_index] += np.random.uniform(-0.2, 0.5)
     #     return statedot
 
-    return apply_control_strategy1(state, t, T_0, T_t, control_data, affine, statedot)
+    return control_query_strategies[strategy_key](state, t, T_0, T_t, control_data, affine, statedot)
+
+    # return apply_control_strategy1(state, t, T_0, T_t, control_data, affine, statedot)
 
 from concurrent.futures import ThreadPoolExecutor
 
@@ -1954,8 +1961,14 @@ class Integrator(object):
         self.j1, self.j2, self.j3 = [float(x) for x in args.system.split(",")]
         self.T_t = args.T_t
         print("self.T_t", self.T_t)
+        print("self.js", self.j1, self.j2, self.j3)
 
-    def task(self, i, target, control_data, affine):
+        self.alpha1 = (self.j2 - self.j3) / self.j1
+        self.alpha2 = (self.j3 - self.j1) / self.j2
+        self.alpha3 = (self.j1 - self.j2) / self.j3
+        print("self.alpha", self.alpha1, self.alpha2, self.alpha3)
+
+    def task(self, i, target, control_data, affine, strategy_key):
         # print("starting {}".format(i))
 
         if self.args.noise:
@@ -1971,7 +1984,8 @@ class Integrator(object):
                 (
                     self.j1, self.j2, self.j3,
                     control_data,
-                    affine
+                    affine,
+                    strategy_key
                 ))
         else:
             _, tmp = euler_maru(
@@ -1987,7 +2001,8 @@ class Integrator(object):
                     self.j1, self.j2, self.j3,
                     self.T_t,
                     control_data,
-                    affine
+                    affine,
+                    strategy_key
                 ))
         target[i, :, :] = tmp.T
         return i
