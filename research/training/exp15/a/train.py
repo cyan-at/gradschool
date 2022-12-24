@@ -202,9 +202,12 @@ def get_model(
 
     ######################################
 
-    rho0_WASS = lambda y_true, y_pred: loss_func_dict[loss_func_key](y_true, y_pred, sinkhorn, rho0_tensor, C)
+    dx = linspaces[0][1] - linspaces[0][0]
+    print("dx", dx)
+
+    rho0_WASS = lambda y_true, y_pred: loss_func_dict[loss_func_key](y_true, y_pred, sinkhorn, rho0_tensor, C, N, dx)
     rho0_WASS.__name__ = "rho0_WASS"
-    rhoT_WASS = lambda y_true, y_pred: loss_func_dict[loss_func_key](y_true, y_pred, sinkhorn, rhoT_tensor, C)
+    rhoT_WASS = lambda y_true, y_pred: loss_func_dict[loss_func_key](y_true, y_pred, sinkhorn, rhoT_tensor, C, N, dx)
     rhoT_WASS.__name__ = "rhoT_WASS"
     losses=[
         "MSE","MSE",
