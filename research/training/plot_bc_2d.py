@@ -609,7 +609,7 @@ if __name__ == '__main__':
     #     pass
     c = Counter()
     fig.canvas.mpl_connect('key_press_event', lambda e: c.on_press_saveplot(e,
-            '%s_Tt=%.3f_rho_opt_bc_batch=%d_%d_%s_%d.png' % (
+            '%s_Tt=%.3f_rho_opt_bc_batch=%d_%d_%s_%d' % (
                 args.modelpt.replace(".pt", ""),
                 T_t,
                 batchsize,

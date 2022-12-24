@@ -1618,7 +1618,7 @@ class Counter(object):
 
 ######################################
 
-def WASS_0(y_true, y_pred, sinkhorn, rho_tensor, C):
+def WASS_0(y_true, y_pred, sinkhorn, rho_tensor, C, *_):
     p2 = torch.abs(torch.sum(y_pred) - 1)
 
     y_pred = torch.where(y_pred < 0, 0, y_pred)
@@ -1628,7 +1628,7 @@ def WASS_0(y_true, y_pred, sinkhorn, rho_tensor, C):
     return dist + p2 # + p1
 
 # this one gets stuck in local minima
-def WASS_1(y_true, y_pred, sinkhorn, rho_tensor, C):
+def WASS_1(y_true, y_pred, sinkhorn, rho_tensor, C, *_):
     p1 = (y_pred<0).sum() # negative terms
 
     p2 = 1 / torch.var(y_pred)
@@ -1641,7 +1641,7 @@ def WASS_1(y_true, y_pred, sinkhorn, rho_tensor, C):
 
     return 10 * p1 + p2 + p3 + dist
 
-def WASS_2(y_true, y_pred, sinkhorn, rho_tensor, C):
+def WASS_2(y_true, y_pred, sinkhorn, rho_tensor, C, *_):
     p1 = -torch.sum(y_pred[y_pred < 0])
     y_pred = torch.where(y_pred < 0, 0, y_pred)
 
@@ -1657,7 +1657,7 @@ def WASS_2(y_true, y_pred, sinkhorn, rho_tensor, C):
 
     return 10 * p1 + p2 + dist
 
-def WASS_3(y_true, y_pred, sinkhorn, rho_tensor, C):
+def WASS_3(y_true, y_pred, sinkhorn, rho_tensor, C, *_):
     p1 = -torch.sum(y_pred[y_pred < 0])
     y_pred = torch.where(y_pred < 0, 0, y_pred)
 
@@ -1694,7 +1694,7 @@ def WASS_4(y_true, y_pred, sinkhorn, rho_tensor, C, n, dx):
 
 ######################################
 
-def WASS_batch_0(y_true, y_pred, device, sinkhorn, rho, state):
+def WASS_batch_0(y_true, y_pred, device, sinkhorn, rho, state, *_):
     rhoT_temp_tensor = torch.from_numpy(
         rho[y_true],
     ).to(device).requires_grad_(False)
@@ -1716,7 +1716,7 @@ def WASS_batch_0(y_true, y_pred, device, sinkhorn, rho, state):
 
     return dist + p2 # + p1
 
-def WASS_batch_1(y_true, y_pred, device, sinkhorn, rho, state):
+def WASS_batch_1(y_true, y_pred, device, sinkhorn, rho, state, *_):
     # import ipdb; ipdb.set_trace()
     p1 = -torch.sum(y_pred[y_pred < 0])
 
@@ -1743,7 +1743,7 @@ def WASS_batch_1(y_true, y_pred, device, sinkhorn, rho, state):
 
     return 20 * p1 + 10 * p2 + dist
 
-def WASS_batch_2(y_true, y_pred, device, sinkhorn, rho, state):
+def WASS_batch_2(y_true, y_pred, device, sinkhorn, rho, state, *_):
     # import ipdb; ipdb.set_trace()
     p1 = -torch.sum(y_pred[y_pred < 0])
 
@@ -1885,9 +1885,10 @@ def apply_control_strategy0(state, t, T_0, T_t, control_data, affine, statedot):
 def apply_control_strategy1(state, t, T_0, T_t, control_data, affine, statedot):
     closest_idx = np.linalg.norm(t - control_data['time_slices']['times'], ord=1, axis=0).argmin()
     time_idx = control_data['time_slices']['uniq'][closest_idx]
-    # print("time_idx", time_idx, "t", t)
-
     state_idx = np.linalg.norm(state - control_data['time_slices']['grid'], ord=1, axis=1).argmin()
+
+    # print("t", t, "grid time", time_idx)
+    # print("state", state, "grid space", control_data['time_slices']['grid'][state_idx])
 
     v_x = control_data['time_slices'][time_idx]['0'][state_idx]
     v_y = control_data['time_slices'][time_idx]['1'][state_idx]

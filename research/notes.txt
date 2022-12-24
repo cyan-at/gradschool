@@ -2405,7 +2405,8 @@ vs05: run ./train.py --js 1,1,1 --T_t 5.0 --mu_0 2.0 --mu_T 0.0 --model_name nod
 
 #########################################################
 
-vs07: run ./train.py --js 1,1,1 --T_t 5.0 --mu_0 3.0 --mu_T 0.0 --model_name nodynamics_3_0_5
+CustomGeometryXTime2
+vs05: run ./train.py --js 1,1,1 --T_t 5.0 --mu_0 3.0 --mu_T 0.0 --model_name nodynamics_3_0_5
 
 #########################################################
 #########################################################
@@ -3143,3 +3144,106 @@ https://www.ebay.com/itm/314180295320?hash=item49269ada98%3Ag%3AS24AAOSwhVpjQd67
 https://www.ebay.com/itm/274877871147?var=575138996871&hash=item3fffff742b%3Ag%3A0wkAAOSwbdNg-uvp&amdata=enc%3AAQAHAAAAsDkOBCeabrrUXHfRNptWnGT3%2FTPlo6dVjnNjdPgrtdrzdvyqcEuoq%2B0KKVkoWob0Mh6jIBXzIOH4WnuDPx0hoZ%2FATNLQ7lQFswem9wKS7Hxg3W5wqNOOthHggaCihIaJQyC5e7Vbhfc3PmLBFbbPA1CfWNJhywnUGk7BNqK%2BN%2FILA3P1UNWMkvdWZVg9S9kJy6TE5Eg1Lt2ECDFGb%2BTCuIyRmVKiOuV1RjbL3f0COlbm%7Ctkp%3ABk9SR6T45er3YA&LH_BIN=1
 https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.griddata.html
 
+#######################################################################
+
+        print("Training model...\n")
+        self.stop_training = False
+        self.train_state.set_data_train(*self.data.train_next_batch(self.batch_size))
+        self.train_state.set_data_test(*self.data.test())
+        self._test()
+        self.callbacks.on_train_begin()
+        if optimizers.is_external_optimizer(self.opt_name):
+            if backend_name == "tensorflow.compat.v1":
+                self._train_tensorflow_compat_v1_scipy(display_every)
+            elif backend_name == "tensorflow":
+                self._train_tensorflow_tfp()
+            elif backend_name == "pytorch":
+                print("using _train_pytorch_lbfgs")
+                self._train_pytorch_lbfgs()
+        else:
+            if iterations is None:
+                raise ValueError("No iterations for {}.".format(self.opt_name))
+            print("using _train_sgd")
+            self._train_sgd(iterations, display_every)
+        self.callbacks.on_train_end()
+
+###############################
+
+    def _train_sgd(self, iterations, display_every):
+        for i in range(iterations):
+            self.callbacks.on_epoch_begin()
+            self.callbacks.on_batch_begin()
+
+            self.train_state.set_data_train(
+                *self.data.train_next_batch(self.batch_size) <----- inputs
+            )
+            self._train_step(
+                self.train_state.X_train, <----- inputs
+                self.train_state.y_train,
+                self.train_state.train_aux_vars,
+            )
+
+    def _train_step(self, inputs, targets, auxiliary_vars):
+        if backend_name == "tensorflow.compat.v1":
+            feed_dict = self.net.feed_dict(True, inputs, targets, auxiliary_vars)
+            self.sess.run(self.train_step, feed_dict=feed_dict)
+        elif backend_name == "tensorflow":
+            self.train_step(inputs, targets, auxiliary_vars)
+        elif backend_name in ["pytorch", "paddle"]:
+            # TODO: auxiliary_vars
+            self.train_step(inputs, targets)
+
+        def train_step(inputs, targets):
+            losses = outputs_losses_train(inputs, targets)[1]
+
+        def outputs_losses_train(inputs, targets):
+            return outputs_losses(True, inputs, targets, self.data.losses_train)
+
+        def outputs_losses(training, inputs, targets, losses_fn):
+            self.net.train(mode=training)
+
+            # # stop here to inspect inputs
+            # import ipdb; ipdb.set_trace()
+
+            if isinstance(inputs, tuple):
+                inputs = tuple(
+                    map(lambda x: torch.as_tensor(x).requires_grad_(), inputs)
+                )
+            else:
+                inputs = torch.as_tensor(inputs)
+                inputs.requires_grad_()
+
+
+train_state.X_test
+
+############################################################
+
+there are n machines where you run different experiments
+
+and there is 1 machine where you do all your post-processing / analysis
+
+too lazy to deploy correctly so
+
+exp15/a is rewritten and iterated on
+and deployed to different test machines
+and machines intentionally drift out of sync
+
+scp cyan3@vipersim07.ndc.nasa.gov:/usr/local/home/cyan3/gradschool/research/training/exp15/a/test.dat .
+ls
+ls -lh
+vs07
+ls
+ls -lh
+ls
+vim ~/.bashrc
+source ~/.bashrc
+vs07
+ls
+history
+scp cyan3@vipersim07.ndc.nasa.gov:/usr/local/home/cyan3/gradschool/research/training/exp15/a/_321_5s_steptimesampling-1.pt .
+ls
+vim ~/.bashrc
+scp cyan3@vipersim07.ndc.nasa.gov:/usr/local/home/cyan3/gradschool/research/training/exp15/a/loss.dat .
+
+
+(tf) cyan3@scorpius:/usr/local/home/cyan3/Dev/jim/gradschool/research/training/exp20/a$ ../../plot_bc_2d.py --modelpt ./_321_5s_steptimesampling-1.pt  --testdat ./test.dat --system 3,2,1
