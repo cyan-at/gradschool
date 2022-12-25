@@ -185,7 +185,7 @@ def get_model(
 
     data = WASSPDE(
         geomtime,
-        lambda x, y: euler_pde_2(x,  y, epsilon, a[0], a[1]),
+        lambda x, y: euler_pdes[d](x,  y, epsilon, a[0], a[1]),
         [rho_0_BC,rho_T_BC],
         num_domain=samples_between_initial_and_final,
         num_initial=ni, # initial_samples,
