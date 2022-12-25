@@ -84,11 +84,13 @@ def get_model(
     mu_T,
     T_t,
     loss_func_key,
+    a,
     optimizer="adam",
     init="Glorot normal",
     train_distribution="Hammersley",
     timemode=0,
     ni=0,
+    epsilon=1e-3
     ):
     M = N**d
 
@@ -180,9 +182,10 @@ def get_model(
     elif timemode == 1:
         geomtime = CustomGeometryXTime2(geom, timedomain, M)
 
+
     data = WASSPDE(
         geomtime,
-        euler_pdes[d],
+        lambda x, y: euler_pde_2(x,  y, epsilon, a[0], a[1]),
         [rho_0_BC,rho_T_BC],
         num_domain=samples_between_initial_and_final,
         num_initial=ni, # initial_samples,
@@ -226,7 +229,7 @@ def get_model(
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="")
-    parser.add_argument('--js', type=str, default="1,1,2", help='')
+    parser.add_argument('--a', type=str, default="-1,1,2", help='')
     parser.add_argument('--q', type=float, default=0.5, help='')
     parser.add_argument('--mu_0', type=str, default="", help='')
     parser.add_argument('--mu_T', type=str, default="", help='')
@@ -249,10 +252,9 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     N = args.N
-    j1, j2, j3 = [float(x) for x in args.js.split(",")] # axis-symmetric case
     q_statepenalty_gain = args.q # 0.5
     print("N: ", N)
-    print("js: ", j1, j2, j3)
+    print("a: ", args.a)
     print("q: ", q_statepenalty_gain)
 
     if len(args.mu_0) > 0:
@@ -285,6 +287,7 @@ if __name__ == '__main__':
         mu_T,
         T_t,
         args.loss_func,
+        [float(x) for x in args.a.split(',')],
         args.optimizer,
         train_distribution=args.train_distribution,
         timemode=args.timemode,
