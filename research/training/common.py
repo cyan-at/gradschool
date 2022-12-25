@@ -1898,14 +1898,14 @@ control_query_strategies = {
     1 : apply_control_strategy1
 }
 
-def dynamics(t, state, j1, j2, j3, T_t, control_data, affine, strategy_key):
+def dynamics(t, state, alpha1, alpha2, alpha3, T_t, control_data, affine, strategy_key):
     statedot = np.zeros_like(state)
     # implicit is that all state dimension NOT set
     # have 0 dynamics == do not change in value
 
-    alpha1 = (j2 - j3) / j1
-    alpha2 = (j3 - j1) / j2
-    alpha3 = (j1 - j2) / j3
+    # alpha1 = (j2 - j3) / j1
+    # alpha2 = (j3 - j1) / j2
+    # alpha3 = (j1 - j2) / j3
 
     ########################################
 
@@ -1940,17 +1940,16 @@ def hash_func(v_scale, bias):
 class Integrator(object):
     def __init__(self, initial_sample, t_span, args, dynamics):
         self.initial_sample = initial_sample
-        self.t_span = t_span
-        self.args = args
-        self.dynamics = dynamics
-        self.j1, self.j2, self.j3 = [float(x) for x in args.system.split(",")]
-        self.T_t = args.T_t
-        print("self.T_t", self.T_t)
-        print("self.js", self.j1, self.j2, self.j3)
 
-        self.alpha1 = (self.j2 - self.j3) / self.j1
-        self.alpha2 = (self.j3 - self.j1) / self.j2
-        self.alpha3 = (self.j1 - self.j2) / self.j3
+        self.t_span = t_span
+        self.T_t = t_span[-1]
+        print("self.T_t", self.T_t)
+
+        self.args = args
+
+        self.dynamics = dynamics
+        self.alpha1, self.alpha2, self.alpha3 = [float(x) for x in args.a.strip().split(",")]
+
         print("self.alpha", self.alpha1, self.alpha2, self.alpha3)
 
     def task(self, i, target, control_data, affine, strategy_key):
@@ -1967,7 +1966,7 @@ class Integrator(object):
                     scale=np.sqrt(delta_t)),
                 lambda y, t: 0.06,
                 (
-                    self.j1, self.j2, self.j3,
+                    self.alpha1, self.alpha2, self.alpha3,
                     control_data,
                     affine,
                     strategy_key
@@ -1983,7 +1982,7 @@ class Integrator(object):
                 lambda y, t: 0.0,
                 # 0.06,
                 (
-                    self.j1, self.j2, self.j3,
+                    self.alpha1, self.alpha2, self.alpha3,
                     self.T_t,
                     control_data,
                     affine,
@@ -1991,3 +1990,295 @@ class Integrator(object):
                 ))
         target[i, :, :] = tmp.T
         return i
+
+from scipy.interpolate import griddata as gd
+def make_control_data(model, inputs, N, d, meshes, args):
+    M = N**d
+    batchsize = M
+
+    T_t = inputs[batchsize, -1]
+    print("found T_t", T_t)
+
+    inputs_tensor = torch.from_numpy(
+        inputs).requires_grad_(True)
+
+    if args.diff_on_cpu == 0:
+        print("moving input to cuda")
+        inputs_tensor = inputs_tensor.type(torch.FloatTensor).to(cuda0).requires_grad_(True)
+    else:
+        print("keeping input on cpu")
+
+    # move the MODEL to the cpu
+    # to compute the gradient there, not on CUDA
+    # because input to cuda makes it non-leaf
+    # so it does not catch backward()'d backprop'd gradient
+    if args.diff_on_cpu > 0:
+        model.net = model.net.cpu()
+    else:
+        print("keeping model on cuda")
+
+    output_tensor = model.net(inputs_tensor)
+
+    # only possible if tensors on cpu
+    # maybe moving to cuda makes input non-leaf
+    if args.diff_on_cpu > 0:
+        output_tensor[:, 0].backward(torch.ones_like(output_tensor[:, 0]))
+        dphi_dinput = inputs_tensor.grad
+    else:
+        # OR do grad like so
+        dphi_dinput = torch.autograd.grad(outputs=output_tensor[:, 0], inputs=inputs_tensor, grad_outputs=torch.ones_like(output_tensor[:, 0]))[0]
+
+    if args.diff_on_cpu > 0:
+        dphi_dinput = dphi_dinput.numpy()
+    else:
+        print("moving dphi_dinput off cuda")
+        dphi_dinput = dphi_dinput.cpu().numpy()
+
+    if args.diff_on_cpu > 0:
+        output = output_tensor.detach().numpy()
+    else:
+        print("moving output off cuda")
+        output = output_tensor.detach().cpu().numpy()
+
+    test = np.hstack((inputs, output))
+
+    t0 = test[:batchsize, :]
+    tT = test[batchsize:2*batchsize, :]
+    tt = test[2*batchsize:, :]
+
+    ################################################
+
+    rho0 = t0[:, -1]
+    rhoT = tT[:, -1]
+
+    ################################################
+
+    x_1_ = np.linspace(state_min, state_max, args.grid_n)
+    x_2_ = np.linspace(state_min, state_max, args.grid_n)
+    x_3_ = np.linspace(state_min, state_max, args.grid_n)
+    t_ = np.linspace(T_0, T_t, args.grid_n*2)
+
+    ################################################
+
+    dphi_dinput_t0 = dphi_dinput[:batchsize, :]
+    dphi_dinput_tT = dphi_dinput[batchsize:2*batchsize, :]
+    dphi_dinput_tt = dphi_dinput[2*batchsize:, :]
+    print(
+        np.max(dphi_dinput_t0),
+        np.max(dphi_dinput_tT),
+        np.max(dphi_dinput_tt)
+    )
+
+    ################################################
+
+    time_slices = None
+
+    if args.control_strategy == 1:
+        # bin by unique times
+        uniq = np.unique(test[:, 2])
+
+        time_steps = np.matrix(uniq)
+
+        indices = np.ones(test.shape[0])
+        for d_i, _ in enumerate(dphi_dinput):
+            indices[d_i] = np.linalg.norm(test[d_i, 2] - time_steps, ord=1, axis=0).argmin()
+
+        grid_x1, grid_x2 = np.meshgrid(
+            x_1_,
+            x_2_, copy=False) # each is NxNxN
+
+        grid1 = np.array((
+            grid_x1.reshape(-1),
+            grid_x2.reshape(-1),
+        )).T
+
+        time_slices = {
+            'grid' : grid1,
+            'uniq' : uniq,
+            'times' : time_steps,
+        }
+        for t_i, t in enumerate(uniq):
+            coordinates = test[indices == t_i]
+            d_value = dphi_dinput[indices == t_i]
+
+            DPHI_DINPUT_tt_0 = gd(
+              (coordinates[:, 0], coordinates[:, 1]),
+              d_value[:, 0],
+              (grid_x1, grid_x2),
+              method=args.interp_mode)
+
+            DPHI_DINPUT_tt_1 = gd(
+              (coordinates[:, 0], coordinates[:, 1]),
+              d_value[:, 1],
+              (grid_x1, grid_x2),
+              method=args.interp_mode)
+
+            DPHI_DINPUT_tt_0 = np.nan_to_num(DPHI_DINPUT_tt_0)
+            DPHI_DINPUT_tt_1 = np.nan_to_num(DPHI_DINPUT_tt_1)
+
+            time_slices[t] = {
+                '0': DPHI_DINPUT_tt_0.reshape(-1),
+                '1': DPHI_DINPUT_tt_1.reshape(-1),
+            }
+
+    ########################################################
+
+    grid0 = np.array((
+        meshes[0].reshape(-1),
+        meshes[1].reshape(-1),
+    )).T
+
+    dphi_dinput_t0_dx = dphi_dinput_t0[:, 0]
+    dphi_dinput_t0_dy = dphi_dinput_t0[:, 1]
+
+    t0={
+        '0': dphi_dinput_t0_dx.reshape(-1),
+        '1': dphi_dinput_t0_dy.reshape(-1),
+        'grid' : grid0,
+    }
+
+    dphi_dinput_tT_dx = dphi_dinput_tT[:, 0]
+    dphi_dinput_tT_dy = dphi_dinput_tT[:, 1]
+
+    tT={
+        '0': dphi_dinput_tT_dx.reshape(-1),
+        '1': dphi_dinput_tT_dy.reshape(-1),
+        'grid' : grid0,
+    }
+
+    grid_x1, grid_x2, grid_t = np.meshgrid(
+        x_1_,
+        x_2_,
+        t_, copy=False) # each is NxNxN
+
+    grid1 = np.array((
+        grid_x1.reshape(-1),
+        grid_x2.reshape(-1),
+        grid_t.reshape(-1),
+    )).T
+
+    # import ipdb; ipdb.set_trace()
+    DPHI_DINPUT_tt_0 = gd(
+      (tt[:, 0], tt[:, 1], tt[:, 2]),
+      dphi_dinput_tt[:, 0],
+      (grid_x1, grid_x2, grid_t),
+      method=args.interp_mode)
+
+    DPHI_DINPUT_tt_1 = gd(
+      (tt[:, 0], tt[:, 1], tt[:, 2]),
+      dphi_dinput_tt[:, 1],
+      (grid_x1, grid_x2, grid_t),
+      method=args.interp_mode)
+
+    # import ipdb; ipdb.set_trace()
+
+    print("# DPHI_DINPUT_tt_0 nans:", np.count_nonzero(np.isnan(DPHI_DINPUT_tt_0)), DPHI_DINPUT_tt_0.size)
+    print("# DPHI_DINPUT_tt_1 nans:", np.count_nonzero(np.isnan(DPHI_DINPUT_tt_1)), DPHI_DINPUT_tt_1.size)
+
+    DPHI_DINPUT_tt_0 = np.nan_to_num(DPHI_DINPUT_tt_0)
+    DPHI_DINPUT_tt_1 = np.nan_to_num(DPHI_DINPUT_tt_1)
+
+    tt={
+        '0': DPHI_DINPUT_tt_0.reshape(-1),
+        '1': DPHI_DINPUT_tt_1.reshape(-1),
+        'grid' : grid1,
+    }
+
+    ########################################################
+
+    control_data = {
+            't0' : t0,
+            'tT' : tT,
+            'tt' : tt,
+            'time_slices' : time_slices,
+        }
+
+    return test, rho0, rhoT, T_t, control_data,\
+        dphi_dinput_t0_dx, dphi_dinput_tT_dx, DPHI_DINPUT_tt_0,\
+        dphi_dinput_t0_dy, dphi_dinput_tT_dy, DPHI_DINPUT_tt_1,\
+        grid_x1, grid_x2, grid_t
+
+def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
+    dt = (T_t - T_0)/(args.integrate_N)
+    ts = np.arange(T_0, T_t + dt, dt)
+
+    initial_sample = np.random.multivariate_normal(
+        np.array([mu_0]*d), np.eye(d)*sigma_0, args.M) # 100 x 3
+
+    v_scales = [float(x) for x in args.v_scale.split(",")]
+    biases = [float(x) for x in args.bias.split(",")]
+
+    ##############################
+
+    all_results = {}
+
+    mus = np.zeros(d)
+    variances = np.zeros(d)
+
+    integrator = Integrator(initial_sample, (T_0, T_t), args, dynamics)
+
+    without_control = np.empty(
+        (
+            initial_sample.shape[0],
+            initial_sample.shape[1],
+            len(ts),
+        ))
+
+    ##############################
+
+    with ThreadPoolExecutor(max_workers=args.workers) as executor:
+        results = executor.map(
+            integrator.task,
+            list(range(initial_sample.shape[0])),
+            [without_control]*initial_sample.shape[0],
+            [None]*initial_sample.shape[0],
+            [None]*initial_sample.shape[0],
+            [args.control_strategy]*initial_sample.shape[0],
+        )
+        if len(v_scales) == 1:
+            for result in results:
+                print("done with {}".format(result))
+
+    for vs in v_scales:
+        for b in biases:
+            with_control_affine = lambda v: v * vs + b
+
+            with_control = np.empty(
+                (
+                    initial_sample.shape[0],
+                    initial_sample.shape[1],
+                    len(ts),
+                ))
+
+            with ThreadPoolExecutor(max_workers=args.workers) as executor:
+                results = executor.map(
+                    integrator.task,
+                    list(range(initial_sample.shape[0])),
+                    [with_control]*initial_sample.shape[0],
+                    [control_data]*initial_sample.shape[0],
+                    [with_control_affine]*initial_sample.shape[0],
+                    [args.control_strategy]*initial_sample.shape[0]
+                )
+                if len(v_scales) == 1:
+                    for result in results:
+                        print("done with {}".format(result))
+
+            ##############################
+
+            for j in range(d):
+                tmp = with_control[:, j, -1]
+                mus[j] = np.mean(tmp)
+                variances[j] = np.var(tmp)
+            mu_s = "{}".format(mus)
+            var_s = "{}".format(variances)
+            print("vs %.3f, b %.3f" % (vs, b))
+            print("mu_s", mu_s)
+            print("var_s", var_s)
+
+            all_results[hash_func(vs, b)] = [mus, variances]
+
+            if len(v_scales) > 1:
+                del with_control
+
+    return ts, initial_sample, with_control, without_control,\
+        all_results, mus, variances

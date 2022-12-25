@@ -249,6 +249,38 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=-1, help='')
     parser.add_argument('--restore', type=str, default="", help='')
 
+    parser.add_argument('--diff_on_cpu',
+        type=int, default=1)
+    parser.add_argument('--fullstate',
+        type=int, default=1)
+    parser.add_argument('--interp_mode',
+        type=str, default="linear")
+    parser.add_argument('--grid_n',
+        type=int, default=30)
+    parser.add_argument('--control_strategy',
+        type=int,
+        default=0)
+
+    parser.add_argument('--integrate_N',
+        type=int,
+        default=2000,
+        required=False)
+    parser.add_argument('--M',
+        type=int,
+        default=100,
+        required=False)
+    parser.add_argument('--workers',
+        type=int,
+        default=4)
+    parser.add_argument('--noise',
+        action='store_true')
+    parser.add_argument('--v_scale',
+        type=str,
+        default="1.0")
+    parser.add_argument('--bias',
+        type=str,
+        default="0.0")
+
     args = parser.parse_args()
 
     N = args.N
@@ -278,7 +310,7 @@ if __name__ == '__main__':
     if args.ni >= 0:
         ni = args.ni
 
-    model, _ = get_model(
+    model, meshes = get_model(
         d,
         N,
         0,
@@ -332,3 +364,30 @@ if __name__ == '__main__':
     dde.saveplot(losshistory, train_state, issave=True, isplot=False)
     model_path = model.save(ck_path)
     print(model_path)
+
+    ######################################
+
+    test, rho0, rhoT, T_t, control_data,\
+        dphi_dinput_t0_dx, dphi_dinput_tT_dx, DPHI_DINPUT_tt_0,\
+        dphi_dinput_t0_dy, dphi_dinput_tT_dy, DPHI_DINPUT_tt_1,\
+        grid_x1, grid_x2, grid_t = make_control_data(
+        model, model.train_state.X_test, N, d, meshes, args)
+
+    fname = '%s_%d_%d_%s_%d_%d_all_control_data.npy' % (
+            model_path.replace(".pt", ""),
+            N**d,
+            args.diff_on_cpu,
+            args.interp_mode,
+            args.grid_n,
+            T_t,
+        )
+    np.save(
+        fname, 
+        control_data
+    )
+    print("saved control_data to %s" % (fname))
+
+    ######################################
+
+    ts, initial_sample, with_control, without_control,\
+        all_results, mus, variances = do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args)
