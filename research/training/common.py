@@ -1080,8 +1080,8 @@ def euler_pde_10(x, y, epsilon, a1, a2, *_):
 
     dy2_t = dde.grad.jacobian(y2, x, j=2)
 
-    f1=a1*x[:, 1:2]*x[:, 1:2]
-    f2=a2*x[:, 0:1]*x[:, 0:1]
+    f1=a1*x[:, 1:2]*x[:, 0:1]
+    f2=a2*x[:, 0:1]*x[:, 1:2]
     # f1=x[:, 1:2]*x[:, 2:3]*(j2-j3)/j1
     # f2=x[:, 0:1]*x[:, 2:3]*(j3-j1)/j2
     # f3=x[:, 0:1]*x[:, 1:2]*(j1-j2)/j3
@@ -1948,7 +1948,7 @@ control_query_strategies = {
     1 : apply_control_strategy1
 }
 
-def dynamics(t, state, alpha1, alpha2, alpha3, T_t, control_data, affine, strategy_key):
+def dynamics_0(t, state, alpha1, alpha2, alpha3, T_t, control_data, affine, strategy_key):
     statedot = np.zeros_like(state)
     # implicit is that all state dimension NOT set
     # have 0 dynamics == do not change in value
@@ -1981,6 +1981,45 @@ def dynamics(t, state, alpha1, alpha2, alpha3, T_t, control_data, affine, strate
     return control_query_strategies[strategy_key](state, t, T_0, T_t, control_data, affine, statedot)
 
     # return apply_control_strategy1(state, t, T_0, T_t, control_data, affine, statedot)
+
+def dynamics_1(t, state, alpha1, alpha2, alpha3, T_t, control_data, affine, strategy_key):
+    # matches euler_pde_10
+
+    statedot = np.zeros_like(state)
+    # implicit is that all state dimension NOT set
+    # have 0 dynamics == do not change in value
+
+    # alpha1 = (j2 - j3) / j1
+    # alpha2 = (j3 - j1) / j2
+    # alpha3 = (j1 - j2) / j3
+
+    ########################################
+
+    if len(state) == 3:
+        statedot[X1_index] = alpha1 * state[X2_index] * state[X3_index]
+        statedot[X2_index] = alpha2 * state[X3_index] * state[X1_index]
+        statedot[X3_index] = alpha3 * state[X1_index] * state[X2_index]
+    elif len(state) == 2:
+        statedot[X1_index] = alpha1 * state[X2_index] * state[X1_index]
+        statedot[X2_index] = alpha2 * state[X1_index] * state[X2_index]
+
+    ########################################
+
+    if control_data is None:
+        return statedot
+    # else:
+    #     print("t", t)
+    #     statedot[X1_index] += np.random.uniform(-0.2, 0.5)
+    #     statedot[X2_index] += np.random.uniform(-0.2, 0.5)
+    #     statedot[X3_index] += np.random.uniform(-0.2, 0.5)
+    #     return statedot
+
+    return control_query_strategies[strategy_key](state, t, T_0, T_t, control_data, affine, statedot)
+
+dynamics_map = {
+    2 : dynamics_0,
+    10 : dynamics_1
+}
 
 from concurrent.futures import ThreadPoolExecutor
 
@@ -2265,7 +2304,11 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
     mus = np.zeros(d)
     variances = np.zeros(d)
 
-    integrator = Integrator(initial_sample, (T_0, T_t), args, dynamics)
+    integrator = Integrator(
+        initial_sample,
+        (T_0, T_t),
+        args,
+        dynamics_map[args.pde_key])
 
     without_control = np.empty(
         (

@@ -157,6 +157,7 @@ if __name__ == '__main__':
     # timemode  0 = linspace, 1 = even time samples
     parser.add_argument('--ni', type=int, default=-1, help='')
     parser.add_argument('--loss_func', type=str, default="wass3", help='')
+    parser.add_argument('--pde_key', type=str, default="", help='')
 
     parser.add_argument('--do_integration',
         type=int,
@@ -226,7 +227,7 @@ if __name__ == '__main__':
             mu_0,
             mu_T,
             T_t,
-            args.loss_func,
+            args,
             [float(x) for x in args.a.split(',')],
             args.optimizer,
             train_distribution=args.train_distribution,
