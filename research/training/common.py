@@ -2000,7 +2000,7 @@ def dynamics_1(t, state, alpha1, alpha2, alpha3, T_t, control_data, affine, stra
         statedot[X2_index] = alpha2 * state[X3_index] * state[X1_index]
         statedot[X3_index] = alpha3 * state[X1_index] * state[X2_index]
     elif len(state) == 2:
-        statedot[X1_index] = alpha1 * state[X2_index] * state[X1_index]
+        statedot[X1_index] = alpha1 * state[X1_index] * state[X2_index]
         statedot[X2_index] = alpha2 * state[X1_index] * state[X2_index]
 
     ########################################
@@ -2304,11 +2304,16 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
     mus = np.zeros(d)
     variances = np.zeros(d)
 
+    pde_key = d
+    if len(args.pde_key) > 0:
+        pde_key = int(args.pde_key)
+    print("pde_key", pde_key)
+
     integrator = Integrator(
         initial_sample,
         (T_0, T_t),
         args,
-        dynamics_map[args.pde_key])
+        dynamics_map[pde_key])
 
     without_control = np.empty(
         (
