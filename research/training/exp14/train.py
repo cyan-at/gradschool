@@ -89,8 +89,18 @@ def get_model(
     batchsize,
     model_type,
     activations,
+    mu_0,
+    mu_T,
+    T_t,
+    args,
+    a,
     optimizer="adam",
-    init="Glorot normal"):
+    init="Glorot normal",
+    train_distribution="Hammersley",
+    timemode=0,
+    ni=0,
+    epsilon=1e-3
+    ):
     M = N**d
 
     linspaces = []
@@ -148,7 +158,8 @@ def get_model(
         rho0[..., np.newaxis],
         batch_size=batchsize,
         component=1,
-        shuffle=True)
+        shuffle=True
+    )
 
     ######################################
 
@@ -161,7 +172,8 @@ def get_model(
         rhoT[..., np.newaxis],
         batch_size=batchsize,
         component=1,
-        shuffle=True)
+        shuffle=True
+    )
 
     ######################################
 
@@ -184,14 +196,21 @@ def get_model(
         [state_min]*d,
         [state_max]*d)
     timedomain = dde.geometry.TimeDomain(0., T_t)
+
     geomtime = dde.geometry.GeometryXTime(geom, timedomain)
+
+    pde_key = d
+    if len(args.pde_key) > 0:
+        pde_key = int(args.pde_key)
+    print("pde_key", pde_key)
 
     data = WASSPDE(
         geomtime,
-        euler_pdes[6],
+        lambda x, y: euler_pdes[pde_key](x,  y, epsilon, a[0], a[1], a[2]),
         [rho_0_BC,rho_T_BC],
         num_domain=samples_between_initial_and_final,
         num_initial=initial_samples,
+        train_distribution=train_distribution
         # num_boundary=50,
         # train_distribution="pseudo",
         # num_initial=10,
@@ -209,9 +228,12 @@ def get_model(
 
     ######################################
 
-    rho0_WASS_batch = lambda y_true, y_pred: WASS_batch_2(y_true, y_pred, device, sinkhorn0, rho0, state)
+    dx = linspaces[0][1] - linspaces[0][0]
+    print("dx", dx)
+
+    rho0_WASS_batch = lambda y_true, y_pred: loss_func_dict[args.loss_func](y_true, y_pred, device, sinkhorn0, rho0, state)
     rho0_WASS_batch.__name__ = "rho0_WASS_batch"
-    rhoT_WASS_batch = lambda y_true, y_pred: WASS_batch_2(y_true, y_pred, device, sinkhornT, rhoT, state)
+    rhoT_WASS_batch = lambda y_true, y_pred: loss_func_dict[args.loss_func](y_true, y_pred, device, sinkhornT, rhoT, state)
     rhoT_WASS_batch.__name__ = "rhoT_WASS_batch"
     losses=[
         "MSE","MSE",
@@ -226,41 +248,113 @@ def get_model(
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="")
+
+    parser.add_argument('--a', type=str, default="-1,1,2", help='')
+    parser.add_argument('--q', type=float, default=0.5, help='')
+    parser.add_argument('--mu_0', type=str, default="", help='')
+    parser.add_argument('--mu_T', type=str, default="", help='')
+    parser.add_argument('--T_t', type=str, default="", help='')
+
     parser.add_argument('--N', type=int, default=15, help='')
-    parser.add_argument('--js', type=str, default="1,1,2", help='')
-    parser.add_argument('--q', type=float, default=0.0, help='')
-    parser.add_argument('--ck_path', type=str, default=".", help='')
-    parser.add_argument('--debug', type=int, default=False, help='')
-    parser.add_argument('--batchsize', type=int, default=500, help='')
-    parser.add_argument('--epochs', type=int, default=-1, help='')
     parser.add_argument('--optimizer', type=str, default="adam", help='')
+    parser.add_argument('--train_distribution', type=str, default="Hammersley", help='')
+    parser.add_argument('--timemode', type=int, default=0, help='')
+    # timemode  0 = linspace, 1 = even time samples
+    parser.add_argument('--ni', type=int, default=-1, help='')
+    parser.add_argument('--loss_func', type=str, default="wass3", help='')
+    parser.add_argument('--pde_key', type=str, default="", help='')
+
+    parser.add_argument('--ck_path', type=str, default=".", help='')
+    parser.add_argument('--model_name', type=str, default="", help='')
+    parser.add_argument('--debug', type=int, default=False, help='')
+    parser.add_argument('--epochs', type=int, default=-1, help='')
+    parser.add_argument('--restore', type=str, default="", help='')
+
+    parser.add_argument('--diff_on_cpu',
+        type=int, default=1)
+    parser.add_argument('--fullstate',
+        type=int, default=1)
+    parser.add_argument('--interp_mode',
+        type=str, default="linear")
+    parser.add_argument('--grid_n',
+        type=int, default=30)
+    parser.add_argument('--control_strategy',
+        type=int,
+        default=0)
+
+    parser.add_argument('--integrate_N',
+        type=int,
+        default=2000,
+        required=False)
+    parser.add_argument('--M',
+        type=int,
+        default=100,
+        required=False)
+    parser.add_argument('--workers',
+        type=int,
+        default=4)
+    parser.add_argument('--noise',
+        action='store_true')
+    parser.add_argument('--v_scale',
+        type=str,
+        default="1.0")
+    parser.add_argument('--bias',
+        type=str,
+        default="0.0")
+
     args = parser.parse_args()
 
     N = args.N
-    j1, j2, j3 = [float(x) for x in args.js.split(",")] # axis-symmetric case
     q_statepenalty_gain = args.q # 0.5
     print("N: ", N)
-    print("js: ", j1, j2, j3)
+    print("a: ", args.a)
     print("q: ", q_statepenalty_gain)
+
+    if len(args.mu_0) > 0:
+        mu_0 = float(args.mu_0)
+    print("mu_0", mu_0)
+
+    if len(args.mu_T) > 0:
+        mu_T = float(args.mu_T)
+    print("mu_T", mu_T)
+
+    if len(args.T_t) > 0:
+        T_t = float(args.T_t)
+    print("T_t", T_t)
 
     d = 3
 
     if args.debug:
         torch.autograd.set_detect_anomaly(True)
 
-    model, _ = get_model(
+    model, meshes = get_model(
         d,
         N,
-        args.batchsize,
         0,
         "tanh",
-        args.optimizer)
+        mu_0,
+        mu_T,
+        T_t,
+        args,
+        [float(x) for x in args.a.split(',')],
+        args.optimizer,
+        train_distribution=args.train_distribution,
+        timemode=args.timemode,
+        ni=ni
+        )
+    if len(args.restore) > 0:
+        model.restore(args.restore)
 
     ######################################
 
     de = 1
 
-    ck_path = "%s/model" % (args.ck_path)
+    model_name = "model"
+    if len(args.model_name) > 0:
+        model_name = args.model_name
+
+    ck_path = "%s/%s" % (args.ck_path, model_name)
+
     earlystop_cb = EarlyStoppingFixed(
         ck_path,
         baseline=1e-3,
@@ -274,17 +368,45 @@ if __name__ == '__main__':
     if args.epochs > 0:
         num_epochs = args.epochs
 
+    start = time.time()
     losshistory, train_state = model.train(
         iterations=num_epochs,
         display_every=de,
-        callbacks=[
-            # resampler,
-            earlystop_cb,
-            modelcheckpt_cb
-        ])
+        callbacks=[earlystop_cb, modelcheckpt_cb],
+        model_save_path=ck_path)
+    end = time.time()
+
+    print("training dt", end - start)
 
     ######################################
 
     dde.saveplot(losshistory, train_state, issave=True, isplot=False)
     model_path = model.save(ck_path)
     print(model_path)
+
+    ######################################
+
+    test, rho0, rhoT, T_t, control_data,\
+        dphi_dinput_t0_dx, dphi_dinput_tT_dx, DPHI_DINPUT_tt_0,\
+        dphi_dinput_t0_dy, dphi_dinput_tT_dy, DPHI_DINPUT_tt_1,\
+        grid_x1, grid_x2, grid_t = make_control_data(
+        model, model.train_state.X_test, N, d, meshes, args)
+
+    fname = '%s_%d_%d_%s_%d_%d_all_control_data.npy' % (
+            model_path.replace(".pt", ""),
+            N**d,
+            args.diff_on_cpu,
+            args.interp_mode,
+            args.grid_n,
+            T_t,
+        )
+    np.save(
+        fname, 
+        control_data
+    )
+    print("saved control_data to %s" % (fname))
+
+    ######################################
+
+    ts, initial_sample, with_control, without_control,\
+        all_results, mus, variances = do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args)
