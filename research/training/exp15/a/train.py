@@ -83,7 +83,7 @@ def get_model(
     mu_0,
     mu_T,
     T_t,
-    loss_func_key,
+    args,
     a,
     optimizer="adam",
     init="Glorot normal",
@@ -182,10 +182,14 @@ def get_model(
     elif timemode == 1:
         geomtime = CustomGeometryXTime2(geom, timedomain, M)
 
+    pde_key = d
+    if len(args.pde_key) > 0:
+        pde_key = int(args.pde_key)
+    print("pde_key", pde_key)
 
     data = WASSPDE(
         geomtime,
-        lambda x, y: euler_pdes[d](x,  y, epsilon, a[0], a[1]),
+        lambda x, y: euler_pdes[pde_key](x,  y, epsilon, a[0], a[1]),
         [rho_0_BC,rho_T_BC],
         num_domain=samples_between_initial_and_final,
         num_initial=ni, # initial_samples,
@@ -208,9 +212,9 @@ def get_model(
     dx = linspaces[0][1] - linspaces[0][0]
     print("dx", dx)
 
-    rho0_WASS = lambda y_true, y_pred: loss_func_dict[loss_func_key](y_true, y_pred, sinkhorn, rho0_tensor, C, N, dx)
+    rho0_WASS = lambda y_true, y_pred: loss_func_dict[args.loss_func](y_true, y_pred, sinkhorn, rho0_tensor, C, N, dx)
     rho0_WASS.__name__ = "rho0_WASS"
-    rhoT_WASS = lambda y_true, y_pred: loss_func_dict[loss_func_key](y_true, y_pred, sinkhorn, rhoT_tensor, C, N, dx)
+    rhoT_WASS = lambda y_true, y_pred: loss_func_dict[args.loss_func](y_true, y_pred, sinkhorn, rhoT_tensor, C, N, dx)
     rhoT_WASS.__name__ = "rhoT_WASS"
     losses=[
         "MSE","MSE",
@@ -242,6 +246,7 @@ if __name__ == '__main__':
     # timemode  0 = linspace, 1 = even time samples
     parser.add_argument('--ni', type=int, default=-1, help='')
     parser.add_argument('--loss_func', type=str, default="wass3", help='')
+    parser.add_argument('--pde_key', type=str, default="", help='')
 
     parser.add_argument('--ck_path', type=str, default=".", help='')
     parser.add_argument('--model_name', type=str, default="", help='')
@@ -318,7 +323,7 @@ if __name__ == '__main__':
         mu_0,
         mu_T,
         T_t,
-        args.loss_func,
+        args,
         [float(x) for x in args.a.split(',')],
         args.optimizer,
         train_distribution=args.train_distribution,

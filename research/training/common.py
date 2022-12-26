@@ -573,6 +573,7 @@ def euler_pde_3(x, y, epsilon, a1, a2, a3):
     dy1_y = dde.grad.jacobian(y1, x, j=1)
     dy1_z = dde.grad.jacobian(y1, x, j=2)
     dy1_t = dde.grad.jacobian(y1, x, j=3)
+
     dy1_xx = dde.grad.hessian(y1, x, i=0, j=0)
     dy1_yy = dde.grad.hessian(y1, x, i=1, j=1)
     dy1_zz = dde.grad.hessian(y1, x, i=2, j=2)
@@ -1061,6 +1062,54 @@ def self_assembly(x, y):
 #         neg_loss_y2,
     ]
 
+def euler_pde_10(x, y, epsilon, a1, a2, *_):
+    """
+    euler_pde_2 but with nonlinear dynamics
+    """
+    y1, y2 = y[:, 0:1], y[:, 1:2]
+
+    dy1_x = dde.grad.jacobian(y1, x, j=0)
+    dy1_y = dde.grad.jacobian(y1, x, j=1)
+    dy1_t = dde.grad.jacobian(y1, x, j=2)
+
+    dy1_xx = dde.grad.hessian(y1, x, i=0, j=0)
+    dy1_yy = dde.grad.hessian(y1, x, i=1, j=1)
+
+    dy2_xx = dde.grad.hessian(y2, x, i=0, j=0)
+    dy2_yy = dde.grad.hessian(y2, x, i=1, j=1)
+
+    dy2_t = dde.grad.jacobian(y2, x, j=2)
+
+    f1=a1*x[:, 1:2]*x[:, 1:2]
+    f2=a2*x[:, 0:1]*x[:, 0:1]
+    # f1=x[:, 1:2]*x[:, 2:3]*(j2-j3)/j1
+    # f2=x[:, 0:1]*x[:, 2:3]*(j3-j1)/j2
+    # f3=x[:, 0:1]*x[:, 1:2]*(j1-j2)/j3
+    
+    # d_f1dy1_y2_x=tf.gradients((f1+dy1_x)*y2, x)[0][:, 0:1]
+    # d_f2dy1_y2_y=tf.gradients((f2+dy1_y)*y2, x)[0][:, 1:2]
+    # d_f3dy1_y2_z=tf.gradients((f3+dy1_z)*y2, x)[0][:, 2:3]
+    d_f1dy1_y2_x = dde.grad.jacobian((f1+dy1_x)*y2, x, j=0)
+    d_f2dy1_y2_y = dde.grad.jacobian((f2+dy1_y)*y2, x, j=1)
+    # d_f3dy1_y2_z = dde.grad.jacobian((f3+dy1_z)*y2, x, j=2)
+
+    # stay close to origin while searching, penalizes large state distance solutions
+    q = q_statepenalty_gain*(
+        x[:, 0:1] * x[:, 0:1]\
+        + x[:, 1:2] * x[:, 1:2])
+    # also try
+    # q = 0 # minimum effort control
+
+    psi = -dy1_t + q - .5*(dy1_x*dy1_x+dy1_y*dy1_y) - (dy1_x*f1 + dy1_y*f2) - epsilon*(dy1_xx+dy1_yy)
+
+    # print("WINSTON", a1, a2)
+
+    # TODO: verify this expression
+    return [
+        psi,
+        -dy2_t-(d_f1dy1_y2_x+d_f2dy1_y2_y)+epsilon*(dy2_xx+dy2_yy),
+    ]
+
 euler_pdes = {
     1 : euler_pde_1,
     2 : euler_pde_2,
@@ -1071,6 +1120,7 @@ euler_pdes = {
     7 : euler_pde_7,
     8 : euler_pde_8,
     9 : self_assembly,
+    10 : euler_pde_10,
 }
 
 ######################################
