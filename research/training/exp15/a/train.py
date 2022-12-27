@@ -373,9 +373,7 @@ if __name__ == '__main__':
     ######################################
 
     test, rho0, rhoT, T_t, control_data,\
-        dphi_dinput_t0_dx, dphi_dinput_tT_dx, DPHI_DINPUT_tt_0,\
-        dphi_dinput_t0_dy, dphi_dinput_tT_dy, DPHI_DINPUT_tt_1,\
-        grid_x1, grid_x2, grid_t = make_control_data(
+        _, _, _, _ = make_control_data(
         model, model.train_state.X_test, N, d, meshes, args)
 
     fname = '%s_%d_%d_%s_%d_%d_all_control_data.npy' % (

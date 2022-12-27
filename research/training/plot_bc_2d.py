@@ -244,10 +244,13 @@ if __name__ == '__main__':
     inputs = np.float32(test[:, :d+1])
 
     test, rho0, rhoT, T_t, control_data,\
-        dphi_dinput_t0_dx, dphi_dinput_tT_dx, DPHI_DINPUT_tt_0,\
-        dphi_dinput_t0_dy, dphi_dinput_tT_dy, DPHI_DINPUT_tt_1,\
-        grid_x1, grid_x2, grid_t = make_control_data(
+        t0s, tTs, tts, grids = make_control_data(
         model, inputs, N, d, meshes, args)
+
+    dphi_dinput_t0_dx, dphi_dinput_t0_dy, _ = t0s
+    dphi_dinput_tT_dx, dphi_dinput_tT_dy, _ = tTs
+    DPHI_DINPUT_tt_0, DPHI_DINPUT_tt_1, _ = tts
+    grid_x1, grid_x2, _, grid_t = grids
 
     fname = '%s_%d_%d_%s_%d_%d_all_control_data.npy' % (
             args.modelpt.replace(".pt", ""),

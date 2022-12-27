@@ -2213,10 +2213,17 @@ def make_control_data(model, inputs, N, d, meshes, args):
 
     ########################################################
 
-    grid0 = np.array((
-        meshes[0].reshape(-1),
-        meshes[1].reshape(-1),
-    )).T
+    if d == 2:
+        grid0 = np.array((
+            meshes[0].reshape(-1),
+            meshes[1].reshape(-1),
+        )).T
+    elif d == 3:
+        grid0 = np.array((
+            meshes[0].reshape(-1),
+            meshes[1].reshape(-1),
+            meshes[2].reshape(-1),
+        )).T
 
     dphi_dinput_t0_dx = dphi_dinput_t0[:, 0]
     dphi_dinput_t0_dy = dphi_dinput_t0[:, 1]
@@ -2227,6 +2234,7 @@ def make_control_data(model, inputs, N, d, meshes, args):
         'grid' : grid0,
     }
 
+
     dphi_dinput_tT_dx = dphi_dinput_tT[:, 0]
     dphi_dinput_tT_dy = dphi_dinput_tT[:, 1]
 
@@ -2236,43 +2244,105 @@ def make_control_data(model, inputs, N, d, meshes, args):
         'grid' : grid0,
     }
 
-    grid_x1, grid_x2, grid_t = np.meshgrid(
-        x_1_,
-        x_2_,
-        t_, copy=False) # each is NxNxN
+    dphi_dinput_t0_dz = None
+    dphi_dinput_tT_dz = None
+    if d == 3:
+        dphi_dinput_t0_dz = dphi_dinput_t0[:, 2]
+        t0['2'] = dphi_dinput_t0_dz.reshape(-1)
+        dphi_dinput_tT_dz = dphi_dinput_tT[:, 2]
+        tT['2'] = dphi_dinput_tT_dz.reshape(-1)
 
-    grid1 = np.array((
-        grid_x1.reshape(-1),
-        grid_x2.reshape(-1),
-        grid_t.reshape(-1),
-    )).T
+    ###########################
 
-    # import ipdb; ipdb.set_trace()
-    DPHI_DINPUT_tt_0 = gd(
-      (tt[:, 0], tt[:, 1], tt[:, 2]),
-      dphi_dinput_tt[:, 0],
-      (grid_x1, grid_x2, grid_t),
-      method=args.interp_mode)
+    grid_x3 = None
+    if d == 2:
+        grid_x1, grid_x2, grid_t = np.meshgrid(
+            x_1_,
+            x_2_,
+            t_, copy=False) # each is NxNxN
 
-    DPHI_DINPUT_tt_1 = gd(
-      (tt[:, 0], tt[:, 1], tt[:, 2]),
-      dphi_dinput_tt[:, 1],
-      (grid_x1, grid_x2, grid_t),
-      method=args.interp_mode)
+        grid1 = np.array((
+            grid_x1.reshape(-1),
+            grid_x2.reshape(-1),
+            grid_t.reshape(-1),
+        )).T
+    elif d == 3:
+        grid_x1, grid_x2, grid_x3, grid_t = np.meshgrid(
+            x_1_,
+            x_2_,
+            x_3_,
+            t_, copy=False) # each is NxNxN
 
-    # import ipdb; ipdb.set_trace()
+        grid1 = np.array((
+            grid_x1.reshape(-1),
+            grid_x2.reshape(-1),
+            grid_x3.reshape(-1),
+            grid_t.reshape(-1),
+        )).T
 
-    print("# DPHI_DINPUT_tt_0 nans:", np.count_nonzero(np.isnan(DPHI_DINPUT_tt_0)), DPHI_DINPUT_tt_0.size)
-    print("# DPHI_DINPUT_tt_1 nans:", np.count_nonzero(np.isnan(DPHI_DINPUT_tt_1)), DPHI_DINPUT_tt_1.size)
+    ###########################
 
-    DPHI_DINPUT_tt_0 = np.nan_to_num(DPHI_DINPUT_tt_0)
-    DPHI_DINPUT_tt_1 = np.nan_to_num(DPHI_DINPUT_tt_1)
+    DPHI_DINPUT_tt_2 = None
+    if d == 2:
+        # import ipdb; ipdb.set_trace()
+        DPHI_DINPUT_tt_0 = gd(
+          (tt[:, 0], tt[:, 1], tt[:, 2]),
+          dphi_dinput_tt[:, 0],
+          (grid_x1, grid_x2, grid_t),
+          method=args.interp_mode)
 
-    tt={
-        '0': DPHI_DINPUT_tt_0.reshape(-1),
-        '1': DPHI_DINPUT_tt_1.reshape(-1),
-        'grid' : grid1,
-    }
+        DPHI_DINPUT_tt_1 = gd(
+          (tt[:, 0], tt[:, 1], tt[:, 2]),
+          dphi_dinput_tt[:, 1],
+          (grid_x1, grid_x2, grid_t),
+          method=args.interp_mode)
+
+        # import ipdb; ipdb.set_trace()
+
+        print("# DPHI_DINPUT_tt_0 nans:", np.count_nonzero(np.isnan(DPHI_DINPUT_tt_0)), DPHI_DINPUT_tt_0.size)
+        print("# DPHI_DINPUT_tt_1 nans:", np.count_nonzero(np.isnan(DPHI_DINPUT_tt_1)), DPHI_DINPUT_tt_1.size)
+
+        DPHI_DINPUT_tt_0 = np.nan_to_num(DPHI_DINPUT_tt_0)
+        DPHI_DINPUT_tt_1 = np.nan_to_num(DPHI_DINPUT_tt_1)
+
+        tt={
+            '0': DPHI_DINPUT_tt_0.reshape(-1),
+            '1': DPHI_DINPUT_tt_1.reshape(-1),
+            'grid' : grid1,
+        }
+    elif d == 3:
+        DPHI_DINPUT_tt_0 = gd(
+          (tt[:, 0], tt[:, 1], tt[:, 2], tt[:, 3]),
+          dphi_dinput_tt[:, 0],
+          (grid_x1, grid_x2, grid_x3, grid_t),
+          method=args.interp_mode)
+
+        DPHI_DINPUT_tt_1 = gd(
+          (tt[:, 0], tt[:, 1], tt[:, 2], tt[:, 3]),
+          dphi_dinput_tt[:, 1],
+          (grid_x1, grid_x2, grid_x3, grid_t),
+          method=args.interp_mode)
+
+        DPHI_DINPUT_tt_2 = gd(
+          (tt[:, 0], tt[:, 1], tt[:, 2], tt[:, 3]),
+          dphi_dinput_tt[:, 2],
+          (grid_x1, grid_x2, grid_x3, grid_t),
+          method=args.interp_mode)
+
+        print("# DPHI_DINPUT_tt_0 nans:", np.count_nonzero(np.isnan(DPHI_DINPUT_tt_0)), DPHI_DINPUT_tt_0.size)
+        print("# DPHI_DINPUT_tt_1 nans:", np.count_nonzero(np.isnan(DPHI_DINPUT_tt_1)), DPHI_DINPUT_tt_1.size)
+        print("# DPHI_DINPUT_tt_2 nans:", np.count_nonzero(np.isnan(DPHI_DINPUT_tt_2)), DPHI_DINPUT_tt_2.size)
+
+        DPHI_DINPUT_tt_0 = np.nan_to_num(DPHI_DINPUT_tt_0)
+        DPHI_DINPUT_tt_1 = np.nan_to_num(DPHI_DINPUT_tt_1)
+        DPHI_DINPUT_tt_2 = np.nan_to_num(DPHI_DINPUT_tt_2)
+
+        tt={
+            '0': DPHI_DINPUT_tt_0.reshape(-1),
+            '1': DPHI_DINPUT_tt_1.reshape(-1),
+            '2': DPHI_DINPUT_tt_2.reshape(-1),
+            'grid' : grid1,
+        }
 
     ########################################################
 
@@ -2284,9 +2354,10 @@ def make_control_data(model, inputs, N, d, meshes, args):
         }
 
     return test, rho0, rhoT, T_t, control_data,\
-        dphi_dinput_t0_dx, dphi_dinput_tT_dx, DPHI_DINPUT_tt_0,\
-        dphi_dinput_t0_dy, dphi_dinput_tT_dy, DPHI_DINPUT_tt_1,\
-        grid_x1, grid_x2, grid_t
+        [dphi_dinput_t0_dx, dphi_dinput_t0_dy, dphi_dinput_t0_dz],\
+        [dphi_dinput_tT_dx, dphi_dinput_tT_dy, dphi_dinput_tT_dz],\
+        [DPHI_DINPUT_tt_0, DPHI_DINPUT_tt_1, DPHI_DINPUT_tt_2],\
+        [grid_x1, grid_x2, grid_x3, grid_t]
 
 def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
     dt = (T_t - T_0)/(args.integrate_N)
