@@ -295,7 +295,7 @@ if __name__ == '__main__':
         required=False)
     parser.add_argument('--workers',
         type=int,
-        default=4)
+        default=1)
     parser.add_argument('--noise',
         action='store_true')
     parser.add_argument('--v_scale',
@@ -396,7 +396,7 @@ if __name__ == '__main__':
 
     test, rho0, rhoT, T_t, control_data,\
         _, _, _, _ = make_control_data(
-        model, model.train_state.X_test, N, d, meshes, args)
+        model, model.train_state.X_test, N, d, meshes, args, args.batchsize)
 
     fname = '%s_%d_%d_%s_%d_%d_all_control_data.npy' % (
             model_path.replace(".pt", ""),

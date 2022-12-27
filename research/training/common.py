@@ -2082,9 +2082,12 @@ class Integrator(object):
         return i
 
 from scipy.interpolate import griddata as gd
-def make_control_data(model, inputs, N, d, meshes, args):
+def make_control_data(model, inputs, N, d, meshes, args, batchsize_override=None):
     M = N**d
     batchsize = M
+
+    if batchsize_override is not None:
+        batchsize = batchsize_override
 
     T_t = inputs[batchsize, -1]
     print("found T_t", T_t)
@@ -2225,32 +2228,101 @@ def make_control_data(model, inputs, N, d, meshes, args):
             meshes[2].reshape(-1),
         )).T
 
+    ########################################################
+
     dphi_dinput_t0_dx = dphi_dinput_t0[:, 0]
     dphi_dinput_t0_dy = dphi_dinput_t0[:, 1]
 
-    t0={
-        '0': dphi_dinput_t0_dx.reshape(-1),
-        '1': dphi_dinput_t0_dy.reshape(-1),
-        'grid' : grid0,
-    }
-
-
     dphi_dinput_tT_dx = dphi_dinput_tT[:, 0]
     dphi_dinput_tT_dy = dphi_dinput_tT[:, 1]
-
-    tT={
-        '0': dphi_dinput_tT_dx.reshape(-1),
-        '1': dphi_dinput_tT_dy.reshape(-1),
-        'grid' : grid0,
-    }
 
     dphi_dinput_t0_dz = None
     dphi_dinput_tT_dz = None
     if d == 3:
         dphi_dinput_t0_dz = dphi_dinput_t0[:, 2]
-        t0['2'] = dphi_dinput_t0_dz.reshape(-1)
         dphi_dinput_tT_dz = dphi_dinput_tT[:, 2]
-        tT['2'] = dphi_dinput_tT_dz.reshape(-1)
+
+    if batchsize_override is None:
+        t0={
+            '0': dphi_dinput_t0_dx.reshape(-1),
+            '1': dphi_dinput_t0_dy.reshape(-1),
+            'grid' : grid0,
+        }
+
+        tT={
+            '0': dphi_dinput_tT_dx.reshape(-1),
+            '1': dphi_dinput_tT_dy.reshape(-1),
+            'grid' : grid0,
+        }
+
+        if d == 3:
+            t0['2'] = dphi_dinput_t0_dz.reshape(-1)
+            tT['2'] = dphi_dinput_tT_dz.reshape(-1)
+    else:
+        print("interpolating t0 and tt also since batchsize is not enough")
+
+        grid_x1, grid_x2, grid_x3 = np.meshgrid(
+            x_1_,
+            x_2_,
+            x_3_, copy=False) # each is NxNxN
+
+        DPHI_DINPUT_t0_dx = gd(
+          (t0[:, 0], t0[:, 1], t0[:, 2]),
+          dphi_dinput_t0_dx,
+          (grid_x1, grid_x2, grid_x3),
+          method=args.interp_mode)
+
+        DPHI_DINPUT_t0_dy = gd(
+          (t0[:, 0], t0[:, 1], t0[:, 2]),
+          dphi_dinput_t0_dy,
+          (grid_x1, grid_x2, grid_x3),
+          method=args.interp_mode)
+
+        if dphi_dinput_t0_dz is not None:
+            DPHI_DINPUT_t0_dz = gd(
+              (t0[:, 0], t0[:, 1], t0[:, 2]),
+              dphi_dinput_t0_dz,
+              (grid_x1, grid_x2, grid_x3),
+              method=args.interp_mode)
+
+        t0={
+            '0': DPHI_DINPUT_t0_dx.reshape(-1),
+            '1': DPHI_DINPUT_t0_dy.reshape(-1),
+            'grid' : grid0,
+        }
+
+        ##########################
+
+        DPHI_DINPUT_tT_dx = gd(
+          (tT[:, 0], tT[:, 1], tT[:, 2]),
+          dphi_dinput_tT_dx,
+          (grid_x1, grid_x2, grid_x3),
+          method=args.interp_mode)
+
+        DPHI_DINPUT_tT_dy = gd(
+          (tT[:, 0], tT[:, 1], tT[:, 2]),
+          dphi_dinput_tT_dy,
+          (grid_x1, grid_x2, grid_x3),
+          method=args.interp_mode)
+
+        if dphi_dinput_tT_dz is not None:
+            DPHI_DINPUT_tT_dz = gd(
+              (tT[:, 0], tT[:, 1], tT[:, 2]),
+              dphi_dinput_tT_dz,
+              (grid_x1, grid_x2, grid_x3),
+              method=args.interp_mode)
+
+        tT={
+            '0': DPHI_DINPUT_tT_dx.reshape(-1),
+            '1': DPHI_DINPUT_tT_dy.reshape(-1),
+            'grid' : grid0,
+        }
+
+        ##########################
+
+        if d == 3:
+            t0['2'] = DPHI_DINPUT_t0_dz.reshape(-1)
+            tT['2'] = DPHI_DINPUT_tT_dz.reshape(-1)
 
     ###########################
 
