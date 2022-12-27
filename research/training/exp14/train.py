@@ -261,7 +261,7 @@ if __name__ == '__main__':
     parser.add_argument('--timemode', type=int, default=0, help='')
     # timemode  0 = linspace, 1 = even time samples
     parser.add_argument('--ni', type=int, default=-1, help='')
-    parser.add_argument('--loss_func', type=str, default="wass3", help='')
+    parser.add_argument('--loss_func', type=str, default="wassbatch2", help='')
     parser.add_argument('--pde_key', type=str, default="", help='')
 
     parser.add_argument('--ck_path', type=str, default=".", help='')
@@ -269,6 +269,9 @@ if __name__ == '__main__':
     parser.add_argument('--debug', type=int, default=False, help='')
     parser.add_argument('--epochs', type=int, default=-1, help='')
     parser.add_argument('--restore', type=str, default="", help='')
+    parser.add_argument('--batchsize',
+        type=int,
+        default=500)
 
     parser.add_argument('--diff_on_cpu',
         type=int, default=1)
@@ -327,9 +330,14 @@ if __name__ == '__main__':
     if args.debug:
         torch.autograd.set_detect_anomaly(True)
 
+    ni = initial_samples
+    if args.ni >= 0:
+        ni = args.ni
+
     model, meshes = get_model(
         d,
         N,
+        args.batchsize,
         0,
         "tanh",
         mu_0,

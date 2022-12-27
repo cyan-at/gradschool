@@ -1786,7 +1786,7 @@ def WASS_batch_2(y_true, y_pred, device, sinkhorn, rho, state, *_):
 
     y_pred = torch.where(y_pred < 0, 0, y_pred)
 
-    p2 = torch.abs(torch.sum(y_pred) - 500 / 3375)
+    # p2 = torch.abs(torch.sum(y_pred) - 500 / 3375)
 
     rhoT_temp_tensor = torch.from_numpy(
         rho[y_true],
@@ -1803,7 +1803,7 @@ def WASS_batch_2(y_true, y_pred, device, sinkhorn, rho, state, *_):
         y_pred.reshape(-1),
         rhoT_temp_tensor)
 
-    return 20 * p1 + dist
+    return 10 * p1 + dist
 
 def WASS_batch_3(y_true, y_pred, device, sinkhorn, rho, state, expected_sum):
     # import ipdb; ipdb.set_trace()
@@ -2018,7 +2018,8 @@ def dynamics_1(t, state, alpha1, alpha2, alpha3, T_t, control_data, affine, stra
 
 dynamics_map = {
     2 : dynamics_0,
-    10 : dynamics_1
+    3 : dynamics_0,
+    10 : dynamics_1,
 }
 
 from concurrent.futures import ThreadPoolExecutor
