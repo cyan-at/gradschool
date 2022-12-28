@@ -254,8 +254,9 @@ if __name__ == '__main__':
     parser.add_argument('--mu_0', type=str, default="", help='')
     parser.add_argument('--mu_T', type=str, default="", help='')
     parser.add_argument('--T_t', type=str, default="", help='')
-
     parser.add_argument('--N', type=int, default=15, help='')
+    parser.add_argument('--state_bound', type=float, default=5, help='')
+
     parser.add_argument('--optimizer', type=str, default="adam", help='')
     parser.add_argument('--train_distribution', type=str, default="Hammersley", help='')
     parser.add_argument('--timemode', type=int, default=0, help='')
@@ -396,7 +397,7 @@ if __name__ == '__main__':
 
     test, rho0, rhoT, T_t, control_data,\
         _, _, _, _ = make_control_data(
-        model, model.train_state.X_test, N, d, meshes, args, args.batchsize)
+        model, model.train_state.X_test, N, d, meshes, args)
 
     fname = '%s_%d_%d_%s_%d_%d_all_control_data.npy' % (
             model_path.replace(".pt", ""),

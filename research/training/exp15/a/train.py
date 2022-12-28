@@ -78,6 +78,7 @@ import argparse
 def get_model(
     d,
     N,
+    batchsize,
     model_type,
     activations, # sigmoid, tanh
     mu_0,
@@ -240,7 +241,6 @@ if __name__ == '__main__':
     parser.add_argument('--mu_0', type=str, default="", help='')
     parser.add_argument('--mu_T', type=str, default="", help='')
     parser.add_argument('--T_t', type=str, default="", help='')
-
     parser.add_argument('--N', type=int, default=15, help='')
     parser.add_argument('--state_bound', type=float, default=5, help='')
 
@@ -257,6 +257,9 @@ if __name__ == '__main__':
     parser.add_argument('--debug', type=int, default=False, help='')
     parser.add_argument('--epochs', type=int, default=-1, help='')
     parser.add_argument('--restore', type=str, default="", help='')
+    parser.add_argument('--batchsize',
+        type=int,
+        default=500)
 
     parser.add_argument('--diff_on_cpu',
         type=int, default=1)
@@ -322,6 +325,7 @@ if __name__ == '__main__':
     model, meshes = get_model(
         d,
         N,
+        args.batchsize,
         0,
         "tanh",
         mu_0,
