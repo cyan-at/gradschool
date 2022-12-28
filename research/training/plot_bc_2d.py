@@ -134,7 +134,7 @@ if __name__ == '__main__':
     parser.add_argument('--fullstate',
         type=int, default=1)
     parser.add_argument('--interp_mode',
-        type=str, default="linear")
+        type=str, default="nearest")
     parser.add_argument('--grid_n',
         type=int, default=30)
     parser.add_argument('--control_strategy',
@@ -151,6 +151,7 @@ if __name__ == '__main__':
     parser.add_argument('--T_t',
         type=float, default=5.0, help='')
     parser.add_argument('--a', type=str, default="-1,1,2", help='')
+    parser.add_argument('--N', type=int, default=15, help='')
 
     parser.add_argument('--train_distribution', type=str, default="Hammersley", help='')
     parser.add_argument('--timemode', type=int, default=0, help='')
@@ -158,6 +159,9 @@ if __name__ == '__main__':
     parser.add_argument('--ni', type=int, default=-1, help='')
     parser.add_argument('--loss_func', type=str, default="wass3", help='')
     parser.add_argument('--pde_key', type=str, default="", help='')
+    parser.add_argument('--batchsize',
+        type=str,
+        default="")
 
     parser.add_argument('--do_integration',
         type=int,
@@ -196,7 +200,7 @@ if __name__ == '__main__':
 
     ################################################
 
-    N = 15;
+    N = args.N
 
     test = np.loadtxt(args.testdat)
 
@@ -207,6 +211,11 @@ if __name__ == '__main__':
     print("found %d dimension state space" % (d))
     M = N**d
     batchsize = M
+
+    if len(args.batchsize) > 0:
+        batchsize = int(args.batchsize)
+
+    Ns = tuple([N]*d)
 
     ################################################
 
@@ -222,6 +231,7 @@ if __name__ == '__main__':
         model, meshes = get_model(
             d,
             N,
+            batchsize,
             0,
             "tanh",
             mu_0,
@@ -243,14 +253,16 @@ if __name__ == '__main__':
 
     inputs = np.float32(test[:, :d+1])
 
+    # import ipdb; ipdb.set_trace()
+
     test, rho0, rhoT, T_t, control_data,\
         t0s, tTs, tts, grids = make_control_data(
         model, inputs, N, d, meshes, args)
 
-    dphi_dinput_t0_dx, dphi_dinput_t0_dy, _ = t0s
-    dphi_dinput_tT_dx, dphi_dinput_tT_dy, _ = tTs
-    DPHI_DINPUT_tt_0, DPHI_DINPUT_tt_1, _ = tts
-    grid_x1, grid_x2, _, grid_t = grids
+    dphi_dinput_t0_dx, dphi_dinput_t0_dy, dphi_dinput_t0_dz = t0s
+    dphi_dinput_tT_dx, dphi_dinput_tT_dy, dphi_dinput_tT_dz = tTs
+    DPHI_DINPUT_tt_0, DPHI_DINPUT_tt_1, DPHI_DINPUT_tt_2 = tts
+    grid_x1, grid_x2, grid_x3, grid_t = grids
 
     fname = '%s_%d_%d_%s_%d_%d_all_control_data.npy' % (
             args.modelpt.replace(".pt", ""),
@@ -272,132 +284,225 @@ if __name__ == '__main__':
 
     ax_count = 3
     if args.do_integration > 0:
-        ax_count += d
+        ax_count += 2
 
     ########################################################
 
     ax1 = fig.add_subplot(1, ax_count, 1, projection='3d')
-
-    z1 = T_0
-    z2 = T_t
-
-    ax1.contourf(
-        meshes[0],
-        meshes[1],
-        rho0.reshape(N, N),
-        50, zdir='z',
-        cmap=cm.jet,
-        offset=z1,
-        alpha=0.4
-    )
-
-    ax1.contourf(
-        meshes[0],
-        meshes[1],
-        rhoT.reshape(N, N),
-        50, zdir='z',
-        cmap=cm.jet,
-        offset=z2,
-        alpha=0.4,
-    )
-
-    ax1.set_xlim(state_min, state_max)
-    ax1.set_zlim(T_0 - 0.1, T_t + 0.1)
-
-    ax1.set_xlabel('x')
-    ax1.set_ylabel('y')
-    ax1.set_zlabel('t')
-    ax1.set_title('rho_opt')
-
     ax2 = fig.add_subplot(1, ax_count, 2, projection='3d')
-
-    z1 = T_0
-    z2 = T_t
-
-    p = 1.
-
-    ax2.contourf(
-        meshes[0],
-        meshes[1],
-        dphi_dinput_t0_dx.reshape(N, N),
-        50, zdir='z',
-        cmap=cm.jet,
-        offset=z1,
-        alpha=0.4
-    )
-
-    ax2.contourf(
-        meshes[0],
-        meshes[1],
-        dphi_dinput_tT_dx.reshape(N, N),
-        50, zdir='z',
-        cmap=cm.jet,
-        offset=z2,
-        alpha=0.4,
-    )
-
-    sc2=ax2.scatter(
-        grid_x1,
-        grid_x2,
-        grid_t,
-        c=DPHI_DINPUT_tt_0,
-        s=np.abs(DPHI_DINPUT_tt_0*p),
-        cmap=cm.jet,
-        alpha=1.0)
-    plt.colorbar(sc2, shrink=0.25)
-
-    ax2.set_xlim(state_min, state_max)
-    ax2.set_zlim(T_0 - 0.1, T_t + 0.1)
-
-    ax2.set_xlabel('x')
-    ax2.set_ylabel('y')
-    ax2.set_zlabel('t')
-    ax2.set_title('dphi_dx')
-
-    ########################################################
-
     ax3 = fig.add_subplot(1, ax_count, 3, projection='3d')
+    axs = [ax1, ax2, ax3]
+
+    ax_i = 0
 
     z1 = T_0
     z2 = T_t
+    p = 1.0
 
-    ax3.contourf(
-        meshes[0],
-        meshes[1],
-        dphi_dinput_t0_dy.reshape(N, N),
-        50, zdir='z',
-        cmap=cm.jet,
-        offset=z1,
-        alpha=0.4
-    )
+    if d == 2:
+        axs[ax_i].contourf(
+            meshes[0],
+            meshes[1],
+            rho0.reshape(*Ns),
+            50, zdir='z',
+            cmap=cm.jet,
+            offset=z1,
+            alpha=0.4
+        )
 
-    ax3.contourf(
-        meshes[0],
-        meshes[1],
-        dphi_dinput_tT_dy.reshape(N, N),
-        50, zdir='z',
-        cmap=cm.jet,
-        offset=z2,
-        alpha=0.4,
-    )
+        axs[ax_i].contourf(
+            meshes[0],
+            meshes[1],
+            rhoT.reshape(*Ns),
+            50, zdir='z',
+            cmap=cm.jet,
+            offset=z2,
+            alpha=0.4,
+        )
 
-    sc3=ax3.scatter(
-        grid_x1,
-        grid_x2,
-        grid_t,
-        c=DPHI_DINPUT_tt_1,
-        s=np.abs(DPHI_DINPUT_tt_1*p),
-        cmap=cm.jet,
-        alpha=1.0)
-    plt.colorbar(sc3, shrink=0.25)
+        axs[ax_i].set_xlim(state_min, state_max)
+        axs[ax_i].set_zlim(T_0 - 0.1, T_t + 0.1)
 
-    ax3.set_xlim(state_min, state_max)
-    ax3.set_zlim(T_0 - 0.1, T_t + 0.1)
+        axs[ax_i].set_xlabel('x')
+        axs[ax_i].set_ylabel('y')
+        axs[ax_i].set_zlabel('t')
+        axs[ax_i].set_title('rho_opt')
 
-    ax3.set_xlabel('x')
-    ax3.set_ylabel('y')
-    ax3.set_zlabel('t')
-    ax3.set_title('dphi_dy')
+        ax_i += 1
+
+        ########################################################
+
+        axs[ax_i].contourf(
+            meshes[0],
+            meshes[1],
+            dphi_dinput_t0_dx.reshape(N, N),
+            50, zdir='z',
+            cmap=cm.jet,
+            offset=z1,
+            alpha=0.4
+        )
+
+        axs[ax_i].contourf(
+            meshes[0],
+            meshes[1],
+            dphi_dinput_tT_dx.reshape(N, N),
+            50, zdir='z',
+            cmap=cm.jet,
+            offset=z2,
+            alpha=0.4,
+        )
+
+        sc2=axs[ax_i].scatter(
+            grid_x1,
+            grid_x2,
+            grid_t,
+            c=DPHI_DINPUT_tt_0,
+            s=np.abs(DPHI_DINPUT_tt_0*p),
+            cmap=cm.jet,
+            alpha=1.0)
+        plt.colorbar(sc2, shrink=0.25)
+
+        axs[ax_i].set_xlim(state_min, state_max)
+        axs[ax_i].set_zlim(T_0 - 0.1, T_t + 0.1)
+
+        axs[ax_i].set_xlabel('x')
+        axs[ax_i].set_ylabel('y')
+        axs[ax_i].set_zlabel('t')
+        axs[ax_i].set_title('dphi_dx')
+
+        ax_i += 1
+
+        ########################################################
+
+        axs[ax_i].contourf(
+            meshes[0],
+            meshes[1],
+            dphi_dinput_t0_dy.reshape(N, N),
+            50, zdir='z',
+            cmap=cm.jet,
+            offset=z1,
+            alpha=0.4
+        )
+
+        axs[ax_i].contourf(
+            meshes[0],
+            meshes[1],
+            dphi_dinput_tT_dy.reshape(N, N),
+            50, zdir='z',
+            cmap=cm.jet,
+            offset=z2,
+            alpha=0.4,
+        )
+
+        sc3=axs[ax_i].scatter(
+            grid_x1,
+            grid_x2,
+            grid_t,
+            c=DPHI_DINPUT_tt_1,
+            s=np.abs(DPHI_DINPUT_tt_1*p),
+            cmap=cm.jet,
+            alpha=1.0)
+        plt.colorbar(sc3, shrink=0.25)
+
+        axs[ax_i].set_xlim(state_min, state_max)
+        axs[ax_i].set_zlim(T_0 - 0.1, T_t + 0.1)
+
+        axs[ax_i].set_xlabel('x')
+        axs[ax_i].set_ylabel('y')
+        axs[ax_i].set_zlabel('t')
+        axs[ax_i].set_title('dphi_dy')
+
+        ax_i += 1
+
+    if d == 3:
+        t0 = test[:batchsize, :]
+        tT = test[batchsize:2*batchsize, :]
+
+        RHO_0 = gd(
+          (t0[:, 0], t0[:, 1], t0[:, 2]),
+          t0[:, -1],
+          (grid_x1, grid_x2, grid_x3),
+          method=args.interp_mode,
+          fill_value=0.0)
+
+        RHO_T = gd(
+          (tT[:, 0], tT[:, 1], tT[:, 2]),
+          tT[:, -1],
+          (grid_x1, grid_x2, grid_x3),
+          method=args.interp_mode,
+          fill_value=0.0)
+
+        print("RHO_0 sum", np.sum(t0[:, -1]))
+        print("RHO_T sum", np.sum(tT[:, -1]))
+
+        sc1=axs[ax_i].scatter(
+            grid_x1,
+            grid_x2,
+            grid_x3,
+            c=RHO_0,
+            s=np.abs(RHO_0*p),
+            cmap=cm.jet,
+            alpha=1.0)
+        plt.colorbar(sc1, shrink=0.25)
+        axs[ax_i].set_title(
+            'rho0:\nmu=%.3f\nsigma=%.3f\nsum=%.3f\nmin=%.3f\nmax=%.3f' % (
+            mu_0,
+            sigma_0,
+            np.sum(t0[:, -1]),
+            np.min(t0[:, -1]),
+            np.max(t0[:, -1])
+        ))
+        axs[ax_i].set_xlabel('x')
+        axs[ax_i].set_ylabel('y')
+        axs[ax_i].set_zlabel('z')
+
+        ax_i += 1
+
+        sc2=axs[ax_i].scatter(
+            grid_x1,
+            grid_x2,
+            grid_x3,
+            c=RHO_T,
+            s=np.abs(RHO_T*p),
+            cmap=cm.jet,
+            alpha=1.0)
+        plt.colorbar(sc2, shrink=0.25)
+        axs[ax_i].set_title(
+            'rhoT:\nmu=%.3f\nsigma=%.3f\nsum=%.3f\nmin=%.3f\nmax=%.3f' % (
+            mu_T,
+            sigma_T,
+            np.sum(tT[:, -1]),
+            np.min(tT[:, -1]),
+            np.max(tT[:, -1])
+        ))
+        axs[ax_i].set_xlabel('x')
+        axs[ax_i].set_ylabel('y')
+        axs[ax_i].set_zlabel('z')
+
+        ax_i += 1
+
+        # import ipdb; ipdb.set_trace()
+
+        # tmp = gd(
+        #   (t0[:, 0], t0[:, 1], t0[:, 2]),
+        #   dphi_dinput_t0_dx,
+        #   (grid_x1, grid_x2, grid_x3),
+        #   method=args.interp_mode,
+        #   fill_value=0.0)
+
+        # sc3=axs[ax_i].scatter(
+        #     grid_x1,
+        #     grid_x2,
+        #     grid_x3,
+        #     c=tmp,
+        #     s=np.abs(tmp*p),
+        #     cmap=cm.jet,
+        #     alpha=1.0)
+        # plt.colorbar(sc3, shrink=0.25)
+        # axs[ax_i].set_title('DPHI_DINPUT_tt_0, [0] range=%.3f, %.3f' % (np.min(tmp), np.max(tmp)))
+        # axs[ax_i].set_xlabel('x')
+        # axs[ax_i].set_ylabel('y')
+        # axs[ax_i].set_zlabel('z')
 
     ########################################################
 
@@ -454,16 +559,15 @@ if __name__ == '__main__':
         ts, initial_sample, with_control, without_control,\
             all_results, mus, variances = do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args)
 
-        ax1 = fig.add_subplot(1, ax_count, 4, projection='3d')
-        ax2 = fig.add_subplot(1, ax_count, 5, projection='3d')
-        axs = [ax1, ax2]
+        axs.append(fig.add_subplot(1, ax_count, 4, projection='3d'))
+        axs.append(fig.add_subplot(1, ax_count, 5, projection='3d'))
 
         h = 0.5
         b = -0.05
 
         for i in range(initial_sample.shape[0]):
-            for j in range(d):
-                axs[j].plot(
+            for j in range(2):
+                axs[ax_i + j].plot(
                     without_control[i, j, :],
                     ts,
                     [0.0]*len(ts),
@@ -472,7 +576,7 @@ if __name__ == '__main__':
 
                 ########################################
 
-                axs[j].plot(
+                axs[ax_i + j].plot(
                     with_control[i, j, :],
                     ts,
                     [0.0]*len(ts),
@@ -482,14 +586,14 @@ if __name__ == '__main__':
                 ########################################
                 ########################################
 
-                axs[j].plot(
+                axs[ax_i + j].plot(
                     [with_control[i, j, 0]]*2,
                     [ts[0]]*2,
                     [0.0, h],
                     lw=1,
                     c='g')
 
-                axs[j].scatter(
+                axs[ax_i + j].scatter(
                     with_control[i, j, 0],
                     ts[0],
                     h,
@@ -497,14 +601,14 @@ if __name__ == '__main__':
                     s=50,
                 )
 
-                axs[j].plot(
+                axs[ax_i + j].plot(
                     [with_control[i, j, -1]]*2,
                     [ts[-1]]*2,
                     [0.0, h],
                     lw=1,
                     c='g')
 
-                axs[j].scatter(
+                axs[ax_i + j].scatter(
                     with_control[i, j, -1],
                     ts[-1],
                     h,
@@ -515,14 +619,14 @@ if __name__ == '__main__':
                 ########################################
                 ########################################
 
-                axs[j].plot(
+                axs[ax_i + j].plot(
                     [without_control[i, j, 0]]*2,
                     [ts[0]]*2,
                     [0.0, h],
                     lw=1,
                     c='b')
 
-                axs[j].scatter(
+                axs[ax_i + j].scatter(
                     without_control[i, j, 0],
                     ts[0],
                     h,
@@ -530,14 +634,14 @@ if __name__ == '__main__':
                     s=50,
                 )
 
-                axs[j].plot(
+                axs[ax_i + j].plot(
                     [without_control[i, j, -1]]*2,
                     [ts[-1]]*2,
                     [0.0, h],
                     lw=1,
                     c='b')
 
-                axs[j].scatter(
+                axs[ax_i + j].scatter(
                     without_control[i, j, -1],
                     ts[-1],
                     h,
@@ -547,10 +651,11 @@ if __name__ == '__main__':
 
         ##############################
 
-        for j, ax in enumerate(axs):
-            ax.set_aspect('equal', 'box')
-            ax.set_zlim(b, 2*h)
-            ax.set_title('mu %.2f, var %.2f' % (mus[j], variances[j]))
+        for j in range(2):
+            axs[ax_i + j].set_aspect('equal', 'box')
+            axs[ax_i + j].set_zlim(b, 2*h)
+            axs[ax_i + j].set_title(
+                'mu %.2f, var %.2f' % (mus[j], variances[j]))
 
         ##############################
 

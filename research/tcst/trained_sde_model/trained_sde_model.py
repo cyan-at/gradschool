@@ -65,14 +65,17 @@ class SDE(nn.Module):
         self.r = None
 
     # drift
-    def f(self, t, y):
+    def f(self, t, y): # ~D1
         t = torch.reshape(t, [-1, 1])
         # need to cat the ramp rates on the input vector for y
         input_vec = torch.cat([y,self.r, t], axis=1)
+
+        print(self.network_f.forward(input_vec).shape)
+
         return self.network_f.forward(input_vec)
     
     # diffusion
-    def g(self, t, y):
+    def g(self, t, y): # ~D2
         """
         Output of g: should be a single tensor of size
         (batch_size, d)
@@ -80,6 +83,9 @@ class SDE(nn.Module):
         t = torch.reshape(t, [-1, 1])
         # need to cat the ramp rates on the input vector for g
         input_vec = torch.cat([y, self.r, t], axis=1)
+
+        print("g", self.network_g.forward(input_vec))
+
         return self.network_g.forward(input_vec)
 
 
@@ -101,6 +107,8 @@ def data_loader():
             # (501, )
             order_param_data = np.load(filename)[:, (param-1)].flatten()
             traj_state.append(order_param_data)
+
+        import ipdb; ipdb.set_trace()
         
         # (2, 501)
         traj_state = np.array(traj_state)
@@ -151,8 +159,9 @@ def main():
     for traj in range(2):
         y0 = eval_data[traj % 2, 0, :2] # call sections of data loader corresponding to c10/c12 for first time step
         y0 = torch.reshape(y0, [1, -1]) # reshape y) for correct input
-
-        r = eval_data[traj % 2, 0, 2:4] # call data loader for ramp rates 
+        print("y0", y0)
+        r = 0 * eval_data[traj % 2, 0, 2:4] # call data loader for ramp rates 
+        print(r)
         r = torch.reshape(r, [-1, 2]) # reshape ramp rates for model input
         sde.r = r # assign r as sde.r for correct cat
 

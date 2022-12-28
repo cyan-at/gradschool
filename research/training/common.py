@@ -1041,6 +1041,7 @@ def self_assembly(x, y):
     Including a penalty function for negative solutions
     """
     y1, y2, y3 = y[:, 0:1], y[:, 1:2], y[:, 2:]
+
     dy1_t = dde.grad.jacobian(y1, x, j=1)
     dy1_x = dde.grad.jacobian(y1, x, j=0)
     dy1_xx = dde.grad.hessian(y1, x, j=0)
@@ -1048,9 +1049,11 @@ def self_assembly(x, y):
     D2=sa_d*torch.exp(-(x[:, 0:1]-sa_b-sa_c*y3)*(x[:, 0:1]-sa_b-sa_c*y3))+sa_f
     F=sa_a*sa_K*sa_T*(x[:, 0:1]-sa_b-sa_c*y3)*(x[:, 0:1]-sa_b-sa_c*y3)
     D1=-2*(x[:, 0:1]-sa_b-sa_c*y3)*((sa_d*torch.exp(-(x[:, 0:1]-sa_b-sa_c*y3)*(x[:, 0:1]-sa_b-sa_c*y3)))+sa_a*D2)
+
     dy2_t = dde.grad.jacobian(y2, x, j=1)
     dD1y2_x=dde.grad.jacobian(D1*y2, x, j=0)
     dD2y2_xx = dde.grad.hessian(D2*y2, x,  j=0)
+
     dD1_y3=dde.grad.jacobian(D1, y3)
     dD2_y3=dde.grad.jacobian(D2, y3)
 
@@ -2082,12 +2085,13 @@ class Integrator(object):
         return i
 
 from scipy.interpolate import griddata as gd
-def make_control_data(model, inputs, N, d, meshes, args, batchsize_override=None):
+def make_control_data(model, inputs, N, d, meshes, args):
     M = N**d
     batchsize = M
 
-    if batchsize_override is not None:
-        batchsize = batchsize_override
+    if len(args.batchsize) > 0:
+        batchsize = int(args.batchsize)
+    print("batchsize", batchsize, "inputs.shape", inputs.shape)
 
     T_t = inputs[batchsize, -1]
     print("found T_t", T_t)
@@ -2242,7 +2246,7 @@ def make_control_data(model, inputs, N, d, meshes, args, batchsize_override=None
         dphi_dinput_t0_dz = dphi_dinput_t0[:, 2]
         dphi_dinput_tT_dz = dphi_dinput_tT[:, 2]
 
-    if batchsize_override is None:
+    if len(args.batchsize) == 0:
         t0={
             '0': dphi_dinput_t0_dx.reshape(-1),
             '1': dphi_dinput_t0_dy.reshape(-1),
