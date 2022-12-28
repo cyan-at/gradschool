@@ -96,7 +96,9 @@ def get_model(
 
     linspaces = []
     for i in range(d):
-        linspaces.append(np.transpose(np.linspace(state_min, state_max, N)))
+        linspaces.append(np.transpose(
+            np.linspace(-args.state_bound, args.state_bound, N))
+        )
 
     linspace_tensors = []
     for i in range(d):
@@ -173,8 +175,8 @@ def get_model(
     ######################################
 
     geom=dde.geometry.geometry_3d.Cuboid(
-        [state_min]*d,
-        [state_max]*d)
+        [-args.state_bound]*d,
+        [args.state_bound]*d)
     timedomain = dde.geometry.TimeDomain(0., T_t)
 
     if timemode == 0:
@@ -240,6 +242,8 @@ if __name__ == '__main__':
     parser.add_argument('--T_t', type=str, default="", help='')
 
     parser.add_argument('--N', type=int, default=15, help='')
+    parser.add_argument('--state_bound', type=float, default=5, help='')
+
     parser.add_argument('--optimizer', type=str, default="adam", help='')
     parser.add_argument('--train_distribution', type=str, default="Hammersley", help='')
     parser.add_argument('--timemode', type=int, default=0, help='')
