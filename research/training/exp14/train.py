@@ -271,8 +271,8 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=-1, help='')
     parser.add_argument('--restore', type=str, default="", help='')
     parser.add_argument('--batchsize',
-        type=int,
-        default=500)
+        type=str,
+        default="500")
 
     parser.add_argument('--diff_on_cpu',
         type=int, default=1)
