@@ -335,10 +335,14 @@ if __name__ == '__main__':
     if args.ni >= 0:
         ni = args.ni
 
+    batchsize = N**d
+    if len(args.batchsize) > 0:
+        batchsize = int(args.batchsize)
+
     model, meshes = get_model(
         d,
         N,
-        args.batchsize,
+        batchsize,
         0,
         "tanh",
         mu_0,
