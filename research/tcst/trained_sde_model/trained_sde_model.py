@@ -70,7 +70,7 @@ class SDE(nn.Module):
         # need to cat the ramp rates on the input vector for y
         input_vec = torch.cat([y,self.r, t], axis=1)
 
-        print(self.network_f.forward(input_vec).shape)
+        # print(self.network_f.forward(input_vec).shape)
 
         return self.network_f.forward(input_vec)
     
@@ -84,7 +84,7 @@ class SDE(nn.Module):
         # need to cat the ramp rates on the input vector for g
         input_vec = torch.cat([y, self.r, t], axis=1)
 
-        print("g", self.network_g.forward(input_vec))
+        # print("g", self.network_g.forward(input_vec))
 
         return self.network_g.forward(input_vec)
 
@@ -108,7 +108,7 @@ def data_loader():
             order_param_data = np.load(filename)[:, (param-1)].flatten()
             traj_state.append(order_param_data)
 
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
         
         # (2, 501)
         traj_state = np.array(traj_state)
@@ -129,7 +129,7 @@ def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--modelpt',
-        type=str, required=True)
+        type=str, default='./4fold_3_2_layer_model.pt')
 
     args = parser.parse_args()
 
@@ -137,8 +137,9 @@ def main():
     eval_data = data_loader()
     # initialize neural network
     sde = SDE()
-    t_size = 500 # set number of predictive time steps
-    ts = torch.linspace(0, 1, t_size)
+    T_t = 10
+    t_size = T_t * 500 # set number of predictive time steps
+    ts = torch.linspace(0, T_t, t_size)
     # state path to model information file
     # load model parameters
     sde.load_state_dict(torch.load(args.modelpt))
@@ -154,14 +155,26 @@ def main():
     # set model to evaluation mode
     sde.eval()
 
+    '''
+    BCC:
+    C10:0.41235
+    C12:0.37605
+    FCC: 
+    C10:0.012857
+    C12:0.60008
+    SC:
+    C10:0.41142
+    C12: 0.69550
+    '''
+
     all_trajs = {}
 
     for traj in range(2):
         y0 = eval_data[traj % 2, 0, :2] # call sections of data loader corresponding to c10/c12 for first time step
         y0 = torch.reshape(y0, [1, -1]) # reshape y) for correct input
         print("y0", y0)
-        r = 0 * eval_data[traj % 2, 0, 2:4] # call data loader for ramp rates 
-        print(r)
+        r = eval_data[traj % 2, 0, 2:4] # call data loader for ramp rates 
+        print("r", r)
         r = torch.reshape(r, [-1, 2]) # reshape ramp rates for model input
         sde.r = r # assign r as sde.r for correct cat
 
@@ -175,9 +188,16 @@ def main():
         y_pred_down = y_pred.cpu().detach().numpy()
         y_gt_down = y_gt.cpu().detach().numpy()
 
+        bcc = np.array([0.41235, 0.37605])
+        fcc = np.array([0.012857, 0.60008])
+        sc = np.array([0.41142, 0.69550])
+
         all_trajs[traj] = {
             'pred' : y_pred_down,
-            'gt' : y_gt_down
+            'gt' : y_gt_down,
+            'bcc' : bcc * np.ones_like(y_pred_down),
+            'fcc' : fcc * np.ones_like(y_pred_down),
+            'sc' : sc * np.ones_like(y_pred_down),
         }
 
     np.save('all_trajs.npy', all_trajs)

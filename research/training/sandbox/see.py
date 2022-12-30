@@ -183,6 +183,13 @@ if __name__ == '__main__':
     colors = 'rgbymck'
     fig = plt.figure()
 
+    tmp = np.array(all_data_to_plot)
+    ax = fig.add_subplot(autoscale_on=False,
+        xlim=(np.min(tmp) - 0.1, np.max(tmp) + 0.1),
+        ylim=(np.min(tmp) - 0.1, np.max(tmp) + 0.1)
+    )
+    ax.set_aspect('equal')
+
     for x_i, x in enumerate(all_data_to_plot):
         # import ipdb; ipdb.set_trace()
         c = colors[x_i % len(colors)]
@@ -225,9 +232,15 @@ if __name__ == '__main__':
             ax1.set_ylabel('y')
             ax1.set_zlabel('z')
         elif len(indices) == 2:
-            plt.plot(x[:, indices[0]], x[:, indices[1]],
+            sizes = 2*np.linspace(5, 100, x.shape[0])
+            ax.scatter(x[:, indices[0]], x[:, indices[1]],
                 c=c,
-                alpha=1/len(all_data_to_plot))
+                marker='^',
+                s=sizes,
+                alpha=0.5)
+            ax.plot(x[:, indices[0]], x[:, indices[1]],
+                c=c,
+                alpha=0.5)
         elif len(indices) == 1:
             plt.plot(x[:, indices[0]],
                 c=c,
@@ -239,7 +252,7 @@ if __name__ == '__main__':
 
     c = Counter()
     fig.canvas.mpl_connect('key_press_event', lambda e: c.on_press_saveplot(e,
-            '%s.png'  %(
+            '%s'  %(
                 args.dat.replace(".npy", ""),
             )
         )
