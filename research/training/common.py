@@ -2163,9 +2163,9 @@ def make_control_data(model, inputs, N, d, meshes, args):
 
     ################################################
 
-    x_1_ = np.linspace(state_min, state_max, args.grid_n)
-    x_2_ = np.linspace(state_min, state_max, args.grid_n)
-    x_3_ = np.linspace(state_min, state_max, args.grid_n)
+    x_1_ = np.linspace(args.state_bound_min, args.state_bound_max, args.grid_n)
+    x_2_ = np.linspace(args.state_bound_min, args.state_bound_max, args.grid_n)
+    x_3_ = np.linspace(args.state_bound_min, args.state_bound_max, args.grid_n)
     t_ = np.linspace(T_0, T_t, args.grid_n*2)
 
     ################################################
