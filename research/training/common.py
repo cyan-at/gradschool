@@ -1903,9 +1903,15 @@ def apply_control_strategy0(state, t, T_0, T_t, control_data, affine, statedot):
         query = np.append(query, t)
 
     if 'grid_tree' in t_control_data:
-        _, closest_grid_idx = t_control_data['grid_tree'].query(
-            np.expand_dims(query, axis=0),
-            k=1)
+        # print("using kd tree")
+        try:
+            _, closest_grid_idx = t_control_data['grid_tree'].query(
+                np.expand_dims(query, axis=0),
+                k=1)
+        except Exception as e:
+            print(e)
+            print(query)
+            closest_grid_idx = np.linalg.norm(query - t_control_data['grid'], ord=1, axis=1).argmin()
     else:
         closest_grid_idx = np.linalg.norm(query - t_control_data['grid'], ord=1, axis=1).argmin()
 
