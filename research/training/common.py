@@ -24,6 +24,7 @@ except:
 import matplotlib.pyplot as plt
 
 from scipy.spatial.distance import cdist
+from sklearn.neighbors import KDTree
 
 cuda0 = torch.device('cuda:0')
 cpu = torch.device('cpu')
@@ -1901,7 +1902,13 @@ def apply_control_strategy0(state, t, T_0, T_t, control_data, affine, statedot):
     if t_control_data['grid'].shape[1] == len(state) + 1:
         query = np.append(query, t)
 
-    closest_grid_idx = np.linalg.norm(query - t_control_data['grid'], ord=1, axis=1).argmin()
+    if 'grid_tree' in t_control_data:
+        _, closest_grid_idx = t_control_data['grid_tree'].query(
+            np.expand_dims(query, axis=0),
+            k=1)
+    else:
+        closest_grid_idx = np.linalg.norm(query - t_control_data['grid'], ord=1, axis=1).argmin()
+
     v_x = t_control_data['0'][closest_grid_idx]
     v_y = t_control_data['1'][closest_grid_idx]
 
@@ -2419,6 +2426,8 @@ def make_control_data(model, inputs, N, d, meshes, args):
             '2': DPHI_DINPUT_tt_2.reshape(-1),
             'grid' : grid1,
         }
+
+    tt['grid_tree'] = KDTree(grid1, leaf_size=2)
 
     ########################################################
 

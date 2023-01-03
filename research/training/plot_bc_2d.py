@@ -297,7 +297,7 @@ if __name__ == '__main__':
 
     z1 = T_0
     z2 = T_t
-    p = 1.0
+    p = 0.01
 
     if d == 2:
         axs[ax_i].contourf(
@@ -435,49 +435,49 @@ if __name__ == '__main__':
         print("RHO_0 sum", np.sum(t0[:, -1]))
         print("RHO_T sum", np.sum(tT[:, -1]))
 
-        sc1=axs[ax_i].scatter(
-            grid_x1,
-            grid_x2,
-            grid_x3,
-            c=RHO_0,
-            s=np.abs(RHO_0*p),
-            cmap=cm.jet,
-            alpha=1.0)
-        plt.colorbar(sc1, shrink=0.25)
-        axs[ax_i].set_title(
-            'rho0:\nmu=%.3f\nsigma=%.3f\nsum=%.3f\nmin=%.3f\nmax=%.3f' % (
-            mu_0,
-            sigma_0,
-            np.sum(t0[:, -1]),
-            np.min(t0[:, -1]),
-            np.max(t0[:, -1])
-        ))
-        axs[ax_i].set_xlabel('x')
-        axs[ax_i].set_ylabel('y')
-        axs[ax_i].set_zlabel('z')
+        # sc1=axs[ax_i].scatter(
+        #     grid_x1,
+        #     grid_x2,
+        #     grid_x3,
+        #     c=RHO_0,
+        #     s=np.abs(RHO_0*p),
+        #     cmap=cm.jet,
+        #     alpha=1.0)
+        # plt.colorbar(sc1, shrink=0.25)
+        # axs[ax_i].set_title(
+        #     'rho0:\nmu=%.3f\nsigma=%.3f\nsum=%.3f\nmin=%.3f\nmax=%.3f' % (
+        #     mu_0,
+        #     sigma_0,
+        #     np.sum(t0[:, -1]),
+        #     np.min(t0[:, -1]),
+        #     np.max(t0[:, -1])
+        # ))
+        # axs[ax_i].set_xlabel('x')
+        # axs[ax_i].set_ylabel('y')
+        # axs[ax_i].set_zlabel('z')
 
         ax_i += 1
 
-        sc2=axs[ax_i].scatter(
-            grid_x1,
-            grid_x2,
-            grid_x3,
-            c=RHO_T,
-            s=np.abs(RHO_T*p),
-            cmap=cm.jet,
-            alpha=1.0)
-        plt.colorbar(sc2, shrink=0.25)
-        axs[ax_i].set_title(
-            'rhoT:\nmu=%.3f\nsigma=%.3f\nsum=%.3f\nmin=%.3f\nmax=%.3f' % (
-            mu_T,
-            sigma_T,
-            np.sum(tT[:, -1]),
-            np.min(tT[:, -1]),
-            np.max(tT[:, -1])
-        ))
-        axs[ax_i].set_xlabel('x')
-        axs[ax_i].set_ylabel('y')
-        axs[ax_i].set_zlabel('z')
+        # sc2=axs[ax_i].scatter(
+        #     grid_x1,
+        #     grid_x2,
+        #     grid_x3,
+        #     c=RHO_T,
+        #     s=np.abs(RHO_T*p),
+        #     cmap=cm.jet,
+        #     alpha=1.0)
+        # plt.colorbar(sc2, shrink=0.25)
+        # axs[ax_i].set_title(
+        #     'rhoT:\nmu=%.3f\nsigma=%.3f\nsum=%.3f\nmin=%.3f\nmax=%.3f' % (
+        #     mu_T,
+        #     sigma_T,
+        #     np.sum(tT[:, -1]),
+        #     np.min(tT[:, -1]),
+        #     np.max(tT[:, -1])
+        # ))
+        # axs[ax_i].set_xlabel('x')
+        # axs[ax_i].set_ylabel('y')
+        # axs[ax_i].set_zlabel('z')
 
         ax_i += 1
 
@@ -555,6 +555,7 @@ if __name__ == '__main__':
     )
 
     if args.do_integration > 0:
+        print("T_t", T_t)
 
         ts, initial_sample, with_control, without_control,\
             all_results, mus, variances = do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args)
@@ -566,7 +567,7 @@ if __name__ == '__main__':
         b = -0.05
 
         for i in range(initial_sample.shape[0]):
-            for j in range(2):
+            for j in range(d):
                 axs[ax_i + j].plot(
                     without_control[i, j, :],
                     ts,
