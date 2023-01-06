@@ -150,7 +150,10 @@ def get_model(
     rho_0_BC = dde.icbc.PointSetBC(
         time_0,
         rho0[..., np.newaxis],
-        component=1)
+        component=1,
+        batch_size=batchsize,
+        shuffle=True
+        )
 
     ######################################
 
@@ -161,7 +164,10 @@ def get_model(
     rho_T_BC = dde.icbc.PointSetBC(
         time_t,
         rhoT[..., np.newaxis],
-        component=1)
+        component=1,
+        batch_size=batchsize,
+        shuffle=True
+        )
 
     ######################################
 
@@ -259,8 +265,8 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=-1, help='')
     parser.add_argument('--restore', type=str, default="", help='')
     parser.add_argument('--batchsize',
-        type=int,
-        default=500)
+        type=str,
+        default="")
 
     parser.add_argument('--diff_on_cpu',
         type=int, default=1)
@@ -323,10 +329,14 @@ if __name__ == '__main__':
     if args.ni >= 0:
         ni = args.ni
 
+    batchsize = N**d
+    if len(args.batchsize) > 0:
+        batchsize = int(args.batchsize)
+
     model, meshes = get_model(
         d,
         N,
-        args.batchsize,
+        batchsize,
         0,
         "tanh",
         mu_0,

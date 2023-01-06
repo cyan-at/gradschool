@@ -156,8 +156,8 @@ def get_model(
     rho_0_BC = dde.icbc.PointSetBC(
         time_0,
         rho0[..., np.newaxis],
-        batch_size=batchsize,
         component=1,
+        batch_size=batchsize,
         shuffle=True
     )
 
@@ -170,8 +170,8 @@ def get_model(
     rho_T_BC = dde.icbc.PointSetBC(
         time_t,
         rhoT[..., np.newaxis],
-        batch_size=batchsize,
         component=1,
+        batch_size=batchsize,
         shuffle=True
     )
 
