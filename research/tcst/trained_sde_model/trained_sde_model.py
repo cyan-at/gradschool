@@ -26,6 +26,26 @@ import os
 
 import argparse
 
+import torch.nn.functional as F
+
+class CustomSequential(nn.Sequential):
+    def forward(self, input):
+        for module in self:
+            # input = module(input)
+            if type(module) == nn.Linear:
+                input = module(input)
+
+                # input = F.linear(input,
+                #     module.weight.detach(),
+                #     module.bias.detach())
+
+                # import ipdb; ipdb.set_trace()
+                # print(module.weight[0:3, :5])
+            else:
+                # print(type(module))
+                input = module(input)
+        return input
+
 class SDE(nn.Module):
     '''
     Initialize neural network module
@@ -39,26 +59,37 @@ class SDE(nn.Module):
         '''
         Network for drift
         '''
-    
-        self.network_f = nn.Sequential(
+
+        self.network_fs = [
             nn.Linear(5, 200),
-            nn.Tanh(),
             nn.Linear(200, 200),
-            nn.Tanh(),
             nn.Linear(200, 2)
+        ]
+    
+        self.network_f = CustomSequential(
+            self.network_fs[0],
+            nn.Tanh(),
+            self.network_fs[1],
+            nn.Tanh(),
+            self.network_fs[2]
         )
         '''
         Network for diffusion
         '''
-        self.network_g = nn.Sequential(
+        self.network_gs = [
             nn.Linear(5, 200),
-            nn.Tanh(),
             nn.Linear(200, 200),
-            nn.Tanh(),
             nn.Linear(200, 2)
+        ]
+        self.network_g = CustomSequential(
+            self.network_gs[0],
+            nn.Tanh(),
+            self.network_gs[1],
+            nn.Tanh(),
+            self.network_gs[2]
         )
 
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
 
         '''
         Vector for ramp rates
