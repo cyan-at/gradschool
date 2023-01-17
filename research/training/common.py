@@ -1156,7 +1156,7 @@ def tcst1(x, y, network_f, network_g):
         u_term = torch.mul(dpsi_c10.squeeze(), d1[:, 0])\
         + torch.mul(dpsi_c12.squeeze(), d1[:, 1])\
         + torch.mul(d2[:, 0], hpsi_c10.squeeze())\
-        + torch.mul(d2[:, 1], hpsi_c12.squeeze()).unsqueeze()
+        + torch.mul(d2[:, 1], hpsi_c12.squeeze()).unsqueeze(dim=1)
 
         import ipdb; ipdb.set_trace()
 
