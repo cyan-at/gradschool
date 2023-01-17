@@ -203,12 +203,16 @@ def get_model(
         pde_key = int(args.pde_key)
     print("pde_key", pde_key)
 
+    bif = samples_between_initial_and_final
+    if args.bif > 0:
+        bif = args.bif
+
     data = WASSPDE(
         geomtime,
         lambda x, y: tcst_pdes[0](
             x,  y, network_f, network_g),
         [rho_0_BC,rho_T_BC],
-        num_domain=samples_between_initial_and_final,
+        num_domain=bif,
         num_initial=ni, # initial_samples,
         train_distribution=train_distribution
     )
@@ -264,6 +268,7 @@ if __name__ == '__main__':
     parser.add_argument('--timemode', type=int, default=0, help='')
     # timemode  0 = linspace, 1 = even time samples
     parser.add_argument('--ni', type=int, default=-1, help='')
+    parser.add_argument('--bif', type=int, default=8000, help='')
     parser.add_argument('--loss_func', type=str, default="wass3", help='')
     parser.add_argument('--pde_key', type=str, default="", help='')
 

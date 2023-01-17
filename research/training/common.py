@@ -356,7 +356,7 @@ de = 1
 f = 'float32'
 dt = torch.float32
 
-samples_between_initial_and_final = 8000 # 10^4 order, 20k = out of memory
+samples_between_initial_and_final = 12000 # 10^4 order, 20k = out of memory
 initial_samples = 500 # some 10^3 order
 
 num_epochs = 100000
@@ -1139,6 +1139,7 @@ def tcst1(x, y, network_f, network_g):
     input_vec = torch.cat(
         (x[:, 0:2], y[:, 2:4], x[:, 2].unsqueeze(1)),
         dim=1)
+
     d1 = network_f.forward(input_vec)
     d2 = network_g.forward(input_vec)**2 / 2 # elementwise
 
@@ -1152,13 +1153,12 @@ def tcst1(x, y, network_f, network_g):
     d_d1_u1 = dde.grad.jacobian(d1[:, 0:1], u1, j=0)
     d_d1_u2 = dde.grad.jacobian(d1[:, 0:1], u2, j=0)
 
-    with torch.no_grad():
-        u_term = torch.mul(dpsi_c10.squeeze(), d1[:, 0])\
-        + torch.mul(dpsi_c12.squeeze(), d1[:, 1])\
-        + torch.mul(d2[:, 0], hpsi_c10.squeeze())\
-        + torch.mul(d2[:, 1], hpsi_c12.squeeze()).unsqueeze(dim=1)
+    u_term = torch.mul(dpsi_c10.squeeze(), d1[:, 0])\
+    + torch.mul(dpsi_c12.squeeze(), d1[:, 1])\
+    + torch.mul(d2[:, 0], hpsi_c10.squeeze())\
+    + torch.mul(d2[:, 1], hpsi_c12.squeeze()).unsqueeze(dim=0)
 
-        import ipdb; ipdb.set_trace()
+    import ipdb; ipdb.set_trace()
 
     return [
         -dpsi_t + 0.5 * (u1**2 + u2**2)\
