@@ -100,7 +100,8 @@ using Parameters
 
 ######################################
 
-conda install torchsde
+conda env create -f environment.yml
+conda install pytorch=1.12.1 torchsde=0.2.4
 
 ######################################
 
