@@ -1167,11 +1167,12 @@ def tcst1(x, y, network_f, network_g):
             x[:, 0:2], # leaf_x,
             # i think this makes sense since we
             # take jacobian of it w.r.t x for divergence
-            leaf_u1_u2,
-            leaf_t,
+            y[:, 2:4],
+            x[:, 2].unsqueeze(1),
         ),
         dim=1)
     leaf_vec = leaf_vec.requires_grad_(True)
+
     d1 = network_f.forward(leaf_vec)
     d2 = network_g.forward(leaf_vec)**2 / 2 # elementwise
     # divergence terms
@@ -1193,7 +1194,8 @@ def tcst1(x, y, network_f, network_g):
     d_uterm_du1_du2 = torch.autograd.grad(
         outputs=u_term,
         inputs=leaf_vec,
-        grad_outputs=torch.ones_like(u_term))[0]
+        grad_outputs=torch.ones_like(u_term),
+        retain_graph=True)[0]
 
     return [
         -dpsi_t + 0.5 * (u1**2 + u2**2)\
