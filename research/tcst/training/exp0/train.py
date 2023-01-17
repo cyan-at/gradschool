@@ -282,7 +282,9 @@ if __name__ == '__main__':
         default="")
 
     parser.add_argument('--sdept',
-        type=str, required=True, help='')
+        type=str,
+        default="../../trained_sde_model/4fold_3_2_layer_model.pt",
+        help='')
 
     '''
     parser.add_argument('--diff_on_cpu',
