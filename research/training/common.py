@@ -1118,7 +1118,7 @@ def euler_pde_10(x, y, epsilon, a1, a2, *_):
     ]
 
 # try different T_t, T_t = 200, etc.
-def tcst1(x, y):
+def tcst1(x, y, network_f, network_g):
     psi, rho, u1, u2 = y[:, 0:1], y[:, 1:2], y[:, 2:3], y[:, 3:4]
 
     # x = c10, c12, t
@@ -1133,15 +1133,12 @@ def tcst1(x, y):
 
     drho_t = dde.grad.jacobian(rho, x, j=2)
 
+    # import ipdb; ipdb.set_trace()
+
     # d1
-    c10_c12 = x[:, 0:2]
     input_vec = torch.cat(
-        [
-            c10_c12,
-            [u1, u2],
-            x[:, 2]
-        ],
-        axis=1)
+        (x[:, 0:2], y[:, 2:4], x[:, 2].unsqueeze(1)),
+        dim=1)
     d1 = network_f.forward(input_vec)
     d2 = network_g.forward(input_vec)**2 / 2 # elementwise
 
@@ -1189,7 +1186,10 @@ euler_pdes = {
     8 : euler_pde_8,
     9 : self_assembly,
     10 : euler_pde_10,
-    11 : tcst1,
+}
+
+tcst_pdes = {
+    0 : tcst1,
 }
 
 ######################################
