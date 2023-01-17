@@ -1149,8 +1149,8 @@ def tcst1(x, y, network_f, network_g):
     drho_c10 = dde.grad.hessian(rho, x, i=0, j=0)
     drho_c12 = dde.grad.hessian(rho, x, i=1, j=1)
 
-    d_d1_u1 = dde.grad.jacobian(d1[:, 0], u1, j=0)
-    d_d1_u2 = dde.grad.jacobian(d1[:, 0], u2, j=0)
+    d_d1_u1 = dde.grad.jacobian(d1[:, 0:1], u1, j=0)
+    d_d1_u2 = dde.grad.jacobian(d1[:, 0:1], u2, j=0)
 
     with torch.no_grad():
         u_term = torch.mul(dpsi_c10.squeeze(), d1[:, 0])\
