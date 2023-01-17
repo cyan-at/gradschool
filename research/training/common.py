@@ -1152,15 +1152,10 @@ def tcst1(x, y, network_f, network_g):
     d_d1_u1 = dde.grad.jacobian(d1[:, 0], u1, j=0)
     d_d1_u2 = dde.grad.jacobian(d1[:, 0], u2, j=0)
 
-    rhs_u1 = dde.grad.jacobian(
-        dpsi_c10 * d1[:, 0] + dpsi_c12 * d1[:, 1] +\
-            d2[:, 0] * hpsi_c10 + d2[:, 1] * hpsi_c12,
-        u1, j=0)
-
-    rhs_u2 = dde.grad.jacobian(
-        dpsi_c10 * d1[:, 0] + dpsi_c12 * d1[:, 1] +\
-            d2[:, 0] * hpsi_c10 + d2[:, 1] * hpsi_c12,
-        u2, j=0)
+    s = torch.mul(dpsi_c10.squeeze(), d1[:, 0])\
+    + torch.mul(dpsi_c12.squeeze(), d1[:, 1])\
+    + torch.mul(d2[:, 0], hpsi_c10.squeeze())\
+    + torch.mul(d2[:, 1], hpsi_c12.squeeze())
 
     return [
         -dpsi_t + 0.5 * (u1**2 + u2**2)\
@@ -1170,9 +1165,9 @@ def tcst1(x, y, network_f, network_g):
         -drho_t - (d_rhod1_c10 + d_rhod1_c12)\
         + (d2[:, 0] * drho_c10 + d2[:, 1] * drho_c12),
 
-        u1 - rhs_u1,
+        u1 - dde.grad.jacobian(s, u1, j=0),
 
-        u2 - rhs_u2,
+        u2 - dde.grad.jacobian(s, u2, j=0),
     ]
 
 euler_pdes = {
