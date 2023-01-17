@@ -137,9 +137,8 @@ def main():
     eval_data = data_loader()
     # initialize neural network
     sde = SDE()
-    T_t = 10
-    t_size = T_t * 500 # set number of predictive time steps
-    ts = torch.linspace(0, T_t, t_size)
+    t_size = 500 # set number of predictive time steps
+    ts = torch.linspace(0, 1, t_size)
     # state path to model information file
     # load model parameters
     sde.load_state_dict(torch.load(args.modelpt))
@@ -166,6 +165,9 @@ def main():
     C10:0.41142
     C12: 0.69550
     '''
+    bcc = np.array([0.41235, 0.37605])
+    fcc = np.array([0.012857, 0.60008])
+    sc = np.array([0.41142, 0.69550])
 
     all_trajs = {}
 
@@ -187,10 +189,6 @@ def main():
 
         y_pred_down = y_pred.cpu().detach().numpy()
         y_gt_down = y_gt.cpu().detach().numpy()
-
-        bcc = np.array([0.41235, 0.37605])
-        fcc = np.array([0.012857, 0.60008])
-        sc = np.array([0.41142, 0.69550])
 
         all_trajs[traj] = {
             'pred' : y_pred_down,

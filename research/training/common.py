@@ -1084,8 +1084,8 @@ def euler_pde_10(x, y, epsilon, a1, a2, *_):
 
     dy2_t = dde.grad.jacobian(y2, x, j=2)
 
-    f1=a1*x[:, 1:2]*x[:, 0:1]
-    f2=a2*x[:, 0:1]*x[:, 1:2]
+    f1=a1*x[:, 1:2]*x[:, 0:1] # a1 * x1 * x2
+    f2=a2*x[:, 0:1]*x[:, 1:2] # a2 * x1 * x2
     # f1=x[:, 1:2]*x[:, 2:3]*(j2-j3)/j1
     # f2=x[:, 0:1]*x[:, 2:3]*(j3-j1)/j2
     # f3=x[:, 0:1]*x[:, 1:2]*(j1-j2)/j3
@@ -1093,6 +1093,8 @@ def euler_pde_10(x, y, epsilon, a1, a2, *_):
     # d_f1dy1_y2_x=tf.gradients((f1+dy1_x)*y2, x)[0][:, 0:1]
     # d_f2dy1_y2_y=tf.gradients((f2+dy1_y)*y2, x)[0][:, 1:2]
     # d_f3dy1_y2_z=tf.gradients((f3+dy1_z)*y2, x)[0][:, 2:3]
+
+    # divergence terms of vector [(f + dy1_) * y2]
     d_f1dy1_y2_x = dde.grad.jacobian((f1+dy1_x)*y2, x, j=0)
     d_f2dy1_y2_y = dde.grad.jacobian((f2+dy1_y)*y2, x, j=1)
     # d_f3dy1_y2_z = dde.grad.jacobian((f3+dy1_z)*y2, x, j=2)
@@ -1112,6 +1114,68 @@ def euler_pde_10(x, y, epsilon, a1, a2, *_):
     return [
         psi,
         -dy2_t-(d_f1dy1_y2_x+d_f2dy1_y2_y)+epsilon*(dy2_xx+dy2_yy),
+        # divergence + laplacian
+    ]
+
+# try different T_t, T_t = 200, etc.
+def tcst1(x, y):
+    psi, rho, u1, u2 = y[:, 0:1], y[:, 1:2], y[:, 2:3], y[:, 3:4]
+
+    # x = c10, c12, t
+
+    # psi eq (4a), rho eq (4b), u1 eq (6), u2 eq (6)
+    dpsi_c10 = dde.grad.jacobian(psi, x, j=0)
+    dpsi_c12 = dde.grad.jacobian(psi, x, j=1)
+    dpsi_t = dde.grad.jacobian(psi, x, j=2)
+
+    hpsi_c10 = dde.grad.hessian(psi, x, i=0, j=0)
+    hpsi_c12 = dde.grad.hessian(psi, x, i=1, j=1)
+
+    drho_t = dde.grad.jacobian(rho, x, j=2)
+
+    # d1
+    c10_c12 = x[:, 0:2]
+    input_vec = torch.cat(
+        [
+            c10_c12,
+            [u1, u2],
+            x[:, 2]
+        ],
+        axis=1)
+    d1 = network_f.forward(input_vec)
+    d2 = network_g.forward(input_vec)**2 / 2 # elementwise
+
+    # divergence terms
+    d_rhod1_c10 = dde.grad.jacobian(rho*d1[:, 0], x, j=0)
+    d_rhod1_c12 = dde.grad.jacobian(rho*d1[:, 1], x, j=1)
+
+    drho_c10 = dde.grad.hessian(rho, x, i=0, j=0)
+    drho_c12 = dde.grad.hessian(rho, x, i=1, j=1)
+
+    d_d1_u1 = dde.grad.jacobian(d1[:, 0], u1, j=0)
+    d_d1_u2 = dde.grad.jacobian(d1[:, 0], u2, j=0)
+
+    rhs_u1 = dde.grad.jacobian(
+        dpsi_c10 * d1[:, 0] + dpsi_c12 * d1[:, 1] +\
+            d2[:, 0] * hpsi_c10 + d2[:, 1] * hpsi_c12,
+        u1, j=0)
+
+    rhs_u2 = dde.grad.jacobian(
+        dpsi_c10 * d1[:, 0] + dpsi_c12 * d1[:, 1] +\
+            d2[:, 0] * hpsi_c10 + d2[:, 1] * hpsi_c12,
+        u2, j=0)
+
+    return [
+        -dpsi_t + 0.5 * (u1**2 + u2**2)\
+        - (dpsi_c10 * d1[:, 0] + dpsi_c12 * d1[:, 1])\
+        - (d2[:, 0] * hpsi_c10 + d2[:, 1] * hpsi_c12),
+
+        -drho_t - (d_rhod1_c10 + d_rhod1_c12)\
+        + (d2[:, 0] * drho_c10 + d2[:, 1] * drho_c12),
+
+        u1 - rhs_u1,
+
+        u2 - rhs_u2,
     ]
 
 euler_pdes = {
@@ -1125,6 +1189,7 @@ euler_pdes = {
     8 : euler_pde_8,
     9 : self_assembly,
     10 : euler_pde_10,
+    11 : tcst1,
 }
 
 ######################################
