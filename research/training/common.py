@@ -356,7 +356,7 @@ de = 1
 f = 'float32'
 dt = torch.float32
 
-samples_between_initial_and_final = 12000 # 10^4 order, 20k = out of memory
+samples_between_initial_and_final = 8000 # 10^4 order, 20k = out of memory
 initial_samples = 500 # some 10^3 order
 
 num_epochs = 100000
@@ -1152,10 +1152,13 @@ def tcst1(x, y, network_f, network_g):
     d_d1_u1 = dde.grad.jacobian(d1[:, 0], u1, j=0)
     d_d1_u2 = dde.grad.jacobian(d1[:, 0], u2, j=0)
 
-    s = torch.mul(dpsi_c10.squeeze(), d1[:, 0])\
-    + torch.mul(dpsi_c12.squeeze(), d1[:, 1])\
-    + torch.mul(d2[:, 0], hpsi_c10.squeeze())\
-    + torch.mul(d2[:, 1], hpsi_c12.squeeze())
+    with torch.no_grad():
+        u_term = torch.mul(dpsi_c10.squeeze(), d1[:, 0])\
+        + torch.mul(dpsi_c12.squeeze(), d1[:, 1])\
+        + torch.mul(d2[:, 0], hpsi_c10.squeeze())\
+        + torch.mul(d2[:, 1], hpsi_c12.squeeze()).unsqueeze()
+
+        import ipdb; ipdb.set_trace()
 
     return [
         -dpsi_t + 0.5 * (u1**2 + u2**2)\
@@ -1165,9 +1168,9 @@ def tcst1(x, y, network_f, network_g):
         -drho_t - (d_rhod1_c10 + d_rhod1_c12)\
         + (d2[:, 0] * drho_c10 + d2[:, 1] * drho_c12),
 
-        u1 - dde.grad.jacobian(s, u1, j=0),
+        u1 - dde.grad.jacobian(u_term, u1, j=0),
 
-        u2 - dde.grad.jacobian(s, u2, j=0),
+        u2 - dde.grad.jacobian(u_term, u2, j=0),
     ]
 
 euler_pdes = {
