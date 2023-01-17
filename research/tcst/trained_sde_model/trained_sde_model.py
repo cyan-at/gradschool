@@ -58,6 +58,8 @@ class SDE(nn.Module):
             nn.Linear(200, 2)
         )
 
+        import ipdb; ipdb.set_trace()
+
         '''
         Vector for ramp rates
         '''
