@@ -256,8 +256,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="")
 
     parser.add_argument('--N', type=int, default=22, help='')
-    parser.add_argument('--state_bound_min', type=float, default=0, help='')
-    parser.add_argument('--state_bound_max', type=float, default=1, help='')
+    parser.add_argument('--state_bound_min', type=float, default=0.1, help='')
+    parser.add_argument('--state_bound_max', type=float, default=0.5, help='')
 
     # parser.add_argument('--mu_0', type=str, default="", help='')
     # parser.add_argument('--mu_T', type=str, default="", help='')
