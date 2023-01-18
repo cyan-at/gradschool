@@ -200,6 +200,8 @@ if __name__ == '__main__':
     if len(args.mu_0) > 0:
         mu_0 = float(args.mu_0)
 
+    print("mu_0", mu_0)
+
     ################################################
 
     N = args.N
