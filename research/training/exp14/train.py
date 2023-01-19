@@ -196,7 +196,6 @@ def get_model(
         [state_min]*d,
         [state_max]*d)
     timedomain = dde.geometry.TimeDomain(0., T_t)
-
     geomtime = dde.geometry.GeometryXTime(geom, timedomain)
 
     pde_key = d
@@ -249,7 +248,7 @@ def get_model(
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="")
 
-    parser.add_argument('--a', type=str, default="-1,1,2", help='')
+    parser.add_argument('--a', type=str, default="-1,1,0", help='')
     parser.add_argument('--q', type=float, default=0.5, help='')
     parser.add_argument('--mu_0', type=str, default="", help='')
     parser.add_argument('--mu_T', type=str, default="", help='')
@@ -311,8 +310,8 @@ if __name__ == '__main__':
     N = args.N
     q_statepenalty_gain = args.q # 0.5
     print("N: ", N)
-    print("a: ", args.a)
     print("q: ", q_statepenalty_gain)
+    print("a: ", args.a)
 
     if len(args.mu_0) > 0:
         mu_0 = float(args.mu_0)

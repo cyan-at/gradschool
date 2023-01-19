@@ -89,8 +89,18 @@ def get_model(
     batchsize,
     model_type,
     activations,
+    mu_0,
+    mu_T,
+    T_t,
+    args,
+    a,
     optimizer="adam",
-    init="Glorot normal"):
+    init="Glorot normal",
+    train_distribution="Hammersley",
+    timemode=0,
+    ni=0,
+    epsilon=1e-3
+    ):
     M = N**d
 
     linspaces = []
@@ -148,7 +158,8 @@ def get_model(
         rho0[..., np.newaxis],
         batch_size=batchsize,
         component=1,
-        shuffle=True)
+        shuffle=True
+    )
 
     ######################################
 
@@ -161,7 +172,8 @@ def get_model(
         rhoT[..., np.newaxis],
         batch_size=batchsize,
         component=1,
-        shuffle=True)
+        shuffle=True
+    )
 
     ######################################
 
@@ -186,12 +198,18 @@ def get_model(
     timedomain = dde.geometry.TimeDomain(0., T_t)
     geomtime = dde.geometry.GeometryXTime(geom, timedomain)
 
+    pde_key = d
+    if len(args.pde_key) > 0:
+        pde_key = int(args.pde_key)
+    print("pde_key", pde_key)
+
     data = WASSPDE(
         geomtime,
-        euler_pdes[6],
+        lambda x, y: euler_pdes[pde_key](x,  y, epsilon, a[0], a[1], a[2]),
         [rho_0_BC,rho_T_BC],
         num_domain=samples_between_initial_and_final,
         num_initial=initial_samples,
+        train_distribution=train_distribution,
         # num_boundary=50,
         # train_distribution="pseudo",
         # num_initial=10,
@@ -209,9 +227,12 @@ def get_model(
 
     ######################################
 
-    rho0_WASS_batch = lambda y_true, y_pred: WASS_batch_2(y_true, y_pred, device, sinkhorn0, rho0, state)
+    dx = linspaces[0][1] - linspaces[0][0]
+    print("dx", dx)
+
+    rho0_WASS_batch = lambda y_true, y_pred: loss_func_dict[args.loss_func](y_true, y_pred, device, sinkhorn0, rho0, state)
     rho0_WASS_batch.__name__ = "rho0_WASS_batch"
-    rhoT_WASS_batch = lambda y_true, y_pred: WASS_batch_2(y_true, y_pred, device, sinkhornT, rhoT, state)
+    rhoT_WASS_batch = lambda y_true, y_pred: loss_func_dict[args.loss_func](y_true, y_pred, device, sinkhornT, rhoT, state)
     rhoT_WASS_batch.__name__ = "rhoT_WASS_batch"
     losses=[
         "MSE","MSE",
