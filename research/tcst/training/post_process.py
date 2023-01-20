@@ -119,17 +119,17 @@ sys.path.insert(0,call_dir)
 print("expect train.py in %s" % (call_dir))
 from train import *
 
-# ###patch start###
-# from mpl_toolkits.mplot3d.axis3d import Axis
-# if not hasattr(Axis, "_get_coord_info_old"):
-#     def _get_coord_info_new(self, renderer):
-#         mins, maxs, centers, deltas, tc, highs = self._get_coord_info_old(renderer)
-#         mins += deltas / 4
-#         maxs -= deltas / 4
-#         return mins, maxs, centers, deltas, tc, highs
-#     Axis._get_coord_info_old = Axis._get_coord_info  
-#     Axis._get_coord_info = _get_coord_info_new
-# ###patch end###
+###patch start###
+from mpl_toolkits.mplot3d.axis3d import Axis
+if not hasattr(Axis, "_get_coord_info_old"):
+    def _get_coord_info_new(self, renderer):
+        mins, maxs, centers, deltas, tc, highs = self._get_coord_info_old(renderer)
+        mins += deltas / 4
+        maxs -= deltas / 4
+        return mins, maxs, centers, deltas, tc, highs
+    Axis._get_coord_info_old = Axis._get_coord_info  
+    Axis._get_coord_info = _get_coord_info_new
+###patch end###
 
 def make_control_data(model, inputs, N, d, meshes, args):
     M = N**d

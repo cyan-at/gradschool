@@ -169,7 +169,7 @@ class SDE2(SDE):
 
         t = torch.reshape(t, [-1, 1])
         # need to cat the ramp rates on the input vector for y
-        input_vec = torch.cat([y,u_tensor, t], axis=1)
+        input_vec = torch.cat([y, u_tensor, t], axis=1)
 
         # print(self.network_f.forward(input_vec).shape)
 
