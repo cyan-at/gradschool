@@ -1510,7 +1510,8 @@ class WASSPDE(dde.data.TimePDE):
         auxiliary_var_function=None,
         domain_batch_size=None
     ):
-        self.notbc_sampler = dde.data.sampler.BatchSampler(num_domain, shuffle=True)
+        self.notbc_sampler = dde.data.sampler.BatchSampler(
+            num_domain, shuffle=True)
         self.domain_batch_size = domain_batch_size
 
         super().__init__(
