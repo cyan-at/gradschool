@@ -1204,10 +1204,10 @@ def tcst1(x, y, network_f, network_g, args):
         l_u1_bound = -torch.sum(u1[u1 < -0.005]) +\
             torch.sum(u1[u1 > 0.005]) 
         l_u2_bound = -torch.sum(u2[u2 < -0.005]) +\
-            torch.sum(u2[u2 > 0.005]) 
+            torch.sum(u2[u2 > 0.005])
 
-        l_u1 += l_u1_bound
-        l_u2 += l_u2_bound
+        l_u1 += args.bound_u * l_u1_bound
+        l_u2 += args.bound_u * l_u2_bound
 
     return [
         -dpsi_t + 0.5 * (u1**2 + u2**2)\
