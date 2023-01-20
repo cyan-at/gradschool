@@ -417,11 +417,10 @@ def make_control_data(model, inputs, N, d, meshes, args):
         [tt_U1, tt_U2, tt_U3],\
         [grid_x1, grid_x2, grid_x3, grid_t]
 
-def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde):
-    dt = (T_t - T_0)/(args.bif)
-
+def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde, sde2):
+    # dt = (T_t - T_0)/(args.bif)
     # ts = np.arange(T_0, T_t + dt, dt)
-    ts = torch.linspace(T_0, T_t, args.bif)
+    ts = torch.linspace(T_0, T_t, 500)
 
     initial_sample = np.random.multivariate_normal(
         np.array(mu_0), np.eye(d)*sigma_0, args.M) # 100 x 3
@@ -455,9 +454,6 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde):
             len(ts),
         ))
 
-    sde.r = torch.tensor(np.array([0.0]*2), dtype=torch.float32)
-    sde.r = sde.r.reshape([-1, 2])
-
     initial_sample_tensor = torch.tensor(initial_sample,
         dtype=torch.float32)
 
@@ -467,8 +463,10 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde):
 
         y_pred = torchsde.sdeint(sde, y0, ts, method='euler').squeeze()
         # calculate predictions
-
         without_control[i, :, :] = y_pred.detach().cpu().numpy().T
+
+        y_pred = torchsde.sdeint(sde2, y0, ts, method='euler').squeeze()
+        with_control[i, :, :] = y_pred.detach().cpu().numpy().T
 
         print(i)
 
@@ -608,6 +606,8 @@ if __name__ == '__main__':
             sde = sde.to(cuda0)
         # set model to evaluation mode
         sde.eval()
+        sde.r = torch.tensor(np.array([0.0]*2), dtype=torch.float32)
+        sde.r = sde.r.reshape([-1, 2])
 
         mu_0 = [0.3525, 0.3503]
 
@@ -848,8 +848,19 @@ if __name__ == '__main__':
     if args.do_integration > 0:
         print("T_t", T_t)
 
+
+        sde2 = SDE2(control_data)
+        # state path to model information file
+        # load model parameters
+        sde2.load_state_dict(torch.load(args.sdept))
+        if torch.cuda.is_available():
+            print("Using GPU.")
+            sde2 = sde2.to(cuda0)
+        # set model to evaluation mode
+        sde2.eval()
+
         ts, initial_sample, with_control, without_control,\
-            all_results, mus, variances = do_integration(control_data, d, T_0, T_t, mu_0, sigma, args, sde)
+            all_results, mus, variances = do_integration(control_data, d, T_0, T_t, mu_0, sigma, args, sde, sde2)
 
         axs.append(fig.add_subplot(1, ax_count, 4, projection='3d'))
         axs.append(fig.add_subplot(1, ax_count, 5, projection='3d'))
@@ -865,6 +876,49 @@ if __name__ == '__main__':
                     [0.0]*len(ts),
                     lw=.3,
                     c='b')
+
+                ########################################
+
+                axs[ax_i + j].plot(
+                    with_control[i, j, :],
+                    ts,
+                    [0.0]*len(ts),
+                    lw=.3,
+                    c='g')
+
+
+                ########################################
+                ########################################
+
+                axs[ax_i + j].plot(
+                    [with_control[i, j, 0]]*2,
+                    [ts[0]]*2,
+                    [0.0, h],
+                    lw=1,
+                    c='g')
+
+                axs[ax_i + j].scatter(
+                    with_control[i, j, 0],
+                    ts[0],
+                    h,
+                    c='g',
+                    s=50,
+                )
+
+                axs[ax_i + j].plot(
+                    [with_control[i, j, -1]]*2,
+                    [ts[-1]]*2,
+                    [0.0, h],
+                    lw=1,
+                    c='g')
+
+                axs[ax_i + j].scatter(
+                    with_control[i, j, -1],
+                    ts[-1],
+                    h,
+                    c='g',
+                    s=50,
+                )
 
                 ########################################
                 ########################################
@@ -904,8 +958,8 @@ if __name__ == '__main__':
         for j in range(2):
             axs[ax_i + j].set_aspect('equal', 'box')
             axs[ax_i + j].set_zlim(b, 2*h)
-            axs[ax_i + j].set_title(
-                'mu %.2f, var %.2f' % (mus[j], variances[j]))
+            # axs[ax_i + j].set_title(
+            #     'mu %.2f, var %.2f' % (mus[j], variances[j]))
 
         ##############################
 
