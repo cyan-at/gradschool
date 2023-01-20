@@ -214,6 +214,10 @@ def get_model(
     if args.bif > 0:
         bif = args.bif
 
+    batchsize2 = None
+    if len(args.batchsize2) > 0:
+        batchsize2 = int(args.batchsize2)
+
     data = WASSPDE(
         geomtime,
         lambda x, y: tcst_pdes[0](
@@ -221,7 +225,8 @@ def get_model(
         [rho_0_BC,rho_T_BC],
         num_domain=bif,
         num_initial=ni, # initial_samples,
-        train_distribution=train_distribution
+        train_distribution=train_distribution,
+        domain_batch_size=batchsize2
     )
 
     # d+1 inputs: <state> + t
@@ -245,7 +250,7 @@ def get_model(
     rhoT_WASS_batch = lambda y_true, y_pred: loss_func_dict[args.loss_func](y_true, y_pred, device, sinkhornT, rhoT, state)
     rhoT_WASS_batch.__name__ = "rhoT_WASS_batch"
     losses=[
-        "MSE","MSE",
+        "MSE","MSE", "MSE", "MSE",
         rho0_WASS_batch,
         rhoT_WASS_batch,
     ]
@@ -258,6 +263,25 @@ def get_model(
     return model, meshes
 
 ######################################
+
+class PDEPointResampler2(dde.callbacks.PDEPointResampler):
+    def __init__(self, period=100, pde_points=True, bc_points=False):
+        super(PDEPointResampler2, self).__init__(period, pde_points, bc_points)
+
+    def on_epoch_end(self):
+        self.epochs_since_last_resample += 1
+        if self.epochs_since_last_resample < self.period:
+            return
+        self.epochs_since_last_resample = 0
+        self.model.data.resample_train_points(
+            self.pde_points, self.bc_points, 1000)
+
+        if not np.array_equal(self.num_bcs_initial, self.model.data.num_bcs):
+            print("Initial value of self.num_bcs:", self.num_bcs_initial)
+            print("self.model.data.num_bcs:", self.model.data.num_bcs)
+            raise ValueError(
+                "`num_bcs` changed! Please update the loss function by `model.compile`."
+            )
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="")
@@ -276,7 +300,7 @@ if __name__ == '__main__':
     # timemode  0 = linspace, 1 = even time samples
     parser.add_argument('--ni', type=int, default=0, help='')
     parser.add_argument('--bif', type=int, default=1000, help='')
-    parser.add_argument('--loss_func', type=str, default="wass3", help='')
+    parser.add_argument('--loss_func', type=str, default="wassbatch2", help='')
     parser.add_argument('--pde_key', type=str, default="", help='')
 
     parser.add_argument('--ck_path', type=str, default=".", help='')
@@ -285,6 +309,9 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=-1, help='')
     parser.add_argument('--restore', type=str, default="", help='')
     parser.add_argument('--batchsize',
+        type=str,
+        default="")
+    parser.add_argument('--batchsize2',
         type=str,
         default="")
 
@@ -409,6 +436,11 @@ if __name__ == '__main__':
         save_better_only=True,
         period=1)
 
+    resampler_cb = PDEPointResampler2(
+        pde_points=True,
+        bc_points=False,
+        period=5)
+
     if args.epochs > 0:
         num_epochs = args.epochs
 
@@ -416,7 +448,7 @@ if __name__ == '__main__':
     losshistory, train_state = model.train(
         iterations=num_epochs,
         display_every=de,
-        callbacks=[earlystop_cb, modelcheckpt_cb],
+        callbacks=[earlystop_cb, modelcheckpt_cb, resampler_cb],
         model_save_path=ck_path)
     end = time.time()
 

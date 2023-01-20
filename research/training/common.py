@@ -1494,6 +1494,93 @@ class CustomGeometryXTime2(dde.geometry.GeometryXTime):
         return xt
 
 class WASSPDE(dde.data.TimePDE):
+    def __init__(
+        self,
+        geometryxtime,
+        pde,
+        ic_bcs,
+        num_domain=0,
+        num_boundary=0,
+        num_initial=0,
+        train_distribution="Hammersley",
+        anchors=None,
+        exclusions=None,
+        solution=None,
+        num_test=None,
+        auxiliary_var_function=None,
+        domain_batch_size=None
+    ):
+        self.notbc_sampler = dde.data.sampler.BatchSampler(num_domain, shuffle=True)
+        self.domain_batch_size = domain_batch_size
+
+        super().__init__(
+            geometryxtime,
+            pde,
+            ic_bcs,
+            num_domain,
+            num_boundary,
+            train_distribution=train_distribution,
+            anchors=anchors,
+            exclusions=exclusions,
+            solution=solution,
+            num_test=num_test,
+            auxiliary_var_function=auxiliary_var_function,
+        )
+
+
+    @run_if_all_none("train_x_all")
+    def train_points(self):
+        X = super().train_points()
+
+        if self.domain_batch_size is not None:
+            print("sampling domain by ", self.domain_batch_size)
+            indices = self.notbc_sampler.get_next(self.domain_batch_size)
+            X = X[indices]
+
+        if self.num_initial > 0:
+            if self.train_distribution == "uniform":
+                tmp = self.geom.uniform_initial_points(self.num_initial)
+            else:
+                print("iman")
+                tmp = self.geom.random_initial_points(
+                    self.num_initial, random=self.train_distribution
+                )
+                # import ipdb; ipdb.set_trace()
+
+            if self.exclusions is not None:
+
+                def is_not_excluded(x):
+                    return not np.any([np.allclose(x, y) for y in self.exclusions])
+
+                tmp = np.array(list(filter(is_not_excluded, tmp)))
+            X = np.vstack((tmp, X))
+        self.train_x_all = X
+        return X
+
+    @run_if_all_none("train_x", "train_y", "train_aux_vars")
+    def train_next_batch(self, batch_size=None):
+        self.train_x_all = self.train_points()
+
+        self.train_x = self.bc_points()
+        if self.pde is not None:
+            self.train_x = np.vstack((self.train_x, self.train_x_all))
+        self.train_y = self.soln(self.train_x) if self.soln else None
+        if self.auxiliary_var_fn is not None:
+            self.train_aux_vars = self.auxiliary_var_fn(self.train_x).astype(
+                config.real(np)
+            )
+
+        return self.train_x, self.train_y, self.train_aux_vars
+
+    def resample_train_points(self, pde_points=True, bc_points=True, batch_size=None):
+        """Resample the training points for PDE and/or BC."""
+        if pde_points:
+            self.train_x_all = None
+        if bc_points:
+            self.train_x_bc = None
+        self.train_x, self.train_y, self.train_aux_vars = None, None, None
+        self.train_next_batch()
+
     def losses(self, targets, outputs, loss_fn, inputs, model, aux=None):
         if dde.backend.backend_name in ["tensorflow.compat.v1", "tensorflow", "pytorch", "paddle"]:
             outputs_pde = outputs
