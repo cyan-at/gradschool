@@ -2207,6 +2207,8 @@ def make_control_data(model, inputs, N, d, meshes, args):
 
     output_tensor = model.net(inputs_tensor)
 
+    ################################################
+
     # only possible if tensors on cpu
     # maybe moving to cuda makes input non-leaf
     if args.diff_on_cpu > 0:
@@ -2222,6 +2224,8 @@ def make_control_data(model, inputs, N, d, meshes, args):
         print("moving dphi_dinput off cuda")
         dphi_dinput = dphi_dinput.cpu().numpy()
 
+    ################################################
+
     if args.diff_on_cpu > 0:
         output = output_tensor.detach().numpy()
     else:
@@ -2236,8 +2240,8 @@ def make_control_data(model, inputs, N, d, meshes, args):
 
     ################################################
 
-    rho0 = t0[:, -1]
-    rhoT = tT[:, -1]
+    rho0 = t0[:, inputs.shape[1] + 2 - 1]
+    rhoT = tT[:, inputs.shape[1] + 2 - 1]
 
     ################################################
 

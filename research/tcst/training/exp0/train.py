@@ -88,7 +88,9 @@ def get_model(
     model_type,
     activations, # sigmoid, tanh
     mu_0,
+    sigma_0,
     mu_T,
+    sigma_T,
     T_t,
     args,
     network_f,
@@ -352,14 +354,26 @@ if __name__ == '__main__':
     # set model to evaluation mode
     sde.eval()
 
+    mu_0 = [0.3525, 0.3503]
+
+    bcc = np.array([0.41235, 0.37605])
+    fcc = np.array([0.012857, 0.60008])
+    sc = np.array([0.41142, 0.69550])
+
+    target = fcc
+
+    sigma = 0.05
+
     model, meshes = get_model(
         d,
         N,
         batchsize,
         0,
         "tanh",
-        [0.3525, 0.3503], # y0
-        [0.41235, 0.37605], # bcc crystal
+        mu_0,
+        sigma,
+        target,
+        sigma,
         T_t,
         args,
         sde.network_f,
