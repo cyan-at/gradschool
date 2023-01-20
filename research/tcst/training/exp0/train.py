@@ -74,7 +74,7 @@ sys.path.insert(0,'..')
 from common import *
 from layers import *
 
-sys.path.insert(0,'../../trained_sde_model/')
+sys.path.insert(0,'../../sde/')
 from trained_sde_model import *
 
 import argparse
@@ -285,7 +285,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--sdept',
         type=str,
-        default="../../trained_sde_model/4fold_3_2_layer_model.pt",
+        default="../../sde/4fold_3_2_layer_model.pt",
         help='')
 
     '''
