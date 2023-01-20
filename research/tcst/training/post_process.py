@@ -606,7 +606,7 @@ if __name__ == '__main__':
             sde = sde.to(cuda0)
         # set model to evaluation mode
         sde.eval()
-        sde.r = torch.tensor(np.array([0.0]*2), dtype=torch.float32)
+        sde.r = torch.tensor(np.array([0.001]*2), dtype=torch.float32)
         sde.r = sde.r.reshape([-1, 2])
 
         mu_0 = [0.3525, 0.3503]
