@@ -116,6 +116,20 @@ echo $LD_LIBRARY_PATH
 echo $LD_LIBRARY_PATH | grep miniforge
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/home/cyan3/miniforge/lib/
 
+
+######################################
+
+works on vs04 / vs09 for adding torchsde:
+
+it is now conda-forge/linux-64::cudatoolkit-11.6.0-hecad31d_11, not _10 anymore
+
+conda remove pytorch cudatoolkit
+
+cd /usr/local/home/cyan3/miniforge/envs/tf/nvvm/libdevice/
+ln -s ~/miniforge/pkgs/cudatoolkit-11.6.0-hecad31d_11/lib/libdevice.10.bc .
+
+conda install cudnn onednn -c conda-forge
+conda install torchsde=0.2.4=py39h1a9c180_3 cudatoolkit=11.6=hecad31d_11 pytorch=1.12.1=cuda112py39hb0b7ed5_201
 setup
 
 echo "hello, starting tf conda"
