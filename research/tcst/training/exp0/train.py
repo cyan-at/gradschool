@@ -362,7 +362,7 @@ if __name__ == '__main__':
 
     target = fcc
 
-    sigma = 0.05
+    sigma = 0.01
 
     model, meshes = get_model(
         d,
