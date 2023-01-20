@@ -448,6 +448,13 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde):
             len(ts),
         ))
 
+    with_control = np.empty(
+        (
+            initial_sample.shape[0],
+            initial_sample.shape[1],
+            len(ts),
+        ))
+
     sde.r = torch.tensor(np.array([0.0]*2), dtype=torch.float32)
     sde.r = sde.r.reshape([-1, 2])
 
@@ -465,9 +472,11 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde):
 
         print(i)
 
-    import ipdb; ipdb.set_trace()
+    # import ipdb; ipdb.set_trace()
 
-    return ts, initial_sample, None, without_control,\
+    ts = ts.detach().cpu().numpy()
+
+    return ts, initial_sample, with_control, without_control,\
         None, mus, variances
 
 if __name__ == '__main__':
@@ -663,9 +672,6 @@ if __name__ == '__main__':
     ax2 = fig.add_subplot(1, ax_count, 2, projection='3d')
     ax3 = fig.add_subplot(1, ax_count, 3, projection='3d')
     axs = [ax1, ax2, ax3]
-
-    for ax in axs:
-        ax.dist = 9 # default is 10
 
     ax_i = 0
 
@@ -902,6 +908,9 @@ if __name__ == '__main__':
                 'mu %.2f, var %.2f' % (mus[j], variances[j]))
 
         ##############################
+
+    for ax in axs:
+        ax.dist = 9 # default is 10
 
     if args.headless > 0:
         print("headless")
