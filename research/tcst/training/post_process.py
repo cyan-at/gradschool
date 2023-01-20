@@ -418,11 +418,13 @@ def make_control_data(model, inputs, N, d, meshes, args):
         [grid_x1, grid_x2, grid_x3, grid_t]
 
 def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde):
-    dt = (T_t - T_0)/(args.integrate_N)
-    ts = np.arange(T_0, T_t + dt, dt)
+    dt = (T_t - T_0)/(args.bif)
+
+    # ts = np.arange(T_0, T_t + dt, dt)
+    ts = torch.linspace(T_0, T_t, args.bif)
 
     initial_sample = np.random.multivariate_normal(
-        np.array([mu_0]*d), np.eye(d)*sigma_0, args.M) # 100 x 3
+        np.array(mu_0), np.eye(d)*sigma_0, args.M) # 100 x 3
 
     v_scales = [float(x) for x in args.v_scale.split(",")]
     biases = [float(x) for x in args.bias.split(",")]
@@ -439,18 +441,31 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde):
         pde_key = int(args.pde_key)
     print("pde_key", pde_key)
 
-    # integrator = Integrator(
-    #     initial_sample,
-    #     (T_0, T_t),
-    #     args,
-    #     dynamics_map[pde_key])
-
     without_control = np.empty(
         (
             initial_sample.shape[0],
             initial_sample.shape[1],
             len(ts),
         ))
+
+    sde.r = torch.tensor(np.array([0.0]*2), dtype=torch.float32)
+    sde.r = sde.r.reshape([-1, 2])
+
+    initial_sample_tensor = torch.tensor(initial_sample,
+        dtype=torch.float32)
+
+    for i in range(initial_sample_tensor.shape[0]):
+        y0 = initial_sample_tensor[i, :]
+        y0 = torch.reshape(y0, [1, -1])
+
+        y_pred = torchsde.sdeint(sde, y0, ts, method='euler').squeeze()
+        # calculate predictions
+
+        without_control[i, :, :] = y_pred.detach().cpu().numpy().T
+
+        print(i)
+
+    import ipdb; ipdb.set_trace()
 
     return ts, initial_sample, None, without_control,\
         None, mus, variances
@@ -585,11 +600,15 @@ if __name__ == '__main__':
         # set model to evaluation mode
         sde.eval()
 
+        mu_0 = [0.3525, 0.3503]
+
         bcc = np.array([0.41235, 0.37605])
         fcc = np.array([0.012857, 0.60008])
         sc = np.array([0.41142, 0.69550])
 
-        target = bcc
+        target = fcc
+
+        sigma = 0.01
 
         model, meshes = get_model(
             d,
@@ -597,8 +616,10 @@ if __name__ == '__main__':
             batchsize,
             0,
             "tanh",
-            [0.3525, 0.3503], # y0
-            target, # bcc crystal
+            mu_0,
+            sigma,
+            target,
+            sigma,
             T_t,
             args,
             sde.network_f,
@@ -772,12 +793,12 @@ if __name__ == '__main__':
 
     title_str = args.modelpt
     title_str += "\n"
-    title_str += "N=15, d=%d, T_t=%.3f, batch=full, %s, mu_0=%.3f, mu_T=%.3f" % (
-        d,
-        T_t,
-        "tanh",
-        mu_0,
-        mu_T,)
+    # title_str += "N=15, d=%d, T_t=%.3f, batch=full, %s, mu_0=%.3f, mu_T=%.3f" % (
+    #     d,
+    #     T_t,
+    #     "tanh",
+    #     mu_0,
+    #     mu_T,)
 
     title_str += "\n"
     title_str += "rho0_sum=%.3f, rhoT_sum=%.3f" % (
@@ -822,7 +843,65 @@ if __name__ == '__main__':
         print("T_t", T_t)
 
         ts, initial_sample, with_control, without_control,\
-            all_results, mus, variances = do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde)
+            all_results, mus, variances = do_integration(control_data, d, T_0, T_t, mu_0, sigma, args, sde)
+
+        axs.append(fig.add_subplot(1, ax_count, 4, projection='3d'))
+        axs.append(fig.add_subplot(1, ax_count, 5, projection='3d'))
+
+        h = 0.5
+        b = -0.05
+
+        for i in range(initial_sample.shape[0]):
+            for j in range(d):
+                axs[ax_i + j].plot(
+                    without_control[i, j, :],
+                    ts,
+                    [0.0]*len(ts),
+                    lw=.3,
+                    c='b')
+
+                ########################################
+                ########################################
+
+                axs[ax_i + j].plot(
+                    [without_control[i, j, 0]]*2,
+                    [ts[0]]*2,
+                    [0.0, h],
+                    lw=1,
+                    c='b')
+
+                axs[ax_i + j].scatter(
+                    without_control[i, j, 0],
+                    ts[0],
+                    h,
+                    c='b',
+                    s=50,
+                )
+
+                axs[ax_i + j].plot(
+                    [without_control[i, j, -1]]*2,
+                    [ts[-1]]*2,
+                    [0.0, h],
+                    lw=1,
+                    c='b')
+
+                axs[ax_i + j].scatter(
+                    without_control[i, j, -1],
+                    ts[-1],
+                    h,
+                    c='b',
+                    s=50,
+                )
+
+        ##############################
+
+        for j in range(2):
+            axs[ax_i + j].set_aspect('equal', 'box')
+            axs[ax_i + j].set_zlim(b, 2*h)
+            axs[ax_i + j].set_title(
+                'mu %.2f, var %.2f' % (mus[j], variances[j]))
+
+        ##############################
 
     if args.headless > 0:
         print("headless")
