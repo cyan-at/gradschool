@@ -1347,6 +1347,28 @@ class ModelCheckpoint2(dde.callbacks.ModelCheckpoint):
 
         return result
 
+
+######################################
+
+class PDEPointResampler2(dde.callbacks.PDEPointResampler):
+    def __init__(self, period=100, pde_points=True, bc_points=False):
+        super(PDEPointResampler2, self).__init__(period, pde_points, bc_points)
+
+    def on_epoch_end(self):
+        self.epochs_since_last_resample += 1
+        if self.epochs_since_last_resample < self.period:
+            return
+        self.epochs_since_last_resample = 0
+        self.model.data.resample_train_points(
+            self.pde_points, self.bc_points, 1000)
+
+        if not np.array_equal(self.num_bcs_initial, self.model.data.num_bcs):
+            print("Initial value of self.num_bcs:", self.num_bcs_initial)
+            print("self.model.data.num_bcs:", self.model.data.num_bcs)
+            raise ValueError(
+                "`num_bcs` changed! Please update the loss function by `model.compile`."
+            )
+
 class NonNeg_LastLayer_Model(dde.Model):
     def _train_sgd(self, iterations, display_every):
         print("NonNeg_LastLayer_Model training")

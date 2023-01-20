@@ -203,16 +203,22 @@ def get_model(
         pde_key = int(args.pde_key)
     print("pde_key", pde_key)
 
+    bif = samples_between_initial_and_final
+    if args.bif > 0:
+        bif = args.bif
+
+    batchsize2 = None
+    if len(args.batchsize2) > 0:
+        batchsize2 = int(args.batchsize2)
+
     data = WASSPDE(
         geomtime,
         lambda x, y: euler_pdes[pde_key](x,  y, epsilon, a[0], a[1], a[2]),
         [rho_0_BC,rho_T_BC],
-        num_domain=samples_between_initial_and_final,
-        num_initial=initial_samples,
-        train_distribution=train_distribution
-        # num_boundary=50,
-        # train_distribution="pseudo",
-        # num_initial=10,
+        num_domain=bif,
+        num_initial=ni, # initial_samples,
+        train_distribution=train_distribution,
+        domain_batch_size=batchsize2
     )
 
     # d+1 inputs: <state> + t
@@ -261,6 +267,7 @@ if __name__ == '__main__':
     parser.add_argument('--timemode', type=int, default=0, help='')
     # timemode  0 = linspace, 1 = even time samples
     parser.add_argument('--ni', type=int, default=-1, help='')
+    parser.add_argument('--bif', type=int, default=1000, help='')
     parser.add_argument('--loss_func', type=str, default="wassbatch2", help='')
     parser.add_argument('--pde_key', type=str, default="", help='')
 
@@ -272,6 +279,9 @@ if __name__ == '__main__':
     parser.add_argument('--batchsize',
         type=str,
         default="500")
+    parser.add_argument('--batchsize2',
+        type=str,
+        default="")
 
     parser.add_argument('--diff_on_cpu',
         type=int, default=1)
@@ -377,6 +387,11 @@ if __name__ == '__main__':
         save_better_only=True,
         period=1)
 
+    resampler_cb = PDEPointResampler2(
+        pde_points=True,
+        bc_points=False,
+        period=5)
+
     if args.epochs > 0:
         num_epochs = args.epochs
 
@@ -384,7 +399,7 @@ if __name__ == '__main__':
     losshistory, train_state = model.train(
         iterations=num_epochs,
         display_every=de,
-        callbacks=[earlystop_cb, modelcheckpt_cb],
+        callbacks=[earlystop_cb, modelcheckpt_cb, resampler_cb],
         model_save_path=ck_path)
     end = time.time()
 
