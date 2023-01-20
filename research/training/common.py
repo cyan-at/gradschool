@@ -1201,10 +1201,10 @@ def tcst1(x, y, network_f, network_g, args):
     l_u2 = u2 - d_uterm_du1_du2[:, 3]
     if args.bound_u > 0:
         print("bounding u")
-        l_u1_bound = -torch.sum(y_pred[u1 < -0.005]) +\
-            torch.sum(y_pred[u1 > 0.005]) 
-        l_u2_bound = -torch.sum(y_pred[u2 < -0.005]) +\
-            torch.sum(y_pred[u2 > 0.005]) 
+        l_u1_bound = -torch.sum(u1[u1 < -0.005]) +\
+            torch.sum(u1[u1 > 0.005]) 
+        l_u2_bound = -torch.sum(u2[u2 < -0.005]) +\
+            torch.sum(u2[u2 > 0.005]) 
 
         l_u1 += l_u1_bound
         l_u2 += l_u2_bound
