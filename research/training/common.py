@@ -1118,7 +1118,7 @@ def euler_pde_10(x, y, epsilon, a1, a2, *_):
     ]
 
 # try different T_t, T_t = 200, etc.
-def tcst1(x, y, network_f, network_g):
+def tcst1(x, y, network_f, network_g, args):
     psi, rho, u1, u2 = y[:, 0:1], y[:, 1:2], y[:, 2:3], y[:, 3:4]
 
     # x = c10, c12, t
@@ -1197,6 +1197,18 @@ def tcst1(x, y, network_f, network_g):
         grad_outputs=torch.ones_like(u_term),
         retain_graph=True)[0]
 
+    l_u1 = u1 - d_uterm_du1_du2[:, 2]
+    l_u2 = u2 - d_uterm_du1_du2[:, 3]
+    if args.bound_u > 0:
+        print("bounding u")
+        l_u1_bound = -torch.sum(y_pred[u1 < -0.005]) +\
+            torch.sum(y_pred[u1 > 0.005]) 
+        l_u2_bound = -torch.sum(y_pred[u2 < -0.005]) +\
+            torch.sum(y_pred[u2 > 0.005]) 
+
+        l_u1 += l_u1_bound
+        l_u2 += l_u2_bound
+
     return [
         -dpsi_t + 0.5 * (u1**2 + u2**2)\
         - (dpsi_c10 * d1[:, 0] + dpsi_c12 * d1[:, 1])\
@@ -1205,9 +1217,8 @@ def tcst1(x, y, network_f, network_g):
         -drho_t - (d_rhod1_c10 + d_rhod1_c12)\
         + (d2[:, 0] * drho_c10 + d2[:, 1] * drho_c12),
 
-        u1 - d_uterm_du1_du2[:, 2],
-
-        u2 - d_uterm_du1_du2[:, 3],
+        l_u1,
+        l_u2
     ]
 
 euler_pdes = {

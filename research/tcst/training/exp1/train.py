@@ -221,7 +221,7 @@ def get_model(
     data = WASSPDE(
         geomtime,
         lambda x, y: tcst_pdes[0](
-            x,  y, network_f, network_g),
+            x,  y, network_f, network_g, args),
         [rho_0_BC,rho_T_BC],
         num_domain=bif,
         num_initial=ni, # initial_samples,
@@ -289,6 +289,7 @@ if __name__ == '__main__':
     parser.add_argument('--N', type=int, default=22, help='')
     parser.add_argument('--state_bound_min', type=float, default=0.1, help='')
     parser.add_argument('--state_bound_max', type=float, default=0.5, help='')
+    parser.add_argument('--bound_u', type=int, default=0, help='')
 
     # parser.add_argument('--mu_0', type=str, default="", help='')
     # parser.add_argument('--mu_T', type=str, default="", help='')
@@ -362,6 +363,9 @@ if __name__ == '__main__':
     if len(args.T_t) > 0:
         T_t = float(args.T_t)
     print("T_t", T_t)
+
+    if args.bound_u > 0:
+        print("bounding u")
 
     d = 2
 
