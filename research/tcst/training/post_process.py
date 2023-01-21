@@ -333,7 +333,8 @@ def make_control_data(model, inputs, N, d, meshes, args):
 def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde, sde2):
     # dt = (T_t - T_0)/(args.bif)
     # ts = np.arange(T_0, T_t + dt, dt)
-    ts = torch.linspace(T_0, T_t, 500)
+    ts = torch.linspace(T_0, T_t, int(T_t * 500), device=cuda0)
+    ts = torch.linspace(T_0, 1, int(1 * 500), device=cuda0)
 
     initial_sample = np.random.multivariate_normal(
         np.array(mu_0), np.eye(d)*sigma_0, args.M) # 100 x 3
@@ -368,7 +369,9 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde, sde2):
         ))
 
     initial_sample_tensor = torch.tensor(initial_sample,
-        dtype=torch.float32)
+        dtype=torch.float32, device=cuda0)
+
+    ts = ts.to(cuda0)
 
     for i in range(initial_sample_tensor.shape[0]):
         y0 = initial_sample_tensor[i, :]
@@ -376,17 +379,17 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde, sde2):
 
         print(y0)
 
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
 
         y_pred = torchsde.sdeint(sde, y0, ts, method='euler').squeeze()
         # calculate predictions
         without_control[i, :, :] = y_pred.detach().cpu().numpy().T
 
-
-        # y_pred = torchsde.sdeint(sde2, y0, ts, method='euler').squeeze()
-        # with_control[i, :, :] = y_pred.detach().cpu().numpy().T
+        y_pred = torchsde.sdeint(sde2, y0, ts, method='euler').squeeze()
+        with_control[i, :, :] = y_pred.detach().cpu().numpy().T
 
         print(i)
+        print(y_pred[-1, :])
 
     # import ipdb; ipdb.set_trace()
 
