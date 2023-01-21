@@ -182,240 +182,153 @@ def make_control_data(model, inputs, N, d, meshes, args):
     tT_u = test[batchsize:2*batchsize, inputs.shape[1] + 3 - 1:inputs.shape[1] + 5 - 1]
     tt_u = test[2*batchsize:, inputs.shape[1] + 3 - 1:inputs.shape[1] + 5 - 1]
 
-    ################################################
+    ################################################ grid_n overhead
+
+    # we redo meshing in case grid_n != N
+    linspaces = []
+    for i in range(d):
+        linspaces.append(
+            np.transpose(np.linspace(
+                args.state_bound_min,
+                args.state_bound_max,
+                args.grid_n)))
+    # add time
+    linspaces.append(
+        np.transpose(np.linspace(
+            T_0,
+            T_t,
+            args.grid_n*2)))
+
+    grid_n_meshes = np.meshgrid(
+        *linspaces, copy=False) # each is NxNxN
+
+    ################################################ bc rho
 
     rho0 = t0[:, inputs.shape[1] + 2 - 1]
     rhoT = tT[:, inputs.shape[1] + 2 - 1]
 
-    ################################################
+    if rho0.shape != M:
+        print("interpolating rho0 and rhoT because bc was batched using original meshes")
+        t0_input = t0[:, :2]
+        tT_input = tT[:, :2]
 
-    x_1_ = np.linspace(args.state_bound_min, args.state_bound_max, args.grid_n)
-    x_2_ = np.linspace(args.state_bound_min, args.state_bound_max, args.grid_n)
-    x_3_ = np.linspace(args.state_bound_min, args.state_bound_max, args.grid_n)
-    t_ = np.linspace(T_0, T_t, args.grid_n*2)
+        rho0_meshed = gd(
+          t0_input,
+          rho0,
+          tuple(meshes),
+          method=args.interp_mode)
 
-    ########################################################
+        rhoT_meshed = gd(
+          tT_input,
+          rhoT,
+          tuple(meshes),
+          method=args.interp_mode)
 
-    if d == 2:
-        grid0 = np.array((
-            meshes[0].reshape(-1),
-            meshes[1].reshape(-1),
-        )).T
-    elif d == 3:
-        grid0 = np.array((
-            meshes[0].reshape(-1),
-            meshes[1].reshape(-1),
-            meshes[2].reshape(-1),
-        )).T
+        rho0 = rho0_meshed.reshape(-1)
+        rhoT = rhoT_meshed.reshape(-1)
 
-    ########################################################
+    ######################################################## bc control
 
-    t0_u1 = t0_u[:, 0]
-    t0_u2 = t0_u[:, 1]
+    tmp = []
+    for d_i in range(d):
+        tmp.append(meshes[d_i].reshape(-1))
+    bc_grids = np.array(tmp).T
+    # if batchsize == M:
+    #     tmp = []
+    #     for d_i in range(d):
+    #         tmp.append(meshes[d_i].reshape(-1))
+    #     bc_grids = np.array(tmp).T
+    # else:
+    #     tmp = []
+    #     for d_i in range(d):
+    #         tmp.append(grid_n_meshes[d_i].reshape(-1))
+    #     bc_grids = np.array(tmp).T
 
-    tT_u1 = tT_u[:, 0]
-    tT_u2 = tT_u[:, 1]
-
-    tt_u1 = tt_u[:, 0]
-    tt_u2 = tt_u[:, 1]
-
-    t0_u3 = None
-    tT_u3 = None
-    if d == 3:
-        t0_u3 = dphi_dinput_t0[:, 2]
-        tT_u3 = dphi_dinput_tT[:, 2]
-        tt_u3 = dphi_dinput_tt[:, 2]
-
-    if len(args.batchsize) == 0:
-        t0={
-            '0': t0_u1.reshape(-1),
-            '1': t0_u2.reshape(-1),
-            'grid' : grid0,
+    if batchsize == M:
+        t0_control_data = {
+            'grid' : bc_grids,
         }
 
-        tT={
-            '0': tT_u1.reshape(-1),
-            '1': tT_u2.reshape(-1),
-            'grid' : grid0,
+        tT_control_data = {
+            'grid' : bc_grids,
         }
 
-        if d == 3:
-            t0['2'] = t0_u3.reshape(-1)
-            tT['2'] = tT_u3.reshape(-1)
+        for d_i in range(d):
+            t0[str(d_i)] = t0_u[:, d_i]
+            tT[str(d_i)] = tT_u[:, d_i]
+
     else:
-        print("interpolating t0 and tt also since batchsize is not enough")
+        print("interpolating t0 and tt since batchsize != M")
 
-        grid_x1, grid_x2, grid_x3 = np.meshgrid(
-            x_1_,
-            x_2_,
-            x_3_, copy=False) # each is NxNxN
+        t0_list = [t0[:, d_i] for d_i in range(d)]
+        tT_list = [tT[:, d_i] for d_i in range(d)]
 
-        t0_u1 = gd(
-          (t0[:, 0], t0[:, 1], t0[:, 2]),
-          t0_u1,
-          (grid_x1, grid_x2, grid_x3),
-          method=args.interp_mode)
+        t0_control_data = {
+            'grid' : bc_grids,
+        }
 
-        t0_u2 = gd(
-          (t0[:, 0], t0[:, 1], t0[:, 2]),
-          t0_u2,
-          (grid_x1, grid_x2, grid_x3),
-          method=args.interp_mode)
+        tT_control_data = {
+            'grid' : bc_grids,
+        }
 
-        if t0_u3 is not None:
-            t0_u3 = gd(
-              (t0[:, 0], t0[:, 1], t0[:, 2]),
-              t0_u3,
-              (grid_x1, grid_x2, grid_x3),
+        for d_i in range(d):
+            t0_di = gd(
+              tuple(t0_list),
+              t0_u[:, d_i],
+              tuple(meshes), # tuple(grid_n_meshes[:-1]),
               method=args.interp_mode)
+            t0_control_data[str(d_i)] = t0_di.reshape(-1)
 
-        t0={
-            '0': t0_u1.reshape(-1),
-            '1': t0_u2.reshape(-1),
-            'grid' : grid0,
-        }
-
-        ##########################
-
-        tT_u1 = gd(
-          (tT[:, 0], tT[:, 1], tT[:, 2]),
-          tT_u1,
-          (grid_x1, grid_x2, grid_x3),
-          method=args.interp_mode)
-
-        tT_u2 = gd(
-          (tT[:, 0], tT[:, 1], tT[:, 2]),
-          tT_u2,
-          (grid_x1, grid_x2, grid_x3),
-          method=args.interp_mode)
-
-        if tT_u3 is not None:
-            tT_u3 = gd(
-              (tT[:, 0], tT[:, 1], tT[:, 2]),
-              tT_u3,
-              (grid_x1, grid_x2, grid_x3),
+            tT_di = gd(
+              tuple(tT_list),
+              tT_u[:, d_i],
+              tuple(meshes), # tuple(grid_n_meshes[:-1]),
               method=args.interp_mode)
+            tT_control_data[str(d_i)] = tT_di.reshape(-1)
 
-        tT={
-            '0': tT_u1.reshape(-1),
-            '1': tT_u2.reshape(-1),
-            'grid' : grid0,
-        }
+    ########################################################
 
-        ##########################
+    tmp = []
+    for d_i in range(d+1):
+        tmp.append(grid_n_meshes[d_i].reshape(-1))
+    domain_grids = np.array(tmp).T
 
-        if d == 3:
-            t0['2'] = t0_u3.reshape(-1)
-            tT['2'] = tT_u3.reshape(-1)
+    tt_control_data = {
+        'grid' : domain_grids,
+    }
 
-    ###########################
+    tt_list = [tt[:, d_i] for d_i in range(d+1)]
 
-    grid_x3 = None
-    if d == 2:
-        grid_x1, grid_x2, grid_t = np.meshgrid(
-            x_1_,
-            x_2_,
-            t_, copy=False) # each is NxNxN
-
-        grid1 = np.array((
-            grid_x1.reshape(-1),
-            grid_x2.reshape(-1),
-            grid_t.reshape(-1),
-        )).T
-    elif d == 3:
-        grid_x1, grid_x2, grid_x3, grid_t = np.meshgrid(
-            x_1_,
-            x_2_,
-            x_3_,
-            t_, copy=False) # each is NxNxN
-
-        grid1 = np.array((
-            grid_x1.reshape(-1),
-            grid_x2.reshape(-1),
-            grid_x3.reshape(-1),
-            grid_t.reshape(-1),
-        )).T
-
-    ###########################
-
-    tt_U3 = None
-    if d == 2:
-        # import ipdb; ipdb.set_trace()
-        tt_U1 = gd(
-          (tt[:, 0], tt[:, 1], tt[:, 2]),
-          tt_u1,
-          (grid_x1, grid_x2, grid_t),
+    for d_i in range(d):
+        tt_di = gd(
+          tuple(tt_list),
+          tt_u[:, d_i],
+          tuple(grid_n_meshes),
           method=args.interp_mode)
 
-        tt_U2 = gd(
-          (tt[:, 0], tt[:, 1], tt[:, 2]),
-          tt_u2,
-          (grid_x1, grid_x2, grid_t),
-          method=args.interp_mode)
+        print("# tt_di nans:", d_i, np.count_nonzero(
+            np.isnan(tt_di)), tt_di.size)
+        tt_di = np.nan_to_num(tt_di)
 
-        # import ipdb; ipdb.set_trace()
+        tt_control_data[str(d_i)] = tt_di.reshape(-1)
 
-        print("# tt_U1 nans:", np.count_nonzero(np.isnan(tt_U1)), tt_U1.size)
-        print("# tt_U2 nans:", np.count_nonzero(np.isnan(tt_U2)), tt_U2.size)
-
-        tt_U1 = np.nan_to_num(tt_U1)
-        tt_U2 = np.nan_to_num(tt_U2)
-
-        tt={
-            '0': tt_U1.reshape(-1),
-            '1': tt_U2.reshape(-1),
-            'grid' : grid1,
-        }
-    elif d == 3:
-        tt_U1 = gd(
-          (tt[:, 0], tt[:, 1], tt[:, 2], tt[:, 3]),
-          tt_u1,
-          (grid_x1, grid_x2, grid_x3, grid_t),
-          method=args.interp_mode)
-
-        tt_U2 = gd(
-          (tt[:, 0], tt[:, 1], tt[:, 2], tt[:, 3]),
-          tt_u2,
-          (grid_x1, grid_x2, grid_x3, grid_t),
-          method=args.interp_mode)
-
-        tt_U3 = gd(
-          (tt[:, 0], tt[:, 1], tt[:, 2], tt[:, 3]),
-          tt_u3,
-          (grid_x1, grid_x2, grid_x3, grid_t),
-          method=args.interp_mode)
-
-        print("# tt_U1 nans:", np.count_nonzero(np.isnan(tt_U1)), tt_U1.size)
-        print("# tt_U2 nans:", np.count_nonzero(np.isnan(tt_U2)), tt_U2.size)
-        print("# tt_U2 nans:", np.count_nonzero(np.isnan(tt_U2)), tt_U2.size)
-
-        tt_U1 = np.nan_to_num(tt_U1)
-        tt_U2 = np.nan_to_num(tt_U2)
-        tt_U3 = np.nan_to_num(tt_U3)
-
-        tt={
-            '0': tt_U1.reshape(-1),
-            '1': tt_U2.reshape(-1),
-            '2': tt_U2.reshape(-1),
-            'grid' : grid1,
-        }
-
-    tt['grid_tree'] = KDTree(grid1, leaf_size=2)
+    tt_control_data['grid_tree'] = KDTree(domain_grids, leaf_size=2)
 
     ########################################################
 
     control_data = {
-            't0' : t0,
-            'tT' : tT,
-            'tt' : tt,
+            't0' : t0_control_data,
+            'tT' : tT_control_data,
+            'tt' : tt_control_data,
             'time_slices' : None,
         }
 
-    return test, rho0, rhoT, T_t, control_data,\
-        [t0_u1, t0_u2, t0_u3],\
-        [tT_u1, tT_u2, tT_u3],\
-        [tt_U1, tt_U2, tt_U3],\
-        [grid_x1, grid_x2, grid_x3, grid_t]
+    # import ipdb; ipdb.set_trace()
+
+    return test, T_t,\
+        rho0, rhoT,\
+        bc_grids, domain_grids, grid_n_meshes,\
+        control_data
 
 def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde, sde2):
     # dt = (T_t - T_0)/(args.bif)
@@ -461,12 +374,17 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde, sde2):
         y0 = initial_sample_tensor[i, :]
         y0 = torch.reshape(y0, [1, -1])
 
+        print(y0)
+
+        import ipdb; ipdb.set_trace()
+
         y_pred = torchsde.sdeint(sde, y0, ts, method='euler').squeeze()
         # calculate predictions
         without_control[i, :, :] = y_pred.detach().cpu().numpy().T
 
-        y_pred = torchsde.sdeint(sde2, y0, ts, method='euler').squeeze()
-        with_control[i, :, :] = y_pred.detach().cpu().numpy().T
+
+        # y_pred = torchsde.sdeint(sde2, y0, ts, method='euler').squeeze()
+        # with_control[i, :, :] = y_pred.detach().cpu().numpy().T
 
         print(i)
 
@@ -499,7 +417,6 @@ if __name__ == '__main__':
         type=int,
         default=0)
 
-
     parser.add_argument('--optimizer',
         type=str, default="adam", help='')
 
@@ -522,6 +439,9 @@ if __name__ == '__main__':
     parser.add_argument('--loss_func', type=str, default="wass3", help='')
     parser.add_argument('--pde_key', type=str, default="", help='')
     parser.add_argument('--batchsize',
+        type=str,
+        default="")
+    parser.add_argument('--batchsize2',
         type=str,
         default="")
 
@@ -555,7 +475,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--sdept',
         type=str,
-        default="../../sde/4fold_3_2_layer_model.pt",
+        default="../../../sde/4fold_3_2_layer_model.pt",
         help='')
 
     args = parser.parse_args()
@@ -606,7 +526,7 @@ if __name__ == '__main__':
             sde = sde.to(cuda0)
         # set model to evaluation mode
         sde.eval()
-        sde.r = torch.tensor(np.array([0.001]*2), dtype=torch.float32)
+        sde.r = torch.tensor(np.array([0.0]*2), dtype=torch.float32)
         sde.r = sde.r.reshape([-1, 2])
 
         mu_0 = [0.3525, 0.3503]
@@ -647,16 +567,11 @@ if __name__ == '__main__':
 
     inputs = np.float32(test[:, :d+1])
 
-    # import ipdb; ipdb.set_trace()
-
-    test, rho0, rhoT, T_t, control_data,\
-        t0s, tTs, tts, grids = make_control_data(
+    test, T_t,\
+    rho0, rhoT,\
+    bc_grids, domain_grids, grid_n_meshes,\
+    control_data = make_control_data(
         model, inputs, N, d, meshes, args)
-
-    dphi_dinput_t0_dx, dphi_dinput_t0_dy, dphi_dinput_t0_dz = t0s
-    dphi_dinput_tT_dx, dphi_dinput_tT_dy, dphi_dinput_tT_dz = tTs
-    DPHI_DINPUT_tt_0, DPHI_DINPUT_tt_1, DPHI_DINPUT_tt_2 = tts
-    grid_x1, grid_x2, grid_x3, grid_t = grids
 
     ########################################################
 
@@ -679,11 +594,52 @@ if __name__ == '__main__':
     z2 = T_t
     p = 0.01
 
-    if d == 2:
+    ########################################################
+
+    axs[ax_i].contourf(
+        meshes[0],
+        meshes[1],
+        rho0.reshape(*Ns),
+        50, zdir='z',
+        cmap=cm.jet,
+        offset=z1,
+        alpha=0.4
+    )
+
+    axs[ax_i].contourf(
+        meshes[0],
+        meshes[1],
+        rhoT.reshape(*Ns),
+        50, zdir='z',
+        cmap=cm.jet,
+        offset=z2,
+        alpha=0.4,
+    )
+
+    axs[ax_i].set_xlim(
+        args.state_bound_min, args.state_bound_max)
+    axs[ax_i].set_zlim(T_0 - 0.1, T_t + 0.1)
+
+    axs[ax_i].set_xlabel('x')
+    axs[ax_i].set_ylabel('y')
+    axs[ax_i].set_zlabel('t')
+    axs[ax_i].set_title('rho_opt')
+
+    ax_i += 1
+
+    ########################################################
+
+    # import ipdb; ipdb.set_trace()
+
+    grid_n_list = [args.grid_n]*d
+    grid_n_list.append(args.grid_n * 2)
+
+    for d_i in range(d):
+        # bc control is always interped to meshes**d
         axs[ax_i].contourf(
             meshes[0],
             meshes[1],
-            rho0.reshape(*Ns),
+            control_data['t0'][str(d_i)].reshape(N, N),
             50, zdir='z',
             cmap=cm.jet,
             offset=z1,
@@ -693,51 +649,20 @@ if __name__ == '__main__':
         axs[ax_i].contourf(
             meshes[0],
             meshes[1],
-            rhoT.reshape(*Ns),
+            control_data['tT'][str(d_i)].reshape(N, N),
             50, zdir='z',
             cmap=cm.jet,
             offset=z2,
             alpha=0.4,
         )
 
-        axs[ax_i].set_xlim(args.state_bound_min, args.state_bound_max)
-        axs[ax_i].set_zlim(T_0 - 0.1, T_t + 0.1)
+        # import ipdb; ipdb.set_trace()
 
-        axs[ax_i].set_xlabel('x')
-        axs[ax_i].set_ylabel('y')
-        axs[ax_i].set_zlabel('t')
-        axs[ax_i].set_title('rho_opt')
-
-        ax_i += 1
-
-        ########################################################
-
-        axs[ax_i].contourf(
-            meshes[0],
-            meshes[1],
-            dphi_dinput_t0_dx.reshape(N, N),
-            50, zdir='z',
-            cmap=cm.jet,
-            offset=z1,
-            alpha=0.4
-        )
-
-        axs[ax_i].contourf(
-            meshes[0],
-            meshes[1],
-            dphi_dinput_tT_dx.reshape(N, N),
-            50, zdir='z',
-            cmap=cm.jet,
-            offset=z2,
-            alpha=0.4,
-        )
-
+        # tt control is to grid_n**d
         sc2=axs[ax_i].scatter(
-            grid_x1,
-            grid_x2,
-            grid_t,
-            c=DPHI_DINPUT_tt_0,
-            s=np.abs(DPHI_DINPUT_tt_0*p),
+            *grid_n_meshes,
+            c=control_data['tt'][str(d_i)],
+            s=np.abs(control_data['tt'][str(d_i)]*p),
             cmap=cm.jet,
             alpha=1.0)
         plt.colorbar(sc2, shrink=0.25)
@@ -748,52 +673,9 @@ if __name__ == '__main__':
         axs[ax_i].set_xlabel('x')
         axs[ax_i].set_ylabel('y')
         axs[ax_i].set_zlabel('t')
-        axs[ax_i].set_title('u1')
+        axs[ax_i].set_title('u' + str(d_i))
 
         ax_i += 1
-
-        ########################################################
-
-        axs[ax_i].contourf(
-            meshes[0],
-            meshes[1],
-            dphi_dinput_t0_dy.reshape(N, N),
-            50, zdir='z',
-            cmap=cm.jet,
-            offset=z1,
-            alpha=0.4
-        )
-
-        axs[ax_i].contourf(
-            meshes[0],
-            meshes[1],
-            dphi_dinput_tT_dy.reshape(N, N),
-            50, zdir='z',
-            cmap=cm.jet,
-            offset=z2,
-            alpha=0.4,
-        )
-
-        sc3=axs[ax_i].scatter(
-            grid_x1,
-            grid_x2,
-            grid_t,
-            c=DPHI_DINPUT_tt_1,
-            s=np.abs(DPHI_DINPUT_tt_1*p),
-            cmap=cm.jet,
-            alpha=1.0)
-        plt.colorbar(sc3, shrink=0.25)
-
-        axs[ax_i].set_xlim(args.state_bound_min, args.state_bound_max)
-        axs[ax_i].set_zlim(T_0 - 0.1, T_t + 0.1)
-
-        axs[ax_i].set_xlabel('x')
-        axs[ax_i].set_ylabel('y')
-        axs[ax_i].set_zlabel('t')
-        axs[ax_i].set_title('u2')
-
-        ax_i += 1
-
 
     ########################################################
 
@@ -806,27 +688,27 @@ if __name__ == '__main__':
     #     mu_0,
     #     mu_T,)
 
-    title_str += "\n"
-    title_str += "rho0_sum=%.3f, rhoT_sum=%.3f" % (
-            np.sum(rho0),
-            np.sum(rhoT),
-        )
+    # title_str += "\n"
+    # title_str += "rho0_sum=%.3f, rhoT_sum=%.3f" % (
+    #         np.sum(rho0),
+    #         np.sum(rhoT),
+    #     )
 
-    title_str += "\n"
-    title_str += "dphi_dinput_t0_dx={%.3f, %.3f}, dphi_dinput_t0_dy={%.3f, %.3f}" % (
-            np.min(dphi_dinput_t0_dx),
-            np.max(dphi_dinput_t0_dx),
-            np.min(dphi_dinput_t0_dy),
-            np.max(dphi_dinput_t0_dy)
-        )
+    # title_str += "\n"
+    # title_str += "dphi_dinput_t0_dx={%.3f, %.3f}, dphi_dinput_t0_dy={%.3f, %.3f}" % (
+    #         np.min(dphi_dinput_t0_dx),
+    #         np.max(dphi_dinput_t0_dx),
+    #         np.min(dphi_dinput_t0_dy),
+    #         np.max(dphi_dinput_t0_dy)
+    #     )
 
-    title_str += "\n"
-    title_str += "dphi_dinput_tT_dx={%.3f, %.3f}, dphi_dinput_tT_dy={%.3f, %.3f}" % (
-            np.min(dphi_dinput_tT_dx),
-            np.max(dphi_dinput_tT_dx),
-            np.min(dphi_dinput_tT_dy),
-            np.max(dphi_dinput_tT_dy)
-        )
+    # title_str += "\n"
+    # title_str += "dphi_dinput_tT_dx={%.3f, %.3f}, dphi_dinput_tT_dy={%.3f, %.3f}" % (
+    #         np.min(dphi_dinput_tT_dx),
+    #         np.max(dphi_dinput_tT_dx),
+    #         np.min(dphi_dinput_tT_dy),
+    #         np.max(dphi_dinput_tT_dy)
+    #     )
 
     plt.suptitle(title_str)
 
@@ -860,7 +742,9 @@ if __name__ == '__main__':
         sde2.eval()
 
         ts, initial_sample, with_control, without_control,\
-            all_results, mus, variances = do_integration(control_data, d, T_0, T_t, mu_0, sigma, args, sde, sde2)
+            all_results, mus, variances = do_integration(
+                control_data, d, T_0, T_t, mu_0, sigma,
+                args, sde, sde2)
 
         axs.append(fig.add_subplot(1, ax_count, 4, projection='3d'))
         axs.append(fig.add_subplot(1, ax_count, 5, projection='3d'))
