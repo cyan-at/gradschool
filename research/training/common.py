@@ -2293,7 +2293,12 @@ class Integrator(object):
                     affine,
                     strategy_key
                 ))
-        target[i, :, :] = tmp.T
+
+        if np.max(tmp) > self.args.state_bound_max or np.min(tmp) < self.args.state_bound_min:
+            print("integrator blew up, tossing out")
+        else:
+            target[i, :, :] = tmp.T
+
         return i
 
 from scipy.interpolate import griddata as gd
@@ -2392,7 +2397,7 @@ def make_control_data(model, inputs, N, d, meshes, args):
     grid_n_meshes = np.meshgrid(
         *linspaces, copy=False) # each is NxNxN
 
-    ################################################
+    ################################################ bc rho
 
     rho0 = t0[:, inputs.shape[1] + 2 - 1]
     rhoT = tT[:, inputs.shape[1] + 2 - 1]
@@ -2417,276 +2422,106 @@ def make_control_data(model, inputs, N, d, meshes, args):
         rho0 = rho0_meshed.reshape(-1)
         rhoT = rhoT_meshed.reshape(-1)
 
-    ################################################
+    ######################################################## bc control
 
-    time_slices = None
+    tmp = []
+    for d_i in range(d):
+        tmp.append(meshes[d_i].reshape(-1))
+    bc_grids = np.array(tmp).T
+    # if batchsize == M:
+    #     tmp = []
+    #     for d_i in range(d):
+    #         tmp.append(meshes[d_i].reshape(-1))
+    #     bc_grids = np.array(tmp).T
+    # else:
+    #     tmp = []
+    #     for d_i in range(d):
+    #         tmp.append(grid_n_meshes[d_i].reshape(-1))
+    #     bc_grids = np.array(tmp).T
 
-    if args.control_strategy == 1:
-        # bin by unique times
-        uniq = np.unique(test[:, 2])
+    t0_control_data = {
+        'grid' : bc_grids,
+    }
 
-        time_steps = np.matrix(uniq)
+    tT_control_data = {
+        'grid' : bc_grids,
+    }
 
-        indices = np.ones(test.shape[0])
-        for d_i, _ in enumerate(dphi_dinput):
-            indices[d_i] = np.linalg.norm(test[d_i, 2] - time_steps, ord=1, axis=0).argmin()
+    if batchsize == M:
+        for d_i in range(d):
+            t0_control_data[str(d_i)] = t0_u[:, d_i]
+            tT_control_data[str(d_i)] = tT_u[:, d_i]
 
-        grid_x1, grid_x2 = np.meshgrid(
-            x_1_,
-            x_2_, copy=False) # each is NxNxN
-
-        grid1 = np.array((
-            grid_x1.reshape(-1),
-            grid_x2.reshape(-1),
-        )).T
-
-        time_slices = {
-            'grid' : grid1,
-            'uniq' : uniq,
-            'times' : time_steps,
-        }
-        for t_i, t in enumerate(uniq):
-            coordinates = test[indices == t_i]
-            d_value = dphi_dinput[indices == t_i]
-
-            DPHI_DINPUT_tt_0 = gd(
-              (coordinates[:, 0], coordinates[:, 1]),
-              d_value[:, 0],
-              (grid_x1, grid_x2),
-              method=args.interp_mode)
-
-            DPHI_DINPUT_tt_1 = gd(
-              (coordinates[:, 0], coordinates[:, 1]),
-              d_value[:, 1],
-              (grid_x1, grid_x2),
-              method=args.interp_mode)
-
-            DPHI_DINPUT_tt_0 = np.nan_to_num(DPHI_DINPUT_tt_0)
-            DPHI_DINPUT_tt_1 = np.nan_to_num(DPHI_DINPUT_tt_1)
-
-            time_slices[t] = {
-                '0': DPHI_DINPUT_tt_0.reshape(-1),
-                '1': DPHI_DINPUT_tt_1.reshape(-1),
-            }
-
-    ########################################################
-
-    if d == 2:
-        grid0 = np.array((
-            meshes[0].reshape(-1),
-            meshes[1].reshape(-1),
-        )).T
-    elif d == 3:
-        grid0 = np.array((
-            meshes[0].reshape(-1),
-            meshes[1].reshape(-1),
-            meshes[2].reshape(-1),
-        )).T
-
-    ########################################################
-
-    t0_u_dx = t0_u[:, 0]
-    t0_u_dy = t0_u[:, 1]
-
-    tT_u_dx = tT_u[:, 0]
-    tT_u_dy = tT_u[:, 1]
-
-    t0_u_dz = None
-    tT_u_dz = None
-    if d == 3:
-        t0_u_dz = t0_u[:, 2]
-        tT_u_dz = tT_u[:, 2]
-
-    if len(args.batchsize) == 0:
-        t0={
-            '0': t0_u_dx.reshape(-1),
-            '1': t0_u_dy.reshape(-1),
-            'grid' : grid0,
-        }
-
-        tT={
-            '0': tT_u_dx.reshape(-1),
-            '1': tT_u_dy.reshape(-1),
-            'grid' : grid0,
-        }
-
-        if d == 3:
-            t0['2'] = t0_u_dz.reshape(-1)
-            tT['2'] = tT_u_dz.reshape(-1)
     else:
-        print("interpolating t0 and tt also since batchsize is not enough")
+        print("interpolating t0 and tt since batchsize != M")
 
-        grid_x1, grid_x2, grid_x3 = np.meshgrid(
-            x_1_,
-            x_2_,
-            x_3_, copy=False) # each is NxNxN
+        t0_list = [t0[:, d_i] for d_i in range(d)]
+        tT_list = [tT[:, d_i] for d_i in range(d)]
 
-        DPHI_DINPUT_t0_dx = gd(
-          (t0[:, 0], t0[:, 1], t0[:, 2]),
-          t0_u_dx,
-          (grid_x1, grid_x2, grid_x3),
-          method=args.interp_mode)
-
-        DPHI_DINPUT_t0_dy = gd(
-          (t0[:, 0], t0[:, 1], t0[:, 2]),
-          t0_u_dy,
-          (grid_x1, grid_x2, grid_x3),
-          method=args.interp_mode)
-
-        if t0_u_dz is not None:
-            DPHI_DINPUT_t0_dz = gd(
-              (t0[:, 0], t0[:, 1], t0[:, 2]),
-              t0_u_dz,
-              (grid_x1, grid_x2, grid_x3),
+        for d_i in range(d):
+            t0_di = gd(
+              tuple(t0_list),
+              t0_u[:, d_i],
+              tuple(meshes), # tuple(grid_n_meshes[:-1]),
               method=args.interp_mode)
+            t0_control_data[str(d_i)] = t0_di.reshape(-1)
 
-        t0={
-            '0': DPHI_DINPUT_t0_dx.reshape(-1),
-            '1': DPHI_DINPUT_t0_dy.reshape(-1),
-            'grid' : grid0,
-        }
-
-        ##########################
-
-        DPHI_DINPUT_tT_dx = gd(
-          (tT[:, 0], tT[:, 1], tT[:, 2]),
-          tT_u_dx,
-          (grid_x1, grid_x2, grid_x3),
-          method=args.interp_mode)
-
-        DPHI_DINPUT_tT_dy = gd(
-          (tT[:, 0], tT[:, 1], tT[:, 2]),
-          tT_u_dy,
-          (grid_x1, grid_x2, grid_x3),
-          method=args.interp_mode)
-
-        if tT_u_dz is not None:
-            DPHI_DINPUT_tT_dz = gd(
-              (tT[:, 0], tT[:, 1], tT[:, 2]),
-              tT_u_dz,
-              (grid_x1, grid_x2, grid_x3),
+            tT_di = gd(
+              tuple(tT_list),
+              tT_u[:, d_i],
+              tuple(meshes), # tuple(grid_n_meshes[:-1]),
               method=args.interp_mode)
+            tT_control_data[str(d_i)] = tT_di.reshape(-1)
 
-        tT={
-            '0': DPHI_DINPUT_tT_dx.reshape(-1),
-            '1': DPHI_DINPUT_tT_dy.reshape(-1),
-            'grid' : grid0,
-        }
+    ########################################################
 
-        ##########################
+    tmp = []
+    for d_i in range(d+1):
+        tmp.append(grid_n_meshes[d_i].reshape(-1))
+    domain_grids = np.array(tmp).T
 
-        if d == 3:
-            t0['2'] = DPHI_DINPUT_t0_dz.reshape(-1)
-            tT['2'] = DPHI_DINPUT_tT_dz.reshape(-1)
+    tt_control_data = {
+        'grid' : domain_grids,
+    }
 
-    ###########################
+    tt_list = [tt[:, d_i] for d_i in range(d+1)]
 
-    grid_x3 = None
-    if d == 2:
-        grid_x1, grid_x2, grid_t = np.meshgrid(
-            x_1_,
-            x_2_,
-            t_, copy=False) # each is NxNxN
-
-        grid1 = np.array((
-            grid_x1.reshape(-1),
-            grid_x2.reshape(-1),
-            grid_t.reshape(-1),
-        )).T
-    elif d == 3:
-        grid_x1, grid_x2, grid_x3, grid_t = np.meshgrid(
-            x_1_,
-            x_2_,
-            x_3_,
-            t_, copy=False) # each is NxNxN
-
-        grid1 = np.array((
-            grid_x1.reshape(-1),
-            grid_x2.reshape(-1),
-            grid_x3.reshape(-1),
-            grid_t.reshape(-1),
-        )).T
-
-    ###########################
-
-    DPHI_DINPUT_tt_2 = None
-    if d == 2:
-        # import ipdb; ipdb.set_trace()
-        DPHI_DINPUT_tt_0 = gd(
-          (tt[:, 0], tt[:, 1], tt[:, 2]),
-          tt_u[:, 0],
-          (grid_x1, grid_x2, grid_t),
+    for d_i in range(d):
+        tt_di = gd(
+          tuple(tt_list),
+          tt_u[:, d_i],
+          tuple(grid_n_meshes),
           method=args.interp_mode)
 
-        DPHI_DINPUT_tt_1 = gd(
-          (tt[:, 0], tt[:, 1], tt[:, 2]),
-          tt_u[:, 1],
-          (grid_x1, grid_x2, grid_t),
-          method=args.interp_mode)
+        print("# tt_di nans:", d_i, np.count_nonzero(
+            np.isnan(tt_di)), tt_di.size)
+        tt_di = np.nan_to_num(tt_di)
 
-        # import ipdb; ipdb.set_trace()
+        tt_control_data[str(d_i)] = tt_di.reshape(-1)
 
-        print("# DPHI_DINPUT_tt_0 nans:", np.count_nonzero(np.isnan(DPHI_DINPUT_tt_0)), DPHI_DINPUT_tt_0.size)
-        print("# DPHI_DINPUT_tt_1 nans:", np.count_nonzero(np.isnan(DPHI_DINPUT_tt_1)), DPHI_DINPUT_tt_1.size)
-
-        DPHI_DINPUT_tt_0 = np.nan_to_num(DPHI_DINPUT_tt_0)
-        DPHI_DINPUT_tt_1 = np.nan_to_num(DPHI_DINPUT_tt_1)
-
-        tt={
-            '0': DPHI_DINPUT_tt_0.reshape(-1),
-            '1': DPHI_DINPUT_tt_1.reshape(-1),
-            'grid' : grid1,
-        }
-    elif d == 3:
-        DPHI_DINPUT_tt_0 = gd(
-          (tt[:, 0], tt[:, 1], tt[:, 2], tt[:, 3]),
-          tt_u[:, 0],
-          (grid_x1, grid_x2, grid_x3, grid_t),
-          method=args.interp_mode)
-
-        DPHI_DINPUT_tt_1 = gd(
-          (tt[:, 0], tt[:, 1], tt[:, 2], tt[:, 3]),
-          tt_u[:, 1],
-          (grid_x1, grid_x2, grid_x3, grid_t),
-          method=args.interp_mode)
-
-        DPHI_DINPUT_tt_2 = gd(
-          (tt[:, 0], tt[:, 1], tt[:, 2], tt[:, 3]),
-          tt_u[:, 2],
-          (grid_x1, grid_x2, grid_x3, grid_t),
-          method=args.interp_mode)
-
-        print("# DPHI_DINPUT_tt_0 nans:", np.count_nonzero(np.isnan(DPHI_DINPUT_tt_0)), DPHI_DINPUT_tt_0.size)
-        print("# DPHI_DINPUT_tt_1 nans:", np.count_nonzero(np.isnan(DPHI_DINPUT_tt_1)), DPHI_DINPUT_tt_1.size)
-        print("# DPHI_DINPUT_tt_2 nans:", np.count_nonzero(np.isnan(DPHI_DINPUT_tt_2)), DPHI_DINPUT_tt_2.size)
-
-        DPHI_DINPUT_tt_0 = np.nan_to_num(DPHI_DINPUT_tt_0)
-        DPHI_DINPUT_tt_1 = np.nan_to_num(DPHI_DINPUT_tt_1)
-        DPHI_DINPUT_tt_2 = np.nan_to_num(DPHI_DINPUT_tt_2)
-
-        tt={
-            '0': DPHI_DINPUT_tt_0.reshape(-1),
-            '1': DPHI_DINPUT_tt_1.reshape(-1),
-            '2': DPHI_DINPUT_tt_2.reshape(-1),
-            'grid' : grid1,
-        }
-
-    tt['grid_tree'] = KDTree(grid1, leaf_size=2)
+    tt_control_data['grid_tree'] = KDTree(domain_grids, leaf_size=2)
 
     ########################################################
 
     control_data = {
-            't0' : t0,
-            'tT' : tT,
-            'tt' : tt,
-            'time_slices' : time_slices,
+            't0' : t0_control_data,
+            'tT' : tT_control_data,
+            'tt' : tt_control_data,
+            'time_slices' : None,
         }
 
-    return test, rho0, rhoT, T_t, control_data,\
-        [t0_u_dx, t0_u_dy, t0_u_dz],\
-        [tT_u_dx, tT_u_dy, tT_u_dz],\
-        [DPHI_DINPUT_tt_0, DPHI_DINPUT_tt_1, DPHI_DINPUT_tt_2],\
-        [grid_x1, grid_x2, grid_x3, grid_t]
+    # import ipdb; ipdb.set_trace()
+
+    return test, T_t,\
+        rho0, rhoT,\
+        bc_grids, domain_grids, grid_n_meshes,\
+        control_data
+
+    # return test, rho0, rhoT, T_t, control_data,\
+    #     [t0_u_dx, t0_u_dy, t0_u_dz],\
+    #     [tT_u_dx, tT_u_dy, tT_u_dz],\
+    #     [DPHI_DINPUT_tt_0, DPHI_DINPUT_tt_1, DPHI_DINPUT_tt_2],\
+    #     [grid_x1, grid_x2, grid_x3, grid_t]
 
 def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
     dt = (T_t - T_0)/(args.integrate_N)

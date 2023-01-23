@@ -259,14 +259,15 @@ if __name__ == '__main__':
 
     # import ipdb; ipdb.set_trace()
 
-    test, rho0, rhoT, T_t, control_data,\
-        t0s, tTs, tts, grids = make_control_data(
-        model, inputs, N, d, meshes, args)
+    # test, rho0, rhoT, T_t, control_data,\
+    #     t0s, tTs, tts, grids = make_control_data(
+    #     model, inputs, N, d, meshes, args)
 
-    dphi_dinput_t0_dx, dphi_dinput_t0_dy, dphi_dinput_t0_dz = t0s
-    dphi_dinput_tT_dx, dphi_dinput_tT_dy, dphi_dinput_tT_dz = tTs
-    DPHI_DINPUT_tt_0, DPHI_DINPUT_tt_1, DPHI_DINPUT_tt_2 = tts
-    grid_x1, grid_x2, grid_x3, grid_t = grids
+    test, T_t,\
+    rho0, rhoT,\
+    bc_grids, domain_grids, grid_n_meshes,\
+    control_data = make_control_data(
+        model, inputs, N, d, meshes, args)
 
     fname = '%s_%d_%d_%s_%d_%d_all_control_data.npy' % (
             args.modelpt.replace(".pt", ""),
@@ -303,11 +304,48 @@ if __name__ == '__main__':
     z2 = T_t
     p = 0.01
 
-    if d == 2:
+    ########################################################
+
+    axs[ax_i].contourf(
+        meshes[0],
+        meshes[1],
+        rho0.reshape(*Ns),
+        50, zdir='z',
+        cmap=cm.jet,
+        offset=z1,
+        alpha=0.4
+    )
+
+    axs[ax_i].contourf(
+        meshes[0],
+        meshes[1],
+        rhoT.reshape(*Ns),
+        50, zdir='z',
+        cmap=cm.jet,
+        offset=z2,
+        alpha=0.4,
+    )
+
+    axs[ax_i].set_xlim(
+        args.state_bound_min, args.state_bound_max)
+    axs[ax_i].set_zlim(T_0 - 0.1, T_t + 0.1)
+
+    axs[ax_i].set_xlabel('x')
+    axs[ax_i].set_ylabel('y')
+    axs[ax_i].set_zlabel('t')
+    axs[ax_i].set_title('rho_opt')
+
+    ax_i += 1
+
+    ########################################################
+
+    # import ipdb; ipdb.set_trace()
+
+    for d_i in range(d):    
         axs[ax_i].contourf(
             meshes[0],
             meshes[1],
-            rho0.reshape(*Ns),
+            control_data['t0'][str(d_i)].reshape(N, N),
             50, zdir='z',
             cmap=cm.jet,
             offset=z1,
@@ -317,51 +355,20 @@ if __name__ == '__main__':
         axs[ax_i].contourf(
             meshes[0],
             meshes[1],
-            rhoT.reshape(*Ns),
+            control_data['tT'][str(d_i)].reshape(N, N),
             50, zdir='z',
             cmap=cm.jet,
             offset=z2,
             alpha=0.4,
         )
 
-        axs[ax_i].set_xlim(args.state_bound_min, args.state_bound_max)
-        axs[ax_i].set_zlim(T_0 - 0.1, T_t + 0.1)
+        # import ipdb; ipdb.set_trace()
 
-        axs[ax_i].set_xlabel('x')
-        axs[ax_i].set_ylabel('y')
-        axs[ax_i].set_zlabel('t')
-        axs[ax_i].set_title('rho_opt')
-
-        ax_i += 1
-
-        ########################################################
-
-        axs[ax_i].contourf(
-            meshes[0],
-            meshes[1],
-            dphi_dinput_t0_dx.reshape(N, N),
-            50, zdir='z',
-            cmap=cm.jet,
-            offset=z1,
-            alpha=0.4
-        )
-
-        axs[ax_i].contourf(
-            meshes[0],
-            meshes[1],
-            dphi_dinput_tT_dx.reshape(N, N),
-            50, zdir='z',
-            cmap=cm.jet,
-            offset=z2,
-            alpha=0.4,
-        )
-
+        # tt control is to grid_n**d
         sc2=axs[ax_i].scatter(
-            grid_x1,
-            grid_x2,
-            grid_t,
-            c=DPHI_DINPUT_tt_0,
-            s=np.abs(DPHI_DINPUT_tt_0*p),
+            *grid_n_meshes,
+            c=control_data['tt'][str(d_i)],
+            s=np.abs(control_data['tt'][str(d_i)]*p),
             cmap=cm.jet,
             alpha=1.0)
         plt.colorbar(sc2, shrink=0.25)
@@ -372,174 +379,42 @@ if __name__ == '__main__':
         axs[ax_i].set_xlabel('x')
         axs[ax_i].set_ylabel('y')
         axs[ax_i].set_zlabel('t')
-        axs[ax_i].set_title('dphi_dx')
+        axs[ax_i].set_title('u' + str(d_i))
 
         ax_i += 1
-
-        ########################################################
-
-        axs[ax_i].contourf(
-            meshes[0],
-            meshes[1],
-            dphi_dinput_t0_dy.reshape(N, N),
-            50, zdir='z',
-            cmap=cm.jet,
-            offset=z1,
-            alpha=0.4
-        )
-
-        axs[ax_i].contourf(
-            meshes[0],
-            meshes[1],
-            dphi_dinput_tT_dy.reshape(N, N),
-            50, zdir='z',
-            cmap=cm.jet,
-            offset=z2,
-            alpha=0.4,
-        )
-
-        sc3=axs[ax_i].scatter(
-            grid_x1,
-            grid_x2,
-            grid_t,
-            c=DPHI_DINPUT_tt_1,
-            s=np.abs(DPHI_DINPUT_tt_1*p),
-            cmap=cm.jet,
-            alpha=1.0)
-        plt.colorbar(sc3, shrink=0.25)
-
-        axs[ax_i].set_xlim(args.state_bound_min, args.state_bound_max)
-        axs[ax_i].set_zlim(T_0 - 0.1, T_t + 0.1)
-
-        axs[ax_i].set_xlabel('x')
-        axs[ax_i].set_ylabel('y')
-        axs[ax_i].set_zlabel('t')
-        axs[ax_i].set_title('dphi_dy')
-
-        ax_i += 1
-
-    if d == 3:
-        t0 = test[:batchsize, :]
-        tT = test[batchsize:2*batchsize, :]
-
-        RHO_0 = gd(
-          (t0[:, 0], t0[:, 1], t0[:, 2]),
-          t0[:, -1],
-          (grid_x1, grid_x2, grid_x3),
-          method=args.interp_mode,
-          fill_value=0.0)
-
-        RHO_T = gd(
-          (tT[:, 0], tT[:, 1], tT[:, 2]),
-          tT[:, -1],
-          (grid_x1, grid_x2, grid_x3),
-          method=args.interp_mode,
-          fill_value=0.0)
-
-        print("RHO_0 sum", np.sum(t0[:, -1]))
-        print("RHO_T sum", np.sum(tT[:, -1]))
-
-        # sc1=axs[ax_i].scatter(
-        #     grid_x1,
-        #     grid_x2,
-        #     grid_x3,
-        #     c=RHO_0,
-        #     s=np.abs(RHO_0*p),
-        #     cmap=cm.jet,
-        #     alpha=1.0)
-        # plt.colorbar(sc1, shrink=0.25)
-        # axs[ax_i].set_title(
-        #     'rho0:\nmu=%.3f\nsigma=%.3f\nsum=%.3f\nmin=%.3f\nmax=%.3f' % (
-        #     mu_0,
-        #     sigma_0,
-        #     np.sum(t0[:, -1]),
-        #     np.min(t0[:, -1]),
-        #     np.max(t0[:, -1])
-        # ))
-        # axs[ax_i].set_xlabel('x')
-        # axs[ax_i].set_ylabel('y')
-        # axs[ax_i].set_zlabel('z')
-
-        ax_i += 1
-
-        # sc2=axs[ax_i].scatter(
-        #     grid_x1,
-        #     grid_x2,
-        #     grid_x3,
-        #     c=RHO_T,
-        #     s=np.abs(RHO_T*p),
-        #     cmap=cm.jet,
-        #     alpha=1.0)
-        # plt.colorbar(sc2, shrink=0.25)
-        # axs[ax_i].set_title(
-        #     'rhoT:\nmu=%.3f\nsigma=%.3f\nsum=%.3f\nmin=%.3f\nmax=%.3f' % (
-        #     mu_T,
-        #     sigma_T,
-        #     np.sum(tT[:, -1]),
-        #     np.min(tT[:, -1]),
-        #     np.max(tT[:, -1])
-        # ))
-        # axs[ax_i].set_xlabel('x')
-        # axs[ax_i].set_ylabel('y')
-        # axs[ax_i].set_zlabel('z')
-
-        ax_i += 1
-
-        # import ipdb; ipdb.set_trace()
-
-        # tmp = gd(
-        #   (t0[:, 0], t0[:, 1], t0[:, 2]),
-        #   dphi_dinput_t0_dx,
-        #   (grid_x1, grid_x2, grid_x3),
-        #   method=args.interp_mode,
-        #   fill_value=0.0)
-
-        # sc3=axs[ax_i].scatter(
-        #     grid_x1,
-        #     grid_x2,
-        #     grid_x3,
-        #     c=tmp,
-        #     s=np.abs(tmp*p),
-        #     cmap=cm.jet,
-        #     alpha=1.0)
-        # plt.colorbar(sc3, shrink=0.25)
-        # axs[ax_i].set_title('DPHI_DINPUT_tt_0, [0] range=%.3f, %.3f' % (np.min(tmp), np.max(tmp)))
-        # axs[ax_i].set_xlabel('x')
-        # axs[ax_i].set_ylabel('y')
-        # axs[ax_i].set_zlabel('z')
 
     ########################################################
 
     title_str = args.modelpt
     title_str += "\n"
-    title_str += "N=15, d=%d, T_t=%.3f, batch=full, %s, mu_0=%.3f, mu_T=%.3f" % (
-        d,
-        T_t,
-        "tanh",
-        mu_0,
-        mu_T,)
+    # title_str += "N=15, d=%d, T_t=%.3f, batch=full, %s, mu_0=%.3f, mu_T=%.3f" % (
+    #     d,
+    #     T_t,
+    #     "tanh",
+    #     mu_0,
+    #     mu_T,)
 
-    title_str += "\n"
-    title_str += "rho0_sum=%.3f, rhoT_sum=%.3f" % (
-            np.sum(rho0),
-            np.sum(rhoT),
-        )
+    # title_str += "\n"
+    # title_str += "rho0_sum=%.3f, rhoT_sum=%.3f" % (
+    #         np.sum(rho0),
+    #         np.sum(rhoT),
+    #     )
 
-    title_str += "\n"
-    title_str += "dphi_dinput_t0_dx={%.3f, %.3f}, dphi_dinput_t0_dy={%.3f, %.3f}" % (
-            np.min(dphi_dinput_t0_dx),
-            np.max(dphi_dinput_t0_dx),
-            np.min(dphi_dinput_t0_dy),
-            np.max(dphi_dinput_t0_dy)
-        )
+    # title_str += "\n"
+    # title_str += "dphi_dinput_t0_dx={%.3f, %.3f}, dphi_dinput_t0_dy={%.3f, %.3f}" % (
+    #         np.min(dphi_dinput_t0_dx),
+    #         np.max(dphi_dinput_t0_dx),
+    #         np.min(dphi_dinput_t0_dy),
+    #         np.max(dphi_dinput_t0_dy)
+    #     )
 
-    title_str += "\n"
-    title_str += "dphi_dinput_tT_dx={%.3f, %.3f}, dphi_dinput_tT_dy={%.3f, %.3f}" % (
-            np.min(dphi_dinput_tT_dx),
-            np.max(dphi_dinput_tT_dx),
-            np.min(dphi_dinput_tT_dy),
-            np.max(dphi_dinput_tT_dy)
-        )
+    # title_str += "\n"
+    # title_str += "dphi_dinput_tT_dx={%.3f, %.3f}, dphi_dinput_tT_dy={%.3f, %.3f}" % (
+    #         np.min(dphi_dinput_tT_dx),
+    #         np.max(dphi_dinput_tT_dx),
+    #         np.min(dphi_dinput_tT_dy),
+    #         np.max(dphi_dinput_tT_dy)
+    #     )
 
     plt.suptitle(title_str)
 

@@ -251,32 +251,23 @@ def make_control_data(model, inputs, N, d, meshes, args):
     #         tmp.append(grid_n_meshes[d_i].reshape(-1))
     #     bc_grids = np.array(tmp).T
 
+    t0_control_data = {
+        'grid' : bc_grids,
+    }
+
+    tT_control_data = {
+        'grid' : bc_grids,
+    }
+
     if batchsize == M:
-        t0_control_data = {
-            'grid' : bc_grids,
-        }
-
-        tT_control_data = {
-            'grid' : bc_grids,
-        }
-
         for d_i in range(d):
-            t0[str(d_i)] = t0_u[:, d_i]
-            tT[str(d_i)] = tT_u[:, d_i]
-
+            t0_control_data[str(d_i)] = t0_u[:, d_i]
+            tT_control_data[str(d_i)] = tT_u[:, d_i]
     else:
         print("interpolating t0 and tt since batchsize != M")
 
         t0_list = [t0[:, d_i] for d_i in range(d)]
         tT_list = [tT[:, d_i] for d_i in range(d)]
-
-        t0_control_data = {
-            'grid' : bc_grids,
-        }
-
-        tT_control_data = {
-            'grid' : bc_grids,
-        }
 
         for d_i in range(d):
             t0_di = gd(
@@ -642,9 +633,6 @@ if __name__ == '__main__':
     ########################################################
 
     # import ipdb; ipdb.set_trace()
-
-    grid_n_list = [args.grid_n]*d
-    grid_n_list.append(args.grid_n * 2)
 
     for d_i in range(d):
         # bc control is always interped to meshes**d
