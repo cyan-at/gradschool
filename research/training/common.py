@@ -2301,7 +2301,7 @@ class Integrator(object):
 
         return i
 
-def get_u(output_tensor, inputs_tensor, args, batchsize):
+def get_u(test, output_tensor, inputs_tensor, args, batchsize):
     # only possible if tensors on cpu
     # maybe moving to cuda makes input non-leaf
     if args.diff_on_cpu > 0:
@@ -2329,13 +2329,13 @@ def get_u(output_tensor, inputs_tensor, args, batchsize):
     return t0_u, tT_u, tt_u
 
 from scipy.interpolate import griddata as gd
-def make_control_data(model, inputs, N, d, meshes, args):
+def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
     M = N**d
     batchsize = M
 
     if len(args.batchsize) > 0:
         batchsize = int(args.batchsize)
-    print("batchsize", batchsize, "inputs.shape", inputs.shape)
+    print("batchsize", batchsize, "inputs.shape", inputs.shape, "d", d)
 
     T_t = inputs[batchsize, -1]
     print("found T_t", T_t)
@@ -2374,7 +2374,7 @@ def make_control_data(model, inputs, N, d, meshes, args):
 
     ################################################
 
-    t0_u, tT_u, tt_u = get_u(output_tensor, inputs_tensor, args, batchsize)
+    t0_u, tT_u, tt_u = get_u_func(test, output_tensor, inputs_tensor, args, batchsize)
 
     ################################################ grid_n overhead
 
@@ -2403,8 +2403,8 @@ def make_control_data(model, inputs, N, d, meshes, args):
 
     if rho0.shape != M:
         print("interpolating rho0 and rhoT because bc was batched using original meshes")
-        t0_input = t0[:, :2]
-        tT_input = tT[:, :2]
+        t0_input = t0[:, :d]
+        tT_input = tT[:, :d]
 
         rho0_meshed = gd(
           t0_input,

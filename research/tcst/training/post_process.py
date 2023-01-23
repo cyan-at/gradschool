@@ -131,54 +131,8 @@ if not hasattr(Axis, "_get_coord_info_old"):
     Axis._get_coord_info = _get_coord_info_new
 ###patch end###
 
-def make_control_data(model, inputs, N, d, meshes, args):
-    M = N**d
-    batchsize = M
-
-    if len(args.batchsize) > 0:
-        batchsize = int(args.batchsize)
-    print("batchsize", batchsize, "inputs.shape", inputs.shape)
-
-    T_t = inputs[batchsize, -1]
-    print("found T_t", T_t)
-
-    inputs_tensor = torch.from_numpy(
-        inputs).requires_grad_(True)
-
-    if args.diff_on_cpu == 0:
-        print("moving input to cuda")
-        inputs_tensor = inputs_tensor.type(torch.FloatTensor).to(cuda0).requires_grad_(True)
-    else:
-        print("keeping input on cpu")
-
-    # move the MODEL to the cpu
-    # to compute the gradient there, not on CUDA
-    # because input to cuda makes it non-leaf
-    # so it does not catch backward()'d backprop'd gradient
-    if args.diff_on_cpu > 0:
-        model.net = model.net.cpu()
-    else:
-        print("keeping model on cuda")
-
-    output_tensor = model.net(inputs_tensor)
-
-    ################################################
-
-    if args.diff_on_cpu > 0:
-        output = output_tensor.detach().numpy()
-    else:
-        print("moving output off cuda")
-        output = output_tensor.detach().cpu().numpy()
-
-    test = np.hstack((inputs, output))
-
-    ################################################
-
-    t0 = test[:batchsize, :]
-    tT = test[batchsize:2*batchsize, :]
-    tt = test[2*batchsize:, :]
-
-    ################################################
+def get_u2(test, output_tensor, inputs_tensor, args, batchsize):
+    # import ipdb; ipdb.set_trace()
 
     t0_u = test[:batchsize, inputs.shape[1] + 3 - 1:inputs.shape[1] + 5 - 1]
     tT_u = test[batchsize:2*batchsize, inputs.shape[1] + 3 - 1:inputs.shape[1] + 5 - 1]
@@ -189,144 +143,7 @@ def make_control_data(model, inputs, N, d, meshes, args):
         np.max(tt_u)
     )
 
-    ################################################ grid_n overhead
-
-    # we redo meshing in case grid_n != N
-    linspaces = []
-    for i in range(d):
-        linspaces.append(
-            np.transpose(np.linspace(
-                args.state_bound_min,
-                args.state_bound_max,
-                args.grid_n)))
-    # add time
-    linspaces.append(
-        np.transpose(np.linspace(
-            T_0,
-            T_t,
-            args.grid_n*2)))
-
-    grid_n_meshes = np.meshgrid(
-        *linspaces, copy=False) # each is NxNxN
-
-    ################################################ bc rho
-
-    rho0 = t0[:, inputs.shape[1] + 2 - 1]
-    rhoT = tT[:, inputs.shape[1] + 2 - 1]
-
-    if rho0.shape != M:
-        print("interpolating rho0 and rhoT because bc was batched using original meshes")
-        t0_input = t0[:, :2]
-        tT_input = tT[:, :2]
-
-        rho0_meshed = gd(
-          t0_input,
-          rho0,
-          tuple(meshes),
-          method=args.interp_mode)
-
-        rhoT_meshed = gd(
-          tT_input,
-          rhoT,
-          tuple(meshes),
-          method=args.interp_mode)
-
-        rho0 = rho0_meshed.reshape(-1)
-        rhoT = rhoT_meshed.reshape(-1)
-
-    ######################################################## bc control
-
-    tmp = []
-    for d_i in range(d):
-        tmp.append(meshes[d_i].reshape(-1))
-    bc_grids = np.array(tmp).T
-    # if batchsize == M:
-    #     tmp = []
-    #     for d_i in range(d):
-    #         tmp.append(meshes[d_i].reshape(-1))
-    #     bc_grids = np.array(tmp).T
-    # else:
-    #     tmp = []
-    #     for d_i in range(d):
-    #         tmp.append(grid_n_meshes[d_i].reshape(-1))
-    #     bc_grids = np.array(tmp).T
-
-    t0_control_data = {
-        'grid' : bc_grids,
-    }
-
-    tT_control_data = {
-        'grid' : bc_grids,
-    }
-
-    if batchsize == M:
-        for d_i in range(d):
-            t0_control_data[str(d_i)] = t0_u[:, d_i]
-            tT_control_data[str(d_i)] = tT_u[:, d_i]
-    else:
-        print("interpolating t0 and tt since batchsize != M")
-
-        t0_list = [t0[:, d_i] for d_i in range(d)]
-        tT_list = [tT[:, d_i] for d_i in range(d)]
-
-        for d_i in range(d):
-            t0_di = gd(
-              tuple(t0_list),
-              t0_u[:, d_i],
-              tuple(meshes), # tuple(grid_n_meshes[:-1]),
-              method=args.interp_mode)
-            t0_control_data[str(d_i)] = t0_di.reshape(-1)
-
-            tT_di = gd(
-              tuple(tT_list),
-              tT_u[:, d_i],
-              tuple(meshes), # tuple(grid_n_meshes[:-1]),
-              method=args.interp_mode)
-            tT_control_data[str(d_i)] = tT_di.reshape(-1)
-
-    ########################################################
-
-    tmp = []
-    for d_i in range(d+1):
-        tmp.append(grid_n_meshes[d_i].reshape(-1))
-    domain_grids = np.array(tmp).T
-
-    tt_control_data = {
-        'grid' : domain_grids,
-    }
-
-    tt_list = [tt[:, d_i] for d_i in range(d+1)]
-
-    for d_i in range(d):
-        tt_di = gd(
-          tuple(tt_list),
-          tt_u[:, d_i],
-          tuple(grid_n_meshes),
-          method=args.interp_mode)
-
-        print("# tt_di nans:", d_i, np.count_nonzero(
-            np.isnan(tt_di)), tt_di.size)
-        tt_di = np.nan_to_num(tt_di)
-
-        tt_control_data[str(d_i)] = tt_di.reshape(-1)
-
-    tt_control_data['grid_tree'] = KDTree(domain_grids, leaf_size=2)
-
-    ########################################################
-
-    control_data = {
-            't0' : t0_control_data,
-            'tT' : tT_control_data,
-            'tt' : tt_control_data,
-            'time_slices' : None,
-        }
-
-    # import ipdb; ipdb.set_trace()
-
-    return test, T_t,\
-        rho0, rhoT,\
-        bc_grids, domain_grids, grid_n_meshes,\
-        control_data
+    return t0_u, tT_u, tt_u
 
 def do_integration2(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde, sde2):
     # dt = (T_t - T_0)/(args.bif)
@@ -574,7 +391,7 @@ if __name__ == '__main__':
     rho0, rhoT,\
     bc_grids, domain_grids, grid_n_meshes,\
     control_data = make_control_data(
-        model, inputs, N, d, meshes, args)
+        model, inputs, N, d, meshes, args, get_u2)
 
     ########################################################
 

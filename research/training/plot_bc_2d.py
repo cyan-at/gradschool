@@ -159,9 +159,13 @@ if __name__ == '__main__':
     parser.add_argument('--timemode', type=int, default=0, help='')
     # timemode  0 = linspace, 1 = even time samples
     parser.add_argument('--ni', type=int, default=-1, help='')
+    parser.add_argument('--bif', type=int, default=1000, help='')
     parser.add_argument('--loss_func', type=str, default="wass3", help='')
     parser.add_argument('--pde_key', type=str, default="", help='')
     parser.add_argument('--batchsize',
+        type=str,
+        default="")
+    parser.add_argument('--batchsize2',
         type=str,
         default="")
 

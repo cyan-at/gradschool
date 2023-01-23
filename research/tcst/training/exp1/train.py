@@ -270,7 +270,7 @@ if __name__ == '__main__':
     parser.add_argument('--state_bound_max', type=float, default=0.5, help='')
     parser.add_argument('--bound_u', type=int, default=0, help='')
 
-    # parser.add_argument('--mu_0', type=str, default="", help='')
+    parser.add_argument('--mu_0', type=str, required=True, help='')
     # parser.add_argument('--mu_T', type=str, default="", help='')
     parser.add_argument('--T_t', type=str, default="200", help='')
 
@@ -369,7 +369,7 @@ if __name__ == '__main__':
     # set model to evaluation mode
     sde.eval()
 
-    mu_0 = [0.3525, 0.3503]
+    mu_0 = [float(x) for x in args.mu_0.strip().split(",")]
 
     bcc = np.array([0.41235, 0.37605])
     fcc = np.array([0.012857, 0.60008])
