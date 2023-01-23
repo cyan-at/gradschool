@@ -172,6 +172,8 @@ def make_control_data(model, inputs, N, d, meshes, args):
 
     test = np.hstack((inputs, output))
 
+    ################################################
+
     t0 = test[:batchsize, :]
     tT = test[batchsize:2*batchsize, :]
     tt = test[2*batchsize:, :]
@@ -181,6 +183,11 @@ def make_control_data(model, inputs, N, d, meshes, args):
     t0_u = test[:batchsize, inputs.shape[1] + 3 - 1:inputs.shape[1] + 5 - 1]
     tT_u = test[batchsize:2*batchsize, inputs.shape[1] + 3 - 1:inputs.shape[1] + 5 - 1]
     tt_u = test[2*batchsize:, inputs.shape[1] + 3 - 1:inputs.shape[1] + 5 - 1]
+    print(
+        np.max(t0_u),
+        np.max(tT_u),
+        np.max(tt_u)
+    )
 
     ################################################ grid_n overhead
 
@@ -330,14 +337,14 @@ def make_control_data(model, inputs, N, d, meshes, args):
         bc_grids, domain_grids, grid_n_meshes,\
         control_data
 
-def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde, sde2):
+def do_integration2(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde, sde2):
     # dt = (T_t - T_0)/(args.bif)
     # ts = np.arange(T_0, T_t + dt, dt)
     ts = torch.linspace(T_0, T_t, int(T_t * 500), device=cuda0)
     ts = torch.linspace(T_0, 1, int(1 * 500), device=cuda0)
 
     initial_sample = np.random.multivariate_normal(
-        np.array(mu_0), np.eye(d)*sigma_0, args.M) # 100 x 3
+        np.array(mu_0), np.eye(d)*0.01, args.M) # 100 x 3
 
     v_scales = [float(x) for x in args.v_scale.split(",")]
     biases = [float(x) for x in args.bias.split(",")]
@@ -370,6 +377,8 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde, sde2):
 
     initial_sample_tensor = torch.tensor(initial_sample,
         dtype=torch.float32, device=cuda0)
+
+    # import ipdb; ipdb.set_trace()
 
     ts = ts.to(cuda0)
 
@@ -595,7 +604,7 @@ if __name__ == '__main__':
 
     z1 = T_0
     z2 = T_t
-    p = 0.01
+    p = 1.0
 
     ########################################################
 
@@ -745,8 +754,8 @@ if __name__ == '__main__':
         sde2.eval()
 
         ts, initial_sample, with_control, without_control,\
-            all_results, mus, variances = do_integration(
-                control_data, d, T_0, T_t, mu_0, sigma,
+            all_results, mus, variances = do_integration2(
+                control_data, d, T_0, T_t, mu_0, 0.01,
                 args, sde, sde2)
 
         axs.append(fig.add_subplot(1, ax_count, 4, projection='3d'))

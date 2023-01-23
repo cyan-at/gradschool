@@ -240,7 +240,7 @@ def main():
     eval_data = data_loader()
     # initialize neural network
     sde = SDE()
-    t_size = 500 # set number of predictive time steps
+    t_size = 1*500 # set number of predictive time steps
     ts = torch.linspace(0, 1, t_size)
     # state path to model information file
     # load model parameters
@@ -282,6 +282,9 @@ def main():
         print("r", r)
         r = torch.reshape(r, [-1, 2]) # reshape ramp rates for model input
         sde.r = r # assign r as sde.r for correct cat
+
+
+        # import ipdb; ipdb.set_trace()
 
         y_pred = torchsde.sdeint(sde, y0, ts, method='euler').squeeze() # calculate predictions
 

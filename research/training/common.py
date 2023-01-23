@@ -2355,32 +2355,67 @@ def make_control_data(model, inputs, N, d, meshes, args):
 
     test = np.hstack((inputs, output))
 
+    ################################################
+
     t0 = test[:batchsize, :]
     tT = test[batchsize:2*batchsize, :]
     tt = test[2*batchsize:, :]
 
     ################################################
 
+    t0_u = dphi_dinput[:batchsize, :]
+    tT_u = dphi_dinput[batchsize:2*batchsize, :]
+    tt_u = dphi_dinput[2*batchsize:, :]
+    print(
+        np.max(t0_u),
+        np.max(tT_u),
+        np.max(tt_u)
+    )
+
+    ################################################ grid_n overhead
+
+    # we redo meshing in case grid_n != N
+    linspaces = []
+    for i in range(d):
+        linspaces.append(
+            np.transpose(np.linspace(
+                args.state_bound_min,
+                args.state_bound_max,
+                args.grid_n)))
+    # add time
+    linspaces.append(
+        np.transpose(np.linspace(
+            T_0,
+            T_t,
+            args.grid_n*2)))
+
+    grid_n_meshes = np.meshgrid(
+        *linspaces, copy=False) # each is NxNxN
+
+    ################################################
+
     rho0 = t0[:, inputs.shape[1] + 2 - 1]
     rhoT = tT[:, inputs.shape[1] + 2 - 1]
 
-    ################################################
+    if rho0.shape != M:
+        print("interpolating rho0 and rhoT because bc was batched using original meshes")
+        t0_input = t0[:, :2]
+        tT_input = tT[:, :2]
 
-    x_1_ = np.linspace(args.state_bound_min, args.state_bound_max, args.grid_n)
-    x_2_ = np.linspace(args.state_bound_min, args.state_bound_max, args.grid_n)
-    x_3_ = np.linspace(args.state_bound_min, args.state_bound_max, args.grid_n)
-    t_ = np.linspace(T_0, T_t, args.grid_n*2)
+        rho0_meshed = gd(
+          t0_input,
+          rho0,
+          tuple(meshes),
+          method=args.interp_mode)
 
-    ################################################
+        rhoT_meshed = gd(
+          tT_input,
+          rhoT,
+          tuple(meshes),
+          method=args.interp_mode)
 
-    dphi_dinput_t0 = dphi_dinput[:batchsize, :]
-    dphi_dinput_tT = dphi_dinput[batchsize:2*batchsize, :]
-    dphi_dinput_tt = dphi_dinput[2*batchsize:, :]
-    print(
-        np.max(dphi_dinput_t0),
-        np.max(dphi_dinput_tT),
-        np.max(dphi_dinput_tt)
-    )
+        rho0 = rho0_meshed.reshape(-1)
+        rhoT = rhoT_meshed.reshape(-1)
 
     ################################################
 
@@ -2450,34 +2485,34 @@ def make_control_data(model, inputs, N, d, meshes, args):
 
     ########################################################
 
-    dphi_dinput_t0_dx = dphi_dinput_t0[:, 0]
-    dphi_dinput_t0_dy = dphi_dinput_t0[:, 1]
+    t0_u_dx = t0_u[:, 0]
+    t0_u_dy = t0_u[:, 1]
 
-    dphi_dinput_tT_dx = dphi_dinput_tT[:, 0]
-    dphi_dinput_tT_dy = dphi_dinput_tT[:, 1]
+    tT_u_dx = tT_u[:, 0]
+    tT_u_dy = tT_u[:, 1]
 
-    dphi_dinput_t0_dz = None
-    dphi_dinput_tT_dz = None
+    t0_u_dz = None
+    tT_u_dz = None
     if d == 3:
-        dphi_dinput_t0_dz = dphi_dinput_t0[:, 2]
-        dphi_dinput_tT_dz = dphi_dinput_tT[:, 2]
+        t0_u_dz = t0_u[:, 2]
+        tT_u_dz = tT_u[:, 2]
 
     if len(args.batchsize) == 0:
         t0={
-            '0': dphi_dinput_t0_dx.reshape(-1),
-            '1': dphi_dinput_t0_dy.reshape(-1),
+            '0': t0_u_dx.reshape(-1),
+            '1': t0_u_dy.reshape(-1),
             'grid' : grid0,
         }
 
         tT={
-            '0': dphi_dinput_tT_dx.reshape(-1),
-            '1': dphi_dinput_tT_dy.reshape(-1),
+            '0': tT_u_dx.reshape(-1),
+            '1': tT_u_dy.reshape(-1),
             'grid' : grid0,
         }
 
         if d == 3:
-            t0['2'] = dphi_dinput_t0_dz.reshape(-1)
-            tT['2'] = dphi_dinput_tT_dz.reshape(-1)
+            t0['2'] = t0_u_dz.reshape(-1)
+            tT['2'] = tT_u_dz.reshape(-1)
     else:
         print("interpolating t0 and tt also since batchsize is not enough")
 
@@ -2488,20 +2523,20 @@ def make_control_data(model, inputs, N, d, meshes, args):
 
         DPHI_DINPUT_t0_dx = gd(
           (t0[:, 0], t0[:, 1], t0[:, 2]),
-          dphi_dinput_t0_dx,
+          t0_u_dx,
           (grid_x1, grid_x2, grid_x3),
           method=args.interp_mode)
 
         DPHI_DINPUT_t0_dy = gd(
           (t0[:, 0], t0[:, 1], t0[:, 2]),
-          dphi_dinput_t0_dy,
+          t0_u_dy,
           (grid_x1, grid_x2, grid_x3),
           method=args.interp_mode)
 
-        if dphi_dinput_t0_dz is not None:
+        if t0_u_dz is not None:
             DPHI_DINPUT_t0_dz = gd(
               (t0[:, 0], t0[:, 1], t0[:, 2]),
-              dphi_dinput_t0_dz,
+              t0_u_dz,
               (grid_x1, grid_x2, grid_x3),
               method=args.interp_mode)
 
@@ -2515,20 +2550,20 @@ def make_control_data(model, inputs, N, d, meshes, args):
 
         DPHI_DINPUT_tT_dx = gd(
           (tT[:, 0], tT[:, 1], tT[:, 2]),
-          dphi_dinput_tT_dx,
+          tT_u_dx,
           (grid_x1, grid_x2, grid_x3),
           method=args.interp_mode)
 
         DPHI_DINPUT_tT_dy = gd(
           (tT[:, 0], tT[:, 1], tT[:, 2]),
-          dphi_dinput_tT_dy,
+          tT_u_dy,
           (grid_x1, grid_x2, grid_x3),
           method=args.interp_mode)
 
-        if dphi_dinput_tT_dz is not None:
+        if tT_u_dz is not None:
             DPHI_DINPUT_tT_dz = gd(
               (tT[:, 0], tT[:, 1], tT[:, 2]),
-              dphi_dinput_tT_dz,
+              tT_u_dz,
               (grid_x1, grid_x2, grid_x3),
               method=args.interp_mode)
 
@@ -2579,13 +2614,13 @@ def make_control_data(model, inputs, N, d, meshes, args):
         # import ipdb; ipdb.set_trace()
         DPHI_DINPUT_tt_0 = gd(
           (tt[:, 0], tt[:, 1], tt[:, 2]),
-          dphi_dinput_tt[:, 0],
+          tt_u[:, 0],
           (grid_x1, grid_x2, grid_t),
           method=args.interp_mode)
 
         DPHI_DINPUT_tt_1 = gd(
           (tt[:, 0], tt[:, 1], tt[:, 2]),
-          dphi_dinput_tt[:, 1],
+          tt_u[:, 1],
           (grid_x1, grid_x2, grid_t),
           method=args.interp_mode)
 
@@ -2605,19 +2640,19 @@ def make_control_data(model, inputs, N, d, meshes, args):
     elif d == 3:
         DPHI_DINPUT_tt_0 = gd(
           (tt[:, 0], tt[:, 1], tt[:, 2], tt[:, 3]),
-          dphi_dinput_tt[:, 0],
+          tt_u[:, 0],
           (grid_x1, grid_x2, grid_x3, grid_t),
           method=args.interp_mode)
 
         DPHI_DINPUT_tt_1 = gd(
           (tt[:, 0], tt[:, 1], tt[:, 2], tt[:, 3]),
-          dphi_dinput_tt[:, 1],
+          tt_u[:, 1],
           (grid_x1, grid_x2, grid_x3, grid_t),
           method=args.interp_mode)
 
         DPHI_DINPUT_tt_2 = gd(
           (tt[:, 0], tt[:, 1], tt[:, 2], tt[:, 3]),
-          dphi_dinput_tt[:, 2],
+          tt_u[:, 2],
           (grid_x1, grid_x2, grid_x3, grid_t),
           method=args.interp_mode)
 
@@ -2648,8 +2683,8 @@ def make_control_data(model, inputs, N, d, meshes, args):
         }
 
     return test, rho0, rhoT, T_t, control_data,\
-        [dphi_dinput_t0_dx, dphi_dinput_t0_dy, dphi_dinput_t0_dz],\
-        [dphi_dinput_tT_dx, dphi_dinput_tT_dy, dphi_dinput_tT_dz],\
+        [t0_u_dx, t0_u_dy, t0_u_dz],\
+        [tT_u_dx, tT_u_dy, tT_u_dz],\
         [DPHI_DINPUT_tt_0, DPHI_DINPUT_tt_1, DPHI_DINPUT_tt_2],\
         [grid_x1, grid_x2, grid_x3, grid_t]
 
