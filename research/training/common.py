@@ -2333,6 +2333,18 @@ def make_control_data(model, inputs, N, d, meshes, args):
 
     output_tensor = model.net(inputs_tensor)
 
+    if args.diff_on_cpu > 0:
+        output = output_tensor.detach().numpy()
+    else:
+        print("moving output off cuda")
+        output = output_tensor.detach().cpu().numpy()
+
+    test = np.hstack((inputs, output))
+
+    t0 = test[:batchsize, :]
+    tT = test[batchsize:2*batchsize, :]
+    tt = test[2*batchsize:, :]
+
     ################################################
 
     # only possible if tensors on cpu
@@ -2349,24 +2361,6 @@ def make_control_data(model, inputs, N, d, meshes, args):
     else:
         print("moving dphi_dinput off cuda")
         dphi_dinput = dphi_dinput.cpu().numpy()
-
-    ################################################
-
-    if args.diff_on_cpu > 0:
-        output = output_tensor.detach().numpy()
-    else:
-        print("moving output off cuda")
-        output = output_tensor.detach().cpu().numpy()
-
-    test = np.hstack((inputs, output))
-
-    ################################################
-
-    t0 = test[:batchsize, :]
-    tT = test[batchsize:2*batchsize, :]
-    tt = test[2*batchsize:, :]
-
-    ################################################
 
     t0_u = dphi_dinput[:batchsize, :]
     tT_u = dphi_dinput[batchsize:2*batchsize, :]
