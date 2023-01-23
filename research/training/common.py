@@ -2301,6 +2301,33 @@ class Integrator(object):
 
         return i
 
+def get_u(output_tensor, inputs_tensor, args, batchsize):
+    # only possible if tensors on cpu
+    # maybe moving to cuda makes input non-leaf
+    if args.diff_on_cpu > 0:
+        output_tensor[:, 0].backward(torch.ones_like(output_tensor[:, 0]))
+        dphi_dinput = inputs_tensor.grad
+    else:
+        # OR do grad like so
+        dphi_dinput = torch.autograd.grad(outputs=output_tensor[:, 0], inputs=inputs_tensor, grad_outputs=torch.ones_like(output_tensor[:, 0]))[0]
+
+    if args.diff_on_cpu > 0:
+        dphi_dinput = dphi_dinput.numpy()
+    else:
+        print("moving dphi_dinput off cuda")
+        dphi_dinput = dphi_dinput.cpu().numpy()
+
+    t0_u = dphi_dinput[:batchsize, :]
+    tT_u = dphi_dinput[batchsize:2*batchsize, :]
+    tt_u = dphi_dinput[2*batchsize:, :]
+    print(
+        np.max(t0_u),
+        np.max(tT_u),
+        np.max(tt_u)
+    )
+
+    return t0_u, tT_u, tt_u
+
 from scipy.interpolate import griddata as gd
 def make_control_data(model, inputs, N, d, meshes, args):
     M = N**d
@@ -2347,29 +2374,7 @@ def make_control_data(model, inputs, N, d, meshes, args):
 
     ################################################
 
-    # only possible if tensors on cpu
-    # maybe moving to cuda makes input non-leaf
-    if args.diff_on_cpu > 0:
-        output_tensor[:, 0].backward(torch.ones_like(output_tensor[:, 0]))
-        dphi_dinput = inputs_tensor.grad
-    else:
-        # OR do grad like so
-        dphi_dinput = torch.autograd.grad(outputs=output_tensor[:, 0], inputs=inputs_tensor, grad_outputs=torch.ones_like(output_tensor[:, 0]))[0]
-
-    if args.diff_on_cpu > 0:
-        dphi_dinput = dphi_dinput.numpy()
-    else:
-        print("moving dphi_dinput off cuda")
-        dphi_dinput = dphi_dinput.cpu().numpy()
-
-    t0_u = dphi_dinput[:batchsize, :]
-    tT_u = dphi_dinput[batchsize:2*batchsize, :]
-    tt_u = dphi_dinput[2*batchsize:, :]
-    print(
-        np.max(t0_u),
-        np.max(tT_u),
-        np.max(tt_u)
-    )
+    t0_u, tT_u, tt_u = get_u(output_tensor, inputs_tensor, args, batchsize)
 
     ################################################ grid_n overhead
 
