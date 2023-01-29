@@ -2114,6 +2114,10 @@ def apply_control_strategy0(state, t, T_0, T_t, control_data, affine, statedot):
     else:
         closest_grid_idx = np.linalg.norm(query - t_control_data['grid'], ord=1, axis=1).argmin()
 
+    # print("####################")
+    # print(query)
+    # print(t_control_data['grid'][closest_grid_idx])
+
     v_x = t_control_data['0'][closest_grid_idx]
     v_y = t_control_data['1'][closest_grid_idx]
 
@@ -2266,12 +2270,11 @@ class Integrator(object):
                 self.t_span,
                 self.dynamics,
                 (self.t_span[-1] - self.t_span[0])/(self.args.integrate_N),
-                lambda delta_t: np.random.normal(
-                    loc=0.0,
-                    scale=np.sqrt(delta_t)),
-                lambda y, t: 0.06,
+                lambda delta_t: np.random.normal(loc=0.0, scale=np.sqrt(delta_t)),
+                lambda y, t: 0.05,
                 (
                     self.alpha1, self.alpha2, self.alpha3,
+                    self.T_t,
                     control_data,
                     affine,
                     strategy_key

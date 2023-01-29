@@ -310,46 +310,11 @@ if __name__ == '__main__':
 
     ########################################################
 
-    axs[ax_i].contourf(
-        meshes[0],
-        meshes[1],
-        rho0.reshape(*Ns),
-        50, zdir='z',
-        cmap=cm.jet,
-        offset=z1,
-        alpha=0.4
-    )
-
-    axs[ax_i].contourf(
-        meshes[0],
-        meshes[1],
-        rhoT.reshape(*Ns),
-        50, zdir='z',
-        cmap=cm.jet,
-        offset=z2,
-        alpha=0.4,
-    )
-
-    axs[ax_i].set_xlim(
-        args.state_bound_min, args.state_bound_max)
-    axs[ax_i].set_zlim(T_0 - 0.1, T_t + 0.1)
-
-    axs[ax_i].set_xlabel('x')
-    axs[ax_i].set_ylabel('y')
-    axs[ax_i].set_zlabel('t')
-    axs[ax_i].set_title('rho_opt')
-
-    ax_i += 1
-
-    ########################################################
-
-    # import ipdb; ipdb.set_trace()
-
-    for d_i in range(d):    
+    if d == 2:
         axs[ax_i].contourf(
             meshes[0],
             meshes[1],
-            control_data['t0'][str(d_i)].reshape(N, N),
+            rho0.reshape(*Ns),
             50, zdir='z',
             cmap=cm.jet,
             offset=z1,
@@ -359,33 +324,139 @@ if __name__ == '__main__':
         axs[ax_i].contourf(
             meshes[0],
             meshes[1],
-            control_data['tT'][str(d_i)].reshape(N, N),
+            rhoT.reshape(*Ns),
             50, zdir='z',
             cmap=cm.jet,
             offset=z2,
             alpha=0.4,
         )
 
-        # import ipdb; ipdb.set_trace()
-
-        # tt control is to grid_n**d
-        sc2=axs[ax_i].scatter(
-            *grid_n_meshes,
-            c=control_data['tt'][str(d_i)],
-            s=np.abs(control_data['tt'][str(d_i)]*p),
-            cmap=cm.jet,
-            alpha=1.0)
-        plt.colorbar(sc2, shrink=0.25)
-
-        axs[ax_i].set_xlim(args.state_bound_min, args.state_bound_max)
+        axs[ax_i].set_xlim(
+            args.state_bound_min, args.state_bound_max)
         axs[ax_i].set_zlim(T_0 - 0.1, T_t + 0.1)
 
         axs[ax_i].set_xlabel('x')
         axs[ax_i].set_ylabel('y')
         axs[ax_i].set_zlabel('t')
-        axs[ax_i].set_title('u' + str(d_i))
+        axs[ax_i].set_title('rho_opt')
 
         ax_i += 1
+
+        ########################################################
+
+        # import ipdb; ipdb.set_trace()
+
+        for d_i in range(d):
+            axs[ax_i].contourf(
+                meshes[0],
+                meshes[1],
+                control_data['t0'][str(d_i)].reshape(N, N),
+                50, zdir='z',
+                cmap=cm.jet,
+                offset=z1,
+                alpha=0.4
+            )
+
+            axs[ax_i].contourf(
+                meshes[0],
+                meshes[1],
+                control_data['tT'][str(d_i)].reshape(N, N),
+                50, zdir='z',
+                cmap=cm.jet,
+                offset=z2,
+                alpha=0.4,
+            )
+
+            # import ipdb; ipdb.set_trace()
+
+            # tt control is to grid_n**d
+            sc2=axs[ax_i].scatter(
+                *grid_n_meshes,
+                c=control_data['tt'][str(d_i)],
+                s=np.abs(control_data['tt'][str(d_i)]*p),
+                cmap=cm.jet,
+                alpha=1.0)
+            plt.colorbar(sc2, shrink=0.25)
+
+            axs[ax_i].set_xlim(args.state_bound_min, args.state_bound_max)
+            axs[ax_i].set_zlim(T_0 - 0.1, T_t + 0.1)
+
+            axs[ax_i].set_xlabel('x')
+            axs[ax_i].set_ylabel('y')
+            axs[ax_i].set_zlabel('t')
+            axs[ax_i].set_title('u' + str(d_i))
+
+            ax_i += 1
+
+    ########################################################
+
+    if d == 3:
+        # import ipdb; ipdb.set_trace()
+
+        sc1=axs[ax_i].scatter(
+            *meshes,
+            c=rho0,
+            s=np.abs(rho0*p),
+            cmap=cm.jet,
+            alpha=1.0)
+        plt.colorbar(sc1, shrink=0.25)
+        # axs[ax_i].set_title(
+        #     'rho0:\nmu=%.3f\nsigma=%.3f\nsum=%.3f\nmin=%.3f\nmax=%.3f' % (
+        #     mu_0,
+        #     sigma_0,
+        #     np.sum(t0[:, -1]),
+        #     np.min(t0[:, -1]),
+        #     np.max(t0[:, -1])
+        # ))
+        axs[ax_i].set_xlabel('x')
+        axs[ax_i].set_ylabel('y')
+        axs[ax_i].set_zlabel('z')
+
+        ax_i += 1
+
+        sc2=axs[ax_i].scatter(
+            *meshes,
+            c=rhoT,
+            s=np.abs(rhoT*p),
+            cmap=cm.jet,
+            alpha=1.0)
+        plt.colorbar(sc2, shrink=0.25)
+        # axs[ax_i].set_title(
+        #     'rhoT:\nmu=%.3f\nsigma=%.3f\nsum=%.3f\nmin=%.3f\nmax=%.3f' % (
+        #     mu_T,
+        #     sigma_T,
+        #     np.sum(tT[:, -1]),
+        #     np.min(tT[:, -1]),
+        #     np.max(tT[:, -1])
+        # ))
+        axs[ax_i].set_xlabel('x')
+        axs[ax_i].set_ylabel('y')
+        axs[ax_i].set_zlabel('z')
+
+        ax_i += 1
+
+        # import ipdb; ipdb.set_trace()
+
+        # tmp = gd(
+        #   (t0[:, 0], t0[:, 1], t0[:, 2]),
+        #   dphi_dinput_t0_dx,
+        #   (grid_x1, grid_x2, grid_x3),
+        #   method=args.interp_mode,
+        #   fill_value=0.0)
+
+        # sc3=axs[ax_i].scatter(
+        #     grid_x1,
+        #     grid_x2,
+        #     grid_x3,
+        #     c=tmp,
+        #     s=np.abs(tmp*p),
+        #     cmap=cm.jet,
+        #     alpha=1.0)
+        # plt.colorbar(sc3, shrink=0.25)
+        # axs[ax_i].set_title('DPHI_DINPUT_tt_0, [0] range=%.3f, %.3f' % (np.min(tmp), np.max(tmp)))
+        # axs[ax_i].set_xlabel('x')
+        # axs[ax_i].set_ylabel('y')
+        # axs[ax_i].set_zlabel('z')
 
     ########################################################
 
@@ -535,7 +606,7 @@ if __name__ == '__main__':
 
         ##############################
 
-        for j in range(2):
+        for j in range(d):
             axs[ax_i + j].set_aspect('equal', 'box')
             axs[ax_i + j].set_zlim(b, 2*h)
             axs[ax_i + j].set_title(
