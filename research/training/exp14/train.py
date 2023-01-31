@@ -416,8 +416,10 @@ if __name__ == '__main__':
 
     ######################################
 
-    test, rho0, rhoT, T_t, control_data,\
-        _, _, _, _ = make_control_data(
+    test, T_t,\
+    rho0, rhoT,\
+    bc_grids, domain_grids, grid_n_meshes,\
+    control_data = make_control_data(
         model, model.train_state.X_test, N, d, meshes, args)
 
     fname = '%s_%d_%d_%s_%d_%d_all_control_data.npy' % (
