@@ -242,7 +242,10 @@ if __name__ == '__main__':
                 c=c,
                 alpha=0.5)
         elif len(indices) == 1:
-            plt.plot(x[:, indices[0]],
+            # import ipdb; ipdb.set_trace()
+            plt.plot(
+                np.linspace(0, 1, x.shape[0]),
+                x[:, indices[0]],
                 c=c,
                 alpha=1/len(all_data_to_plot))
 

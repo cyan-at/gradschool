@@ -240,8 +240,8 @@ def main():
     eval_data = data_loader()
     # initialize neural network
     sde = SDE()
-    t_size = 1*500 # set number of predictive time steps
-    ts = torch.linspace(0, 1, t_size)
+    t_size = 500 # set number of predictive time steps
+    ts = torch.linspace(0, 50, t_size)
     # state path to model information file
     # load model parameters
     sde.load_state_dict(torch.load(args.modelpt))

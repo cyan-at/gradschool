@@ -2603,6 +2603,14 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
 
             for j in range(d):
                 tmp = with_control[:, j, -1]
+
+                # filter out nans
+                tmp = tmp[~np.isnan(tmp)]
+
+                # filter out trajectories that end outside the bounds
+                tmp = tmp[tmp > args.state_bound_min]
+                tmp = tmp[tmp < args.state_bound_max]
+
                 mus[j] = np.mean(tmp)
                 variances[j] = np.var(tmp)
             mu_s = "{}".format(mus)

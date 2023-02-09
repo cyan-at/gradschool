@@ -350,6 +350,7 @@ if __name__ == '__main__':
         sde.r = sde.r.reshape([-1, 2])
 
         mu_0 = [0.3525, 0.3503]
+        mu_0 = [-0.5, -1.0]
 
         bcc = np.array([0.41235, 0.37605])
         fcc = np.array([0.012857, 0.60008])
@@ -357,7 +358,7 @@ if __name__ == '__main__':
 
         target = fcc
 
-        sigma = 0.01
+        sigma = 0.001
 
         model, meshes = get_model(
             d,

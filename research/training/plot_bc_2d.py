@@ -261,7 +261,7 @@ if __name__ == '__main__':
 
     inputs = np.float32(test[:, :d+1])
 
-    # import ipdb; ipdb.set_trace()
+    import ipdb; ipdb.set_trace()
 
     # test, rho0, rhoT, T_t, control_data,\
     #     t0s, tTs, tts, grids = make_control_data(
@@ -286,6 +286,15 @@ if __name__ == '__main__':
         control_data
     )
     print("saved control_data to %s" % (fname))
+
+    ########################################################
+
+    # training specific volume / inverse of density: total state space / total sample points in that space
+    v = (args.state_bound_max - args.state_bound_min) ** d
+    v *= T_t
+    m = args.bif
+    print("specific volume", v / m)
+    print("density", m / v)
 
     ########################################################
 
@@ -613,6 +622,9 @@ if __name__ == '__main__':
                 'mu %.2f, var %.2f' % (mus[j], variances[j]))
 
         ##############################
+
+    for ax in axs:
+        ax.dist = 9 # default is 10
 
     if args.headless > 0:
         print("headless")
