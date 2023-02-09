@@ -285,6 +285,9 @@ if __name__ == '__main__':
     parser.add_argument('--batchsize2',
         type=str,
         default="")
+    parser.add_argument('--batch2_period',
+        type=int,
+        default=5)
 
     parser.add_argument('--diff_on_cpu',
         type=int, default=1)
@@ -393,7 +396,7 @@ if __name__ == '__main__':
     resampler_cb = PDEPointResampler2(
         pde_points=True,
         bc_points=False,
-        period=5)
+        period=args.batch2_period)
 
     if args.epochs > 0:
         num_epochs = args.epochs
