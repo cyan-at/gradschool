@@ -260,7 +260,7 @@ def get_model(
 
     # import ipdb; ipdb.set_trace()
 
-    return model, meshes, data
+    return model, meshes
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="")
