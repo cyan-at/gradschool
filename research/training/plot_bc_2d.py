@@ -149,7 +149,7 @@ if __name__ == '__main__':
     parser.add_argument('--mu_T',
         type=str, default="", help='')
     parser.add_argument('--T_t',
-        type=float, default=5.0, help='')
+        type=str, default='', help='')
     parser.add_argument('--a', type=str, default="-1,1,2", help='')
     parser.add_argument('--N', type=int, default=15, help='')
     parser.add_argument('--state_bound_min', type=float, default=-5, help='')
@@ -206,6 +206,10 @@ if __name__ == '__main__':
 
     print("mu_0", mu_0)
 
+    if len(args.T_t) > 0:
+        T_t = float(args.T_t)
+    print("T_t", T_t)
+
     ################################################
 
     N = args.N
@@ -261,7 +265,12 @@ if __name__ == '__main__':
 
     inputs = np.float32(test[:, :d+1])
 
-    import ipdb; ipdb.set_trace()
+    inputs = np.vstack((
+        model.data.bc_points(),
+        model.data.train_x_all
+    ))
+
+    # import ipdb; ipdb.set_trace()
 
     # test, rho0, rhoT, T_t, control_data,\
     #     t0s, tTs, tts, grids = make_control_data(

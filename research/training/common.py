@@ -1598,6 +1598,7 @@ class WASSPDE(dde.data.TimePDE):
         self.train_x = self.bc_points()
         if self.pde is not None:
             self.train_x = np.vstack((self.train_x, self.train_x_all))
+
         self.train_y = self.soln(self.train_x) if self.soln else None
         if self.auxiliary_var_fn is not None:
             self.train_aux_vars = self.auxiliary_var_fn(self.train_x).astype(
@@ -2329,6 +2330,8 @@ def get_u(test, output_tensor, inputs_tensor, args, batchsize):
         np.max(tt_u)
     )
 
+    print("u shape", t0_u.shape, tT_u.shape, tt_u.shape)
+
     return t0_u, tT_u, tt_u
 
 from scipy.interpolate import griddata as gd
@@ -2342,6 +2345,8 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
 
     T_t = inputs[batchsize, -1]
     print("found T_t", T_t)
+
+    # import ipdb; ipdb.set_trace()
 
     inputs_tensor = torch.from_numpy(
         inputs).requires_grad_(True)
