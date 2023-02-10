@@ -234,14 +234,17 @@ def main():
     parser.add_argument('--modelpt',
         type=str, default='./4fold_3_2_layer_model.pt')
 
+    parser.add_argument('--T_t',
+        type=float, default=1.0)
+
     args = parser.parse_args()
 
     # load in example data
     eval_data = data_loader()
     # initialize neural network
     sde = SDE()
-    t_size = 500 # set number of predictive time steps
-    ts = torch.linspace(0, 50, t_size)
+    t_size = int(5*args.T_t) # set number of predictive time steps
+    ts = torch.linspace(0, args.T_t, t_size)
     # state path to model information file
     # load model parameters
     sde.load_state_dict(torch.load(args.modelpt))
@@ -286,7 +289,8 @@ def main():
 
         # import ipdb; ipdb.set_trace()
 
-        y_pred = torchsde.sdeint(sde, y0, ts, method='euler').squeeze() # calculate predictions
+        # y_pred = torchsde.sdeint(sde, y0, ts, method='euler').squeeze() # calculate predictions
+        y_pred = torchsde.sdeint(sde, y0, ts, dt=1e-1, method='euler').squeeze() # calculate predictions
 
         # call data loader corresponding to c10/c12, this is the ground truth values of c10/c12, only here for comparison, not for running the model
         y_gt = eval_data[0, 1:, :2]
