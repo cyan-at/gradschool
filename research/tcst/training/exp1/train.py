@@ -305,6 +305,9 @@ if __name__ == '__main__':
     parser.add_argument('--sigma',
         type=float,
         default=0.001)
+    parser.add_argument('--crystal',
+        type=str,
+        required=True)
 
     '''
     parser.add_argument('--diff_on_cpu',
@@ -381,7 +384,13 @@ if __name__ == '__main__':
     fcc = np.array([0.012857, 0.60008])
     sc = np.array([0.41142, 0.69550])
 
-    target = fcc
+    target_map = {
+        "bcc" : bcc,
+        "fcc" : fcc,
+        "sc" : sc
+    }
+
+    target = target_map[args.crystal]
 
     model, meshes = get_model(
         d,
