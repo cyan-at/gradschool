@@ -248,6 +248,7 @@ def get_model(
     name_tmp = "WASS"
     if "batch" in args.loss_func:
         name_tmp = "WASS_batch"
+    print("name_tmp", name_tmp)
 
     rho0_WASS_batch = lambda y_true, y_pred: loss_func_dict[args.loss_func](y_true, y_pred, device, sinkhorn0, rho0, state)
     rho0_WASS_batch.__name__ = name_tmp
