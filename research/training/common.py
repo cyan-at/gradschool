@@ -1918,7 +1918,7 @@ def WASS_2(y_true, y_pred, ignore1, sinkhorn, rho_tensor, C, *_):
 
     return 10 * p1 + p2 + dist
 
-def WASS_3(y_true, y_pred, ignore1, sinkhorn, rho_tensor, C, *_):
+def WASS_3(y_true, y_pred, sinkhorn, rho_tensor, C, *_):
     p1 = -torch.sum(y_pred[y_pred < 0])
     y_pred = torch.where(y_pred < 0, 0, y_pred)
 
