@@ -1918,7 +1918,7 @@ def WASS_2(y_true, y_pred, ignore1, sinkhorn, rho_tensor, C, *_):
 
     return 10 * p1 + p2 + dist
 
-def WASS_3(y_true, y_pred, sinkhorn, rho_tensor, C, *_):
+def WASS_3(y_true, y_pred, ignore1, sinkhorn, rho_tensor, C, *_):
     p1 = -torch.sum(y_pred[y_pred < 0])
     y_pred = torch.where(y_pred < 0, 0, y_pred)
 
@@ -1983,7 +1983,7 @@ def WASS_batch_0(y_true, y_pred, device, sinkhorn, rho, state, *_):
 
     return dist + p2 # + p1
 
-def WASS_batch_1(y_true, y_pred, device, sinkhorn, rho, state, *_):
+def WASS_batch_1(y_true, y_pred, device, sinkhorn, rho_tensor, rho, state, *_):
     # import ipdb; ipdb.set_trace()
     p1 = -torch.sum(y_pred[y_pred < 0])
     # p1 = (y_pred<0).sum() # negative terms
@@ -2001,7 +2001,7 @@ def WASS_batch_1(y_true, y_pred, device, sinkhorn, rho, state, *_):
 
     return 20 * p1 + 10 * p2 + dist
 
-def WASS_batch_2(y_true, y_pred, device, sinkhorn, rho, state, *_):
+def WASS_batch_2(y_true, y_pred, device, sinkhorn, rho_tensor, rho, state, *_):
     p1 = -torch.sum(y_pred[y_pred < 0])
     # p1 = (y_pred<0).sum() # negative terms
 
@@ -2018,7 +2018,7 @@ def WASS_batch_2(y_true, y_pred, device, sinkhorn, rho, state, *_):
 
     return 10 * p1 + dist
 
-def WASS_batch_3(y_true, y_pred, device, sinkhorn, rho, state, expected_sum):
+def WASS_batch_3(y_true, y_pred, device, sinkhorn, rho_tensor, rho, state, expected_sum):
     p1 = -torch.sum(y_pred[y_pred < 0])
 
     # p1 = (y_pred<0).sum() # negative terms

@@ -238,14 +238,21 @@ def get_model(
     dx = linspaces[0][1] - linspaces[0][0]
     print("dx", dx)
 
-    rho0_WASS_batch = lambda y_true, y_pred: loss_func_dict[args.loss_func](y_true, y_pred, device, sinkhorn0, rho0, state)
-    rho0_WASS_batch.__name__ = "rho0_WASS_batch"
-    rhoT_WASS_batch = lambda y_true, y_pred: loss_func_dict[args.loss_func](y_true, y_pred, device, sinkhornT, rhoT, state)
-    rhoT_WASS_batch.__name__ = "rhoT_WASS_batch"
+    name_tmp = "WASS"
+    if "batch" in args.loss_func:
+        name_tmp = "WASS_batch"
+    print("name_tmp", name_tmp)
+
+    rho0_WASS = lambda y_true, y_pred: loss_func_dict[args.loss_func](
+        y_true, y_pred, device, sinkhorn0, rho0_tensor, rho0, state, C_device, N, dx)
+    rho0_WASS.__name__ = name_tmp
+    rhoT_WASS = lambda y_true, y_pred: loss_func_dict[args.loss_func](
+        y_true, y_pred, device, sinkhornT, rhoT_tensor, rhoT, state, C_device, N, dx)
+    rhoT_WASS.__name__ = name_tmp
     losses=[
         "MSE","MSE",
-        rho0_WASS_batch,
-        rhoT_WASS_batch,
+        rho0_WASS,
+        rhoT_WASS,
     ]
     # loss functions are based on PDE + BC: eq outputs, BCs
 

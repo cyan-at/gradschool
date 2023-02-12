@@ -221,10 +221,17 @@ def get_model(
     dx = linspaces[0][1] - linspaces[0][0]
     print("dx", dx)
 
-    rho0_WASS = lambda y_true, y_pred: loss_func_dict[args.loss_func](y_true, y_pred, sinkhorn, rho0_tensor, C_device, N, dx)
-    rho0_WASS.__name__ = "rho0_WASS"
-    rhoT_WASS = lambda y_true, y_pred: loss_func_dict[args.loss_func](y_true, y_pred, sinkhorn, rhoT_tensor, C_device, N, dx)
-    rhoT_WASS.__name__ = "rhoT_WASS"
+    name_tmp = "WASS"
+    if "batch" in args.loss_func:
+        name_tmp = "WASS_batch"
+    print("name_tmp", name_tmp)
+
+    rho0_WASS = lambda y_true, y_pred: loss_func_dict[args.loss_func](
+        y_true, y_pred, sinkhorn, rho0_tensor, C_device, N, dx)
+    rho0_WASS.__name__ = name_tmp
+    rhoT_WASS = lambda y_true, y_pred: loss_func_dict[args.loss_func](
+        y_true, y_pred, sinkhorn, rhoT_tensor, C_device, N, dx)
+    rhoT_WASS.__name__ = name_tmp
     losses=[
         "MSE","MSE",
         rho0_WASS,
