@@ -1879,7 +1879,7 @@ class Counter(object):
 
 ######################################
 
-def WASS_0(y_true, y_pred, sinkhorn, rho_tensor, C, *_):
+def WASS_0(y_true, y_pred, ignore1, sinkhorn, rho_tensor, C, *_):
     p2 = torch.abs(torch.sum(y_pred) - 1)
 
     y_pred = torch.where(y_pred < 0, 0, y_pred)
@@ -1889,7 +1889,7 @@ def WASS_0(y_true, y_pred, sinkhorn, rho_tensor, C, *_):
     return dist + p2 # + p1
 
 # this one gets stuck in local minima
-def WASS_1(y_true, y_pred, sinkhorn, rho_tensor, C, *_):
+def WASS_1(y_true, y_pred, ignore1, sinkhorn, rho_tensor, C, *_):
     p1 = (y_pred<0).sum() # negative terms
 
     p2 = 1 / torch.var(y_pred)
@@ -1902,7 +1902,7 @@ def WASS_1(y_true, y_pred, sinkhorn, rho_tensor, C, *_):
 
     return 10 * p1 + p2 + p3 + dist
 
-def WASS_2(y_true, y_pred, sinkhorn, rho_tensor, C, *_):
+def WASS_2(y_true, y_pred, ignore1, sinkhorn, rho_tensor, C, *_):
     p1 = -torch.sum(y_pred[y_pred < 0])
     y_pred = torch.where(y_pred < 0, 0, y_pred)
 
@@ -1918,7 +1918,7 @@ def WASS_2(y_true, y_pred, sinkhorn, rho_tensor, C, *_):
 
     return 10 * p1 + p2 + dist
 
-def WASS_3(y_true, y_pred, sinkhorn, rho_tensor, C, *_):
+def WASS_3(y_true, y_pred, ignore1, sinkhorn, rho_tensor, C, *_):
     p1 = -torch.sum(y_pred[y_pred < 0])
     y_pred = torch.where(y_pred < 0, 0, y_pred)
 
@@ -1934,7 +1934,7 @@ def WASS_3(y_true, y_pred, sinkhorn, rho_tensor, C, *_):
 
     return 10 * p1 + dist
 
-def WASS_4(y_true, y_pred, sinkhorn, rho_tensor, C, n, dx):
+def WASS_4(y_true, y_pred, ignore1, sinkhorn, rho_tensor, C, n, dx):
     p1 = -torch.sum(y_pred[y_pred < 0])
     y_pred = torch.where(y_pred < 0, 0, y_pred)
     
