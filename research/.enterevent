@@ -130,6 +130,14 @@ ln -s ~/miniforge/pkgs/cudatoolkit-11.6.0-hecad31d_11/lib/libdevice.10.bc .
 
 conda install cudnn onednn -c conda-forge
 conda install torchsde=0.2.4=py39h1a9c180_3 cudatoolkit=11.6=hecad31d_11 pytorch=1.12.1=cuda112py39hb0b7ed5_201
+
+######################################
+
+a faster way to get vs06 to support torchsde
+
+conda config --add channels pytorch
+conda install -c conda-forge pytorch pytorch=1.12.1=py3.9_cuda11.6_cudnn8.3.2_0 torchsde=0.2.4=py39h1a9c180_3
+
 setup
 
 echo "hello, starting tf conda"

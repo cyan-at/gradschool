@@ -2409,24 +2409,27 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
     rho0 = t0[:, inputs.shape[1] + 2 - 1]
     rhoT = tT[:, inputs.shape[1] + 2 - 1]
 
-    if rho0.shape != M:
-        print("interpolating rho0 and rhoT because bc was batched using original meshes")
+    if rho0.shape[0] != M:
+        print("interpolating rho0 and rhoT because bc was batched using original meshes",
+            rho0.shape,
+            rhoT.shape,
+            M)
         t0_input = t0[:, :d]
-        tT_input = tT[:, :d]
-
         rho0_meshed = gd(
           t0_input,
           rho0,
           tuple(meshes),
           method=args.interp_mode)
+        rho0 = rho0_meshed.reshape(-1)
 
+        # import ipdb; ipdb.set_trace()
+
+        tT_input = tT[:, :d]
         rhoT_meshed = gd(
           tT_input,
           rhoT,
           tuple(meshes),
           method=args.interp_mode)
-
-        rho0 = rho0_meshed.reshape(-1)
         rhoT = rhoT_meshed.reshape(-1)
 
     ######################################################## bc control

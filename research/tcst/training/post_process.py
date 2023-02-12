@@ -149,10 +149,10 @@ def do_integration2(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde, sde2):
     # dt = (T_t - T_0)/(args.bif)
     # ts = np.arange(T_0, T_t + dt, dt)
     ts = torch.linspace(T_0, T_t, int(T_t * 500), device=cuda0)
-    ts = torch.linspace(T_0, 1, int(1 * 500), device=cuda0)
+    # ts = torch.linspace(T_0, 1, int(1 * 500), device=cuda0)
 
     initial_sample = np.random.multivariate_normal(
-        np.array(mu_0), np.eye(d)*0.01, args.M) # 100 x 3
+        np.array(mu_0), np.eye(d)*sigma_0, args.M) # 100 x 3
 
     v_scales = [float(x) for x in args.v_scale.split(",")]
     biases = [float(x) for x in args.bias.split(",")]
@@ -194,18 +194,17 @@ def do_integration2(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde, sde2):
         y0 = initial_sample_tensor[i, :]
         y0 = torch.reshape(y0, [1, -1])
 
-        print(y0)
-
         # import ipdb; ipdb.set_trace()
 
-        y_pred = torchsde.sdeint(sde, y0, ts, method='euler').squeeze()
+        y_pred = torchsde.sdeint(sde, y0, ts, dt=1e-1, method='euler').squeeze()
         # calculate predictions
         without_control[i, :, :] = y_pred.detach().cpu().numpy().T
 
-        y_pred = torchsde.sdeint(sde2, y0, ts, method='euler').squeeze()
+        y_pred = torchsde.sdeint(sde2, y0, ts, dt=1e-1, method='euler').squeeze()
         with_control[i, :, :] = y_pred.detach().cpu().numpy().T
 
         print(i)
+        print(y0)
         print(y_pred[-1, :])
 
     # import ipdb; ipdb.set_trace()
@@ -297,14 +296,21 @@ if __name__ == '__main__':
         type=str,
         default="../../../sde/4fold_3_2_layer_model.pt",
         help='')
+    parser.add_argument('--sigma',
+        type=float,
+        default=0.001)
 
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args()
 
     if len(args.mu_T) > 0:
         mu_T = float(args.mu_T)
-    if len(args.mu_0) > 0:
-        mu_0 = float(args.mu_0)
 
+
+    mu_0 = [0.3525, 0.3503]
+    mu_0 = [-0.5, -1.0]
+    if len(args.mu_0) > 0:
+        # mu_0 = float(args.mu_0)
+        mu_0 = [float(x) for x in args.mu_0.split(",")]
     print("mu_0", mu_0)
 
     ################################################
@@ -349,9 +355,6 @@ if __name__ == '__main__':
         sde.r = torch.tensor(np.array([0.0]*2), dtype=torch.float32)
         sde.r = sde.r.reshape([-1, 2])
 
-        mu_0 = [0.3525, 0.3503]
-        mu_0 = [-0.5, -1.0]
-
         bcc = np.array([0.41235, 0.37605])
         fcc = np.array([0.012857, 0.60008])
         sc = np.array([0.41142, 0.69550])
@@ -367,9 +370,9 @@ if __name__ == '__main__':
             0,
             "tanh",
             mu_0,
-            sigma,
+            args.sigma,
             target,
-            sigma,
+            args.sigma,
             T_t,
             args,
             sde.network_f,
@@ -417,7 +420,7 @@ if __name__ == '__main__':
 
     ########################################################
 
-    axs[ax_i].contourf(
+    rho0_contour = axs[ax_i].contourf(
         meshes[0],
         meshes[1],
         rho0.reshape(*Ns),
@@ -445,6 +448,8 @@ if __name__ == '__main__':
     axs[ax_i].set_ylabel('y')
     axs[ax_i].set_zlabel('t')
     axs[ax_i].set_title('rho_opt')
+
+    fig.colorbar(rho0_contour, shrink=0.25)
 
     ax_i += 1
 
@@ -561,7 +566,7 @@ if __name__ == '__main__':
 
         ts, initial_sample, with_control, without_control,\
             all_results, mus, variances = do_integration2(
-                control_data, d, T_0, T_t, mu_0, 0.01,
+                control_data, d, T_0, T_t, mu_0, args.sigma,
                 args, sde, sde2)
 
         axs.append(fig.add_subplot(1, ax_count, 4, projection='3d'))
