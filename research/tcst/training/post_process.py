@@ -154,6 +154,8 @@ def do_integration2(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde, sde2):
     initial_sample = np.random.multivariate_normal(
         np.array(mu_0), np.eye(d)*sigma_0, args.M) # 100 x 3
 
+    print(sigma_0)
+
     v_scales = [float(x) for x in args.v_scale.split(",")]
     biases = [float(x) for x in args.bias.split(",")]
 
@@ -207,7 +209,9 @@ def do_integration2(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde, sde2):
         print(y0)
         print(y_pred[-1, :])
 
-    # import ipdb; ipdb.set_trace()
+    for d_i in range(d):
+        mus[d_i] = np.mean(with_control[:, -1, d_i])
+        variances[d_i] = np.var(with_control[:, -1, d_i])
 
     ts = ts.detach().cpu().numpy()
 
@@ -240,7 +244,7 @@ if __name__ == '__main__':
         type=str, default="adam", help='')
 
     parser.add_argument('--mu_0',
-        type=str, default="", help='')
+        type=str, required=True, help='')
     parser.add_argument('--mu_T',
         type=str, default="", help='')
     parser.add_argument('--T_t',
@@ -306,8 +310,8 @@ if __name__ == '__main__':
         mu_T = float(args.mu_T)
 
 
-    mu_0 = [0.3525, 0.3503]
-    mu_0 = [-0.5, -1.0]
+    # mu_0 = [0.3525, 0.3503]
+    # mu_0 = [-0.5, -1.0]
     if len(args.mu_0) > 0:
         # mu_0 = float(args.mu_0)
         mu_0 = [float(x) for x in args.mu_0.split(",")]
@@ -360,8 +364,6 @@ if __name__ == '__main__':
         sc = np.array([0.41142, 0.69550])
 
         target = fcc
-
-        sigma = 0.001
 
         model, meshes = get_model(
             d,
@@ -667,6 +669,8 @@ if __name__ == '__main__':
             axs[ax_i + j].set_zlim(b, 2*h)
             # axs[ax_i + j].set_title(
             #     'mu %.2f, var %.2f' % (mus[j], variances[j]))
+
+            print(mus[j], variances[j])
 
         ##############################
 
