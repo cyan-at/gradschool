@@ -210,8 +210,8 @@ def do_integration2(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde, sde2):
         print(y_pred[-1, :])
 
     for d_i in range(d):
-        mus[d_i] = np.mean(with_control[:, -1, d_i])
-        variances[d_i] = np.var(with_control[:, -1, d_i])
+        mus[d_i] = np.mean(with_control[:, d_i, -1])
+        variances[d_i] = np.var(with_control[:, d_i, -1])
 
     ts = ts.detach().cpu().numpy()
 
@@ -303,6 +303,9 @@ if __name__ == '__main__':
     parser.add_argument('--sigma',
         type=float,
         default=0.001)
+    parser.add_argument('--crystal',
+        type=str,
+        required=True)
 
     args, _ = parser.parse_known_args()
 
@@ -363,7 +366,13 @@ if __name__ == '__main__':
         fcc = np.array([0.012857, 0.60008])
         sc = np.array([0.41142, 0.69550])
 
-        target = fcc
+        target_map = {
+            "bcc" : bcc,
+            "fcc" : fcc,
+            "sc" : sc
+        }
+
+        target = target_map[args.crystal]
 
         model, meshes = get_model(
             d,
@@ -667,8 +676,8 @@ if __name__ == '__main__':
         for j in range(2):
             axs[ax_i + j].set_aspect('equal', 'box')
             axs[ax_i + j].set_zlim(b, 2*h)
-            # axs[ax_i + j].set_title(
-            #     'mu %.2f, var %.2f' % (mus[j], variances[j]))
+            axs[ax_i + j].set_title(
+                'mu %.2f, var %.2f' % (mus[j], variances[j]))
 
             print(mus[j], variances[j])
 
