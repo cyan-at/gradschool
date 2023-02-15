@@ -163,8 +163,8 @@ def do_integration2(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde, sde2):
 
     all_results = {}
 
-    mus = np.zeros(d)
-    variances = np.zeros(d)
+    mus = np.zeros(d*2)
+    variances = np.zeros(d*2)
 
     pde_key = d
     if len(args.pde_key) > 0:
@@ -198,11 +198,19 @@ def do_integration2(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde, sde2):
 
         # import ipdb; ipdb.set_trace()
 
-        y_pred = torchsde.sdeint(sde, y0, ts, dt=1e-1, method='euler').squeeze()
+
+        bm = torchsde.BrownianInterval(
+            t0=float(T_0),
+            t1=float(T_t),
+            size=y0.shape,
+            device=cuda0,
+        )  # We need space-time Levy area to use the SRK solver
+
+        y_pred = torchsde.sdeint(sde, y0, ts, method='euler', bm=bm, dt=1e-2).squeeze()
         # calculate predictions
         without_control[i, :, :] = y_pred.detach().cpu().numpy().T
 
-        y_pred = torchsde.sdeint(sde2, y0, ts, dt=1e-1, method='euler').squeeze()
+        y_pred = torchsde.sdeint(sde2, y0, ts, method='euler', bm=bm, dt=1e-2).squeeze()
         with_control[i, :, :] = y_pred.detach().cpu().numpy().T
 
         print(i)
@@ -210,8 +218,11 @@ def do_integration2(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde, sde2):
         print(y_pred[-1, :])
 
     for d_i in range(d):
-        mus[d_i] = np.mean(with_control[:, d_i, -1])
-        variances[d_i] = np.var(with_control[:, d_i, -1])
+        mus[2*d_i] = np.mean(with_control[:, d_i, -1])
+        variances[2*d_i] = np.var(with_control[:, d_i, -1])
+
+        mus[2*d_i+1] = np.mean(without_control[:, d_i, -1])
+        variances[2*d_i+1] = np.var(without_control[:, d_i, -1])
 
     ts = ts.detach().cpu().numpy()
 
@@ -267,6 +278,9 @@ if __name__ == '__main__':
     parser.add_argument('--batchsize2',
         type=str,
         default="")
+    parser.add_argument('--batch2_period',
+        type=int,
+        default=5)
 
     parser.add_argument('--do_integration',
         type=int,
@@ -307,10 +321,13 @@ if __name__ == '__main__':
         type=str,
         required=True)
 
+
     args, _ = parser.parse_known_args()
 
     if len(args.mu_T) > 0:
         mu_T = float(args.mu_T)
+
+    mu_0 = [float(x) for x in args.mu_0.strip().split(",")]
 
 
     # mu_0 = [0.3525, 0.3503]
@@ -361,6 +378,9 @@ if __name__ == '__main__':
         sde.eval()
         sde.r = torch.tensor(np.array([0.0]*2), dtype=torch.float32)
         sde.r = sde.r.reshape([-1, 2])
+
+
+        mu_0 = [float(x) for x in args.mu_0.strip().split(",")]
 
         bcc = np.array([0.41235, 0.37605])
         fcc = np.array([0.012857, 0.60008])
@@ -588,40 +608,40 @@ if __name__ == '__main__':
 
         for i in range(initial_sample.shape[0]):
             for j in range(d):
-                axs[ax_i + j].plot(
-                    without_control[i, j, :],
-                    ts,
-                    [0.0]*len(ts),
-                    lw=.3,
-                    c='b')
+                # axs[ax_i + j].plot(
+                #     without_control[i, j, :],
+                #     ts,
+                #     [0.0]*len(ts),
+                #     lw=.3,
+                #     c='b')
+
+                # ########################################
+
+                # axs[ax_i + j].plot(
+                #     with_control[i, j, :],
+                #     ts,
+                #     [0.0]*len(ts),
+                #     lw=.3,
+                #     c='g')
+
 
                 ########################################
-
-                axs[ax_i + j].plot(
-                    with_control[i, j, :],
-                    ts,
-                    [0.0]*len(ts),
-                    lw=.3,
-                    c='g')
-
-
-                ########################################
                 ########################################
 
-                axs[ax_i + j].plot(
-                    [with_control[i, j, 0]]*2,
-                    [ts[0]]*2,
-                    [0.0, h],
-                    lw=1,
-                    c='g')
+                # axs[ax_i + j].plot(
+                #     [with_control[i, j, 0]]*2,
+                #     [ts[0]]*2,
+                #     [0.0, h],
+                #     lw=1,
+                #     c='g')
 
-                axs[ax_i + j].scatter(
-                    with_control[i, j, 0],
-                    ts[0],
-                    h,
-                    c='g',
-                    s=50,
-                )
+                # axs[ax_i + j].scatter(
+                #     with_control[i, j, 0],
+                #     ts[0],
+                #     h,
+                #     c='g',
+                #     s=50,
+                # )
 
                 axs[ax_i + j].plot(
                     [with_control[i, j, -1]]*2,
@@ -641,20 +661,20 @@ if __name__ == '__main__':
                 ########################################
                 ########################################
 
-                axs[ax_i + j].plot(
-                    [without_control[i, j, 0]]*2,
-                    [ts[0]]*2,
-                    [0.0, h],
-                    lw=1,
-                    c='b')
+                # axs[ax_i + j].plot(
+                #     [without_control[i, j, 0]]*2,
+                #     [ts[0]]*2,
+                #     [0.0, h],
+                #     lw=1,
+                #     c='b')
 
-                axs[ax_i + j].scatter(
-                    without_control[i, j, 0],
-                    ts[0],
-                    h,
-                    c='b',
-                    s=50,
-                )
+                # axs[ax_i + j].scatter(
+                #     without_control[i, j, 0],
+                #     ts[0],
+                #     h,
+                #     c='b',
+                #     s=50,
+                # )
 
                 axs[ax_i + j].plot(
                     [without_control[i, j, -1]]*2,
@@ -674,12 +694,12 @@ if __name__ == '__main__':
         ##############################
 
         for j in range(2):
-            axs[ax_i + j].set_aspect('equal', 'box')
+            # axs[ax_i + j].set_aspect('equal', 'box')
             axs[ax_i + j].set_zlim(b, 2*h)
             axs[ax_i + j].set_title(
-                'mu %.2f, var %.2f' % (mus[j], variances[j]))
-
-            print(mus[j], variances[j])
+                'with: %.2f, %.2f, without: %.2f, %.2f' % (
+                    mus[2*j], variances[2*j],
+                    mus[2*j+1], variances[2*j+1]))
 
         ##############################
 

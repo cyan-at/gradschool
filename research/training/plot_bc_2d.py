@@ -265,10 +265,14 @@ if __name__ == '__main__':
 
     inputs = np.float32(test[:, :d+1])
 
+    print("test.shape", test.shape)
+
     inputs = np.vstack((
         model.data.bc_points(),
         model.data.train_x_all
     ))
+
+    print("test.shape", test.shape)
 
     # import ipdb; ipdb.set_trace()
 
