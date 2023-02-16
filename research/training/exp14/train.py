@@ -243,6 +243,8 @@ def get_model(
         name_tmp = "WASS_batch"
         del rho0_tensor
         del rhoT_tensor
+        rho0_tensor = None
+        rhoT_tensor = None
     print("name_tmp", name_tmp)
 
     rho0_WASS = lambda y_true, y_pred: loss_func_dict[args.loss_func](
