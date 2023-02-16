@@ -241,6 +241,8 @@ def get_model(
     name_tmp = "WASS"
     if "batch" in args.loss_func:
         name_tmp = "WASS_batch"
+        del rho0_tensor
+        del rhoT_tensor
     print("name_tmp", name_tmp)
 
     rho0_WASS = lambda y_true, y_pred: loss_func_dict[args.loss_func](
