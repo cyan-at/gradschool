@@ -206,11 +206,11 @@ def do_integration2(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde, sde2):
             device=cuda0,
         )  # We need space-time Levy area to use the SRK solver
 
-        y_pred = torchsde.sdeint(sde, y0, ts, method='euler', bm=bm, dt=1e-2).squeeze()
+        y_pred = torchsde.sdeint(sde, y0, ts, method='euler', bm=bm, dt=1/(T_t*500)).squeeze()
         # calculate predictions
         without_control[i, :, :] = y_pred.detach().cpu().numpy().T
 
-        y_pred = torchsde.sdeint(sde2, y0, ts, method='euler', bm=bm, dt=1e-2).squeeze()
+        y_pred = torchsde.sdeint(sde2, y0, ts, method='euler', bm=bm, dt=1/(T_t*500)).squeeze()
         with_control[i, :, :] = y_pred.detach().cpu().numpy().T
 
         print(i)
