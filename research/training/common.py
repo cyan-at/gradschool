@@ -1221,6 +1221,119 @@ def tcst1(x, y, network_f, network_g, args):
         l_u2
     ]
 
+def tcst2(x, y, network_f, network_g, args):
+    psi, rho, u1, u2 = y[:, 0:1], y[:, 1:2], y[:, 2:3], y[:, 3:4]
+
+    # x = c10, c12, t
+
+    # psi eq (4a), rho eq (4b), u1 eq (6), u2 eq (6)
+    dpsi_c10 = dde.grad.jacobian(psi, x, j=0)
+    # dpsi_c12 = dde.grad.jacobian(psi, x, j=1)
+    dpsi_t = dde.grad.jacobian(psi, x, j=1)
+
+    hpsi_c10 = dde.grad.hessian(psi, x, i=0, j=0)
+    # hpsi_c12 = dde.grad.hessian(psi, x, i=1, j=1)
+
+    drho_t = dde.grad.jacobian(rho, x, j=1)
+
+    drho_c10 = dde.grad.hessian(rho, x, i=0, j=0)
+    # drho_c12 = dde.grad.hessian(rho, x, i=1, j=1)
+
+    # import ipdb; ipdb.set_trace()
+
+    # d1
+    leaf_x = x[:, 0:1].detach()
+    leaf_u1_u2 = y[:, 1:3].detach()
+    leaf_t = x[:, 1].detach().unsqueeze(1)
+
+    ###########################################
+
+    '''
+    leaf_vec2 = torch.cat(
+        (
+            leaf_x,
+            leaf_u1_u2,
+            leaf_t,
+        ),
+        dim=1)
+    leaf_vec2 = leaf_vec2.requires_grad_(True)
+    d1_2 = network_f.forward(leaf_vec2)
+    d2_2 = network_g.forward(leaf_vec2)**2 / 2 # elementwise
+    # divergence terms
+    d_rhod1_c10_2 = dde.grad.jacobian(rho*d1_2[:, 0], x, j=0)
+    d_rhod1_c12_2 = dde.grad.jacobian(rho*d1_2[:, 1], x, j=1)
+    '''
+
+
+    leaf_vec = torch.cat(
+        (
+            x[:, 0:1], # leaf_x,
+            # i think this makes sense since we
+            # take jacobian of it w.r.t x for divergence
+            y[:, 2:4],
+            x[:, 1].unsqueeze(1),
+        ),
+        dim=1)
+    leaf_vec = leaf_vec.requires_grad_(True)
+
+    d1 = network_f.forward(leaf_vec)
+    d2 = network_g.forward(leaf_vec)**2 / 2 # elementwise
+    # divergence terms
+    d_rhod1_c10 = dde.grad.jacobian(rho*d1[:, 0], x, j=0)
+    # d_rhod1_c12 = dde.grad.jacobian(rho*d1[:, 1], x, j=1)
+
+    ###########################################
+
+    # divergence = trace of jacobian
+    # divergence is a scalar
+
+    u_term = torch.mul(dpsi_c10.squeeze(), d1[:, 0])\
+    # + torch.mul(dpsi_c12.squeeze(), d1[:, 1])\
+    + torch.mul(d2[:, 0], hpsi_c10.squeeze())\
+    # + torch.mul(d2[:, 1], hpsi_c12.squeeze())
+    u = u_term.unsqueeze(dim=0)
+
+    # import ipdb; ipdb.set_trace()
+
+    d_uterm_du1_du2 = torch.autograd.grad(
+        outputs=u_term,
+        inputs=leaf_vec,
+        grad_outputs=torch.ones_like(u_term),
+        retain_graph=True)[0]
+
+    l_u1 = u1 - d_uterm_du1_du2[:, 2]
+    l_u2 = u2 - d_uterm_du1_du2[:, 3]
+    if args.bound_u > 0:
+        # print("bounding u")
+        l_u1_bound = -torch.sum(u1[u1 < -0.005]) +\
+            torch.sum(u1[u1 > 0.005]) 
+        l_u2_bound = -torch.sum(u2[u2 < -0.005]) +\
+            torch.sum(u2[u2 > 0.005])
+
+        l_u1 += args.bound_u * l_u1_bound
+        l_u2 += args.bound_u * l_u2_bound
+
+    return [
+        -dpsi_t + 0.5 * (u1**2 + u2**2)\
+        - (
+            dpsi_c10 * d1[:, 0]
+            # + dpsi_c12 * d1[:, 1]
+        )\
+        - (d2[:, 0] * hpsi_c10
+            # + d2[:, 1] * hpsi_c12
+        ),
+
+        -drho_t - (d_rhod1_c10
+            # + d_rhod1_c12
+        )\
+        + (d2[:, 0] * drho_c10
+            # + d2[:, 1] * drho_c12
+        ),
+
+        l_u1,
+        l_u2
+    ]
+
 euler_pdes = {
     1 : euler_pde_1,
     2 : euler_pde_2,
@@ -1236,6 +1349,7 @@ euler_pdes = {
 
 tcst_pdes = {
     0 : tcst1,
+    1 : tcst2,
 }
 
 ######################################

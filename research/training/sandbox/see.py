@@ -152,6 +152,7 @@ if __name__ == '__main__':
     ########################################################
 
     all_data_to_plot = []
+    k_tokens = []
 
     if type(x) == dict:
         while type(x) == dict:
@@ -226,7 +227,8 @@ if __name__ == '__main__':
                 c=0.5*np.ones(x.shape[0]),
                 s=1.0*np.ones(x.shape[0]),
                 cmap=cm.jet,
-                alpha=1.0)
+                alpha=1.0,
+                label=k_tokens[x_i])
             plt.colorbar(sc1, shrink=0.25)
             ax1.set_xlabel('x')
             ax1.set_ylabel('y')
@@ -240,18 +242,21 @@ if __name__ == '__main__':
                 alpha=0.5)
             ax.plot(x[:, indices[0]], x[:, indices[1]],
                 c=c,
-                alpha=0.5)
+                alpha=0.5,
+                label=k_tokens[x_i])
         elif len(indices) == 1:
             # import ipdb; ipdb.set_trace()
             plt.plot(
                 np.linspace(0, 1, x.shape[0]),
                 x[:, indices[0]],
                 c=c,
-                alpha=1/len(all_data_to_plot))
+                alpha=1/len(all_data_to_plot),
+                label=k_tokens[x_i])
 
     ########################################################
 
     plt.suptitle(args.dat)
+    plt.legend()
 
     c = Counter()
     fig.canvas.mpl_connect('key_press_event', lambda e: c.on_press_saveplot(e,
