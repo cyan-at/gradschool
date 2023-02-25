@@ -151,6 +151,8 @@ def do_integration2(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde, sde2):
     ts = torch.linspace(T_0, T_t, int(T_t * 500), device=cuda0)
     # ts = torch.linspace(T_0, 1, int(1 * 500), device=cuda0)
 
+    import ipdb; ipdb.set_trace()
+
     initial_sample = np.random.multivariate_normal(
         np.array(mu_0), np.eye(d)*sigma_0, args.M) # 100 x 3
 
@@ -324,19 +326,6 @@ if __name__ == '__main__':
 
     args, _ = parser.parse_known_args()
 
-    if len(args.mu_T) > 0:
-        mu_T = float(args.mu_T)
-
-    mu_0 = [float(x) for x in args.mu_0.strip().split(",")]
-
-
-    # mu_0 = [0.3525, 0.3503]
-    # mu_0 = [-0.5, -1.0]
-    if len(args.mu_0) > 0:
-        # mu_0 = float(args.mu_0)
-        mu_0 = [float(x) for x in args.mu_0.split(",")]
-    print("mu_0", mu_0)
-
     ################################################
 
     N = args.N
@@ -394,6 +383,21 @@ if __name__ == '__main__':
 
         target = target_map[args.crystal]
 
+        if len(args.mu_T) > 0:
+            mu_T = float(args.mu_T)
+
+        # mu_0 = [0.3525, 0.3503]
+        # mu_0 = [-0.5, -1.0]
+        # if len(args.mu_0) > 0:
+        #     # mu_0 = float(args.mu_0)
+        #     mu_0 = [float(x) for x in args.mu_0.split(",")]
+        mu_0 = [float(x) for x in args.mu_0.strip().split(",")]
+        print("mu_0", mu_0)
+
+        # mu_T = mu_T[:d]
+
+        target = target[:d]
+
         model, meshes = get_model(
             d,
             N,
@@ -422,11 +426,22 @@ if __name__ == '__main__':
 
     inputs = np.float32(test[:, :d+1])
 
+    print("test.shape", test.shape)
+
+    inputs = np.vstack((
+        model.data.bc_points(),
+        model.data.train_x_all
+    ))
+
+    print("test.shape", test.shape)
+
     test, T_t,\
     rho0, rhoT,\
     bc_grids, domain_grids, grid_n_meshes,\
     control_data = make_control_data(
         model, inputs, N, d, meshes, args, get_u2)
+
+    import ipdb; ipdb.set_trace()
 
     ########################################################
 
@@ -461,7 +476,7 @@ if __name__ == '__main__':
         alpha=0.4
     )
 
-    axs[ax_i].contourf(
+    rhoT_contour = axs[ax_i].contourf(
         meshes[0],
         meshes[1],
         rhoT.reshape(*Ns),
@@ -481,6 +496,7 @@ if __name__ == '__main__':
     axs[ax_i].set_title('rho_opt')
 
     fig.colorbar(rho0_contour, shrink=0.25)
+    fig.colorbar(rhoT_contour, shrink=0.25)
 
     ax_i += 1
 

@@ -256,10 +256,10 @@ def get_model(
     #     y_true, y_pred, device, sinkhornT, rhoT_tensor, rhoT, state, C_device, N, dx)
     # rhoT_WASS.__name__ = name_tmp
     rho0_WASS = lambda y_true, y_pred: loss_func_dict[args.loss_func](
-        y_true, y_pred, sinkhorn, rho0_tensor, C_device, N, dx)
+        y_true, y_pred, sinkhornT, rho0_tensor, C_device, N, dx)
     rho0_WASS.__name__ = name_tmp
     rhoT_WASS = lambda y_true, y_pred: loss_func_dict[args.loss_func](
-        y_true, y_pred, sinkhorn, rhoT_tensor, C_device, N, dx)
+        y_true, y_pred, sinkhornT, rhoT_tensor, C_device, N, dx)
     rhoT_WASS.__name__ = name_tmp
 
     losses=[
