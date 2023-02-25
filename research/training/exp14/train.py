@@ -239,20 +239,29 @@ def get_model(
     print("dx", dx)
 
     name_tmp = "WASS"
+    # if "batch" in args.loss_func:
+    #     name_tmp = "WASS_batch"
+    #     del rho0_tensor
+    #     del rhoT_tensor
+    #     rho0_tensor = None
+    #     rhoT_tensor = None
     if "batch" in args.loss_func:
         name_tmp = "WASS_batch"
-        del rho0_tensor
-        del rhoT_tensor
-        rho0_tensor = None
-        rhoT_tensor = None
     print("name_tmp", name_tmp)
 
+    # rho0_WASS = lambda y_true, y_pred: loss_func_dict[args.loss_func](
+    #     y_true, y_pred, device, sinkhorn0, rho0_tensor, rho0, state, C_device, N, dx)
+    # rho0_WASS.__name__ = name_tmp
+    # rhoT_WASS = lambda y_true, y_pred: loss_func_dict[args.loss_func](
+    #     y_true, y_pred, device, sinkhornT, rhoT_tensor, rhoT, state, C_device, N, dx)
+    # rhoT_WASS.__name__ = name_tmp
     rho0_WASS = lambda y_true, y_pred: loss_func_dict[args.loss_func](
-        y_true, y_pred, device, sinkhorn0, rho0_tensor, rho0, state, C_device, N, dx)
+        y_true, y_pred, sinkhorn, rho0_tensor, C_device, N, dx)
     rho0_WASS.__name__ = name_tmp
     rhoT_WASS = lambda y_true, y_pred: loss_func_dict[args.loss_func](
-        y_true, y_pred, device, sinkhornT, rhoT_tensor, rhoT, state, C_device, N, dx)
+        y_true, y_pred, sinkhorn, rhoT_tensor, C_device, N, dx)
     rhoT_WASS.__name__ = name_tmp
+
     losses=[
         "MSE","MSE",
         rho0_WASS,
