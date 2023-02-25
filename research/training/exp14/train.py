@@ -255,17 +255,15 @@ def get_model(
     # rhoT_WASS = lambda y_true, y_pred: loss_func_dict[args.loss_func](
     #     y_true, y_pred, device, sinkhornT, rhoT_tensor, rhoT, state, C_device, N, dx)
     # rhoT_WASS.__name__ = name_tmp
-    rho0_WASS = lambda y_true, y_pred: loss_func_dict[args.loss_func](
-        y_true, y_pred, sinkhornT, rho0_tensor, C_device, N, dx)
-    rho0_WASS.__name__ = name_tmp
-    rhoT_WASS = lambda y_true, y_pred: loss_func_dict[args.loss_func](
-        y_true, y_pred, sinkhornT, rhoT_tensor, C_device, N, dx)
-    rhoT_WASS.__name__ = name_tmp
 
+    rho0_WASS_batch = lambda y_true, y_pred: loss_func_dict[args.loss_func](y_true, y_pred, device, sinkhorn0, rho0, state)
+    rho0_WASS_batch.__name__ = "rho0_WASS_batch"
+    rhoT_WASS_batch = lambda y_true, y_pred: loss_func_dict[args.loss_func](y_true, y_pred, device, sinkhorn0, rhoT, state)
+    rhoT_WASS_batch.__name__ = "rhoT_WASS_batch"
     losses=[
         "MSE","MSE",
-        rho0_WASS,
-        rhoT_WASS,
+        rho0_WASS_batch,
+        rhoT_WASS_batch,
     ]
     # loss functions are based on PDE + BC: eq outputs, BCs
 
