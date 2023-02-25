@@ -2188,7 +2188,7 @@ def WASS_batch_1(y_true, y_pred, device, sinkhorn, rho_tensor, rho, state, *_):
 
     return 20 * p1 + 10 * p2 + dist
 
-def WASS_batch_2(y_true, y_pred, device, sinkhorn, rho_tensor, rho, state, *_):
+def WASS_batch_2(y_true, y_pred, device, sinkhorn, rho, state, *_):
     p1 = -torch.sum(y_pred[y_pred < 0])
     # p1 = (y_pred<0).sum() # negative terms
 
