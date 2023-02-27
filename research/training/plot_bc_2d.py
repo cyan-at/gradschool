@@ -197,6 +197,10 @@ if __name__ == '__main__':
         type=int,
         default=0)
 
+    parser.add_argument('--plot_bc',
+        type=int,
+        default=0)
+
     args = parser.parse_args()
 
     if len(args.mu_T) > 0:
@@ -313,9 +317,11 @@ if __name__ == '__main__':
 
     fig = plt.figure()
 
-    ax_count = 3
-    if args.do_integration > 0:
+    ax_count = 0
+    if args.plot_bc > 0:
         ax_count += 2
+    if args.do_integration > 0:
+        ax_count += d
 
     ########################################################
 
@@ -332,7 +338,7 @@ if __name__ == '__main__':
 
     ########################################################
 
-    if d == 2:
+    if d == 2 and args.plot_bc > 0:
         axs[ax_i].contourf(
             meshes[0],
             meshes[1],
@@ -412,7 +418,7 @@ if __name__ == '__main__':
 
     ########################################################
 
-    if d == 3:
+    if d == 3 and args.plot_bc > 0:
         # import ipdb; ipdb.set_trace()
 
         sc1=axs[ax_i].scatter(
@@ -536,10 +542,12 @@ if __name__ == '__main__':
         ts, initial_sample, with_control, without_control,\
             all_results, mus, variances = do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args)
 
-        axs.append(fig.add_subplot(1, ax_count, 4, projection='3d'))
-        axs.append(fig.add_subplot(1, ax_count, 5, projection='3d'))
+        if ax_i == d-1:
+            axs.append(fig.add_subplot(1, ax_count, 4, projection='3d'))
+            axs.append(fig.add_subplot(1, ax_count, 5, projection='3d'))
 
-        h = 0.5
+        h1 = 0.2
+        h2 = 0.3
         b = -0.05
 
         for i in range(initial_sample.shape[0]):
@@ -549,7 +557,8 @@ if __name__ == '__main__':
                     ts,
                     [0.0]*len(ts),
                     lw=.3,
-                    c='b')
+                    c='b',
+                    alpha=0.5)
 
                 ########################################
 
@@ -558,7 +567,8 @@ if __name__ == '__main__':
                     ts,
                     [0.0]*len(ts),
                     lw=.3,
-                    c='g')
+                    c='g',
+                    alpha=0.5)
 
                 ########################################
                 ########################################
@@ -566,14 +576,14 @@ if __name__ == '__main__':
                 axs[ax_i + j].plot(
                     [with_control[i, j, 0]]*2,
                     [ts[0]]*2,
-                    [0.0, h],
+                    [0.0, h1],
                     lw=1,
                     c='g')
 
                 axs[ax_i + j].scatter(
                     with_control[i, j, 0],
                     ts[0],
-                    h,
+                    h1,
                     c='g',
                     s=50,
                 )
@@ -581,14 +591,14 @@ if __name__ == '__main__':
                 axs[ax_i + j].plot(
                     [with_control[i, j, -1]]*2,
                     [ts[-1]]*2,
-                    [0.0, h],
+                    [0.0, h1],
                     lw=1,
                     c='g')
 
                 axs[ax_i + j].scatter(
                     with_control[i, j, -1],
                     ts[-1],
-                    h,
+                    h1,
                     c='g',
                     s=50,
                 )
@@ -599,14 +609,14 @@ if __name__ == '__main__':
                 axs[ax_i + j].plot(
                     [without_control[i, j, 0]]*2,
                     [ts[0]]*2,
-                    [0.0, h],
+                    [0.0, h2],
                     lw=1,
                     c='b')
 
                 axs[ax_i + j].scatter(
                     without_control[i, j, 0],
                     ts[0],
-                    h,
+                    h2,
                     c='b',
                     s=50,
                 )
@@ -614,14 +624,14 @@ if __name__ == '__main__':
                 axs[ax_i + j].plot(
                     [without_control[i, j, -1]]*2,
                     [ts[-1]]*2,
-                    [0.0, h],
+                    [0.0, h2],
                     lw=1,
                     c='b')
 
                 axs[ax_i + j].scatter(
                     without_control[i, j, -1],
                     ts[-1],
-                    h,
+                    h2,
                     c='b',
                     s=50,
                 )
@@ -630,7 +640,7 @@ if __name__ == '__main__':
 
         for j in range(d):
             axs[ax_i + j].set_aspect('equal', 'box')
-            axs[ax_i + j].set_zlim(b, 2*h)
+            axs[ax_i + j].set_zlim(b, 2*np.max([h1, h2]))
             axs[ax_i + j].set_title(
                 'mu %.2f, var %.2f' % (mus[j], variances[j]))
 
