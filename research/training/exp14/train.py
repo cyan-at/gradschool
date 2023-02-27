@@ -226,7 +226,7 @@ def get_model(
     # d+1 inputs: <state> + t
     # 5 outputs: 2 eq
     net = dde.nn.FNN(
-        [d+1] + [70] *3  + [2],
+        [d+1] + [70] *args.num_hidden  + [2],
         activations,
         init
         # "zeros",
@@ -282,6 +282,8 @@ if __name__ == '__main__':
     parser.add_argument('--N', type=int, default=15, help='')
     parser.add_argument('--state_bound_min', type=float, default=-5, help='')
     parser.add_argument('--state_bound_max', type=float, default=5, help='')
+    parser.add_argument('--num_hidden', type=int, default=3)
+    parser.add_argument('--eps', type=str, default='')
 
     parser.add_argument('--optimizer', type=str, default="adam", help='')
     parser.add_argument('--train_distribution', type=str, default="Hammersley", help='')
@@ -346,6 +348,7 @@ if __name__ == '__main__':
     print("N: ", N)
     print("q: ", q_statepenalty_gain)
     print("a: ", args.a)
+    print([float(x) for x in args.a.split(',')])
 
     if len(args.mu_0) > 0:
         mu_0 = float(args.mu_0)
@@ -358,6 +361,11 @@ if __name__ == '__main__':
     if len(args.T_t) > 0:
         T_t = float(args.T_t)
     print("T_t", T_t)
+
+    print('epsilon', epsilon)
+    if len(args.eps) > 0:
+        epsilon = float(args.eps)
+        print('overriden epsilon', epsilon)
 
     d = 3
 
