@@ -154,6 +154,8 @@ if __name__ == '__main__':
     parser.add_argument('--N', type=int, default=15, help='')
     parser.add_argument('--state_bound_min', type=float, default=-5, help='')
     parser.add_argument('--state_bound_max', type=float, default=5, help='')
+    parser.add_argument('--num_hidden', type=int, default=3)
+    parser.add_argument('--eps', type=str, default='')
 
     parser.add_argument('--train_distribution', type=str, default="Hammersley", help='')
     parser.add_argument('--timemode', type=int, default=0, help='')
