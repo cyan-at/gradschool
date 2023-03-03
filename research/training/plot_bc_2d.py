@@ -203,7 +203,7 @@ if __name__ == '__main__':
         type=int,
         default=0)
 
-    args = parser.parse_args()
+    args, _ = parser.parse_known_args()
 
     if len(args.mu_T) > 0:
         mu_T = float(args.mu_T)
