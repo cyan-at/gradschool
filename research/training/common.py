@@ -1335,6 +1335,7 @@ def tcst2(x, y, network_f, network_g, args):
     ]
 
 try:
+    print("trying")
     class SDE2(SDE):
         '''
         Initialize neural network module

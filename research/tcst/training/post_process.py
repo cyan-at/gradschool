@@ -359,7 +359,7 @@ if __name__ == '__main__':
         sde = SDE()
         # state path to model information file
         # load model parameters
-        sde.load_state_dict(torch.load(args.sdept))
+        sde.load_state_dict(torch.load(args.modelpt))
         if torch.cuda.is_available():
             print("Using GPU.")
             sde = sde.to(cuda0)
@@ -426,14 +426,14 @@ if __name__ == '__main__':
 
     inputs = np.float32(test[:, :d+1])
 
-    print("test.shape", test.shape)
+    print("inputs.shape", inputs.shape)
 
     inputs = np.vstack((
         model.data.bc_points(),
         model.data.train_x_all
     ))
 
-    print("test.shape", test.shape)
+    print("inputs.shape", inputs.shape)
 
     test, T_t,\
     rho0, rhoT,\
@@ -604,7 +604,7 @@ if __name__ == '__main__':
         sde2 = SDE2(control_data)
         # state path to model information file
         # load model parameters
-        sde2.load_state_dict(torch.load(args.sdept))
+        sde2.load_state_dict(torch.load(files[0]))
         if torch.cuda.is_available():
             print("Using GPU.")
             sde2 = sde2.to(cuda0)

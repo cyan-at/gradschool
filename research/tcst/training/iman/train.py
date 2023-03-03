@@ -327,96 +327,100 @@ def get_model(
 
     return model, meshes
 
+if __name__ == '__main__':
 
-# In[3]:
-
-
-sde = SDE()
-# state path to model information file
-# load model parameters
-
-files = glob.glob(
-    sde_path + "/*.pt", 
-    recursive = False)
-assert(len(files) == 1)
-print("using model: ", files[0])
-sde.load_state_dict(torch.load(files[0]))
-
-if torch.cuda.is_available():
-    print("Using GPU.")
-    sde = sde.to(cuda0)
-# set model to evaluation mode
-sde.eval()
+    # In[3]:
 
 
-# In[4]:
+    sde = SDE()
+    # state path to model information file
+    # load model parameters
+
+    files = glob.glob(
+        sde_path + "/*.pt", 
+        recursive = False)
+    assert(len(files) == 1)
+    print("using model: ", files[0])
+    sde.load_state_dict(torch.load(files[0]))
+
+    if torch.cuda.is_available():
+        print("Using GPU.")
+        sde = sde.to(cuda0)
+    # set model to evaluation mode
+    sde.eval()
 
 
-d = 2
-N = 15
-batchsize = None
-
-mu_0 = [0.35, 0.35]
-
-sigma = 0.1
-T_t = 200.0
-bcc = np.array([0.41235, 0.37605])
-
-class Container(object):
-    state_bound_min = 0.1
-    state_bound_max = 0.6
-    bound_u = 0
-    
-    bif = 100000
-    batchsize2 = "5000"
-    batch2_period = 5000
-args = Container()
-
-num_epochs = 15000
-de = 1000
+    # In[4]:
 
 
-# In[5]:
+    d = 2
+    N = 15
+    batchsize = None
+
+    mu_0 = [0.35, 0.35]
+
+    sigma = 0.1
+    T_t = 200.0
+    bcc = np.array([0.41235, 0.37605])
+
+    class Container(object):
+        state_bound_min = 0.1
+        state_bound_max = 0.6
+        bound_u = 0
+        
+        bif = 100000
+        batchsize2 = "5000"
+        batch2_period = 5000
+    args = Container()
+
+    num_epochs = 15000
+    de = 1000
 
 
-model, meshes = get_model(
-    d,
-    N,
-    batchsize,
-    0,
-    "tanh",
-
-    mu_0,
-    sigma,
-
-    bcc,
-    sigma,
-
-    T_t,
-    args,
-    sde.network_f,
-    sde.network_g,
-)
-
-print(model)
+    # In[5]:
 
 
-# In[6]:
+    model, meshes = get_model(
+        d,
+        N,
+        batchsize,
+        0,
+        "tanh",
+
+        mu_0,
+        sigma,
+
+        bcc,
+        sigma,
+
+        T_t,
+        args,
+        sde.network_f,
+        sde.network_g,
+    )
+
+    print(model)
 
 
-resampler_cb = PDEPointResampler2(
-    pde_points=True,
-    bc_points=False,
-    period=args.batch2_period)
-ck_path = "./tt200_2d_mse"
-
-start = time.time()
-losshistory, train_state = model.train(
-    iterations=num_epochs,
-    display_every=de,
-    callbacks=[resampler_cb],
-    model_save_path=ck_path)
-end = time.time()
+    # In[6]:
 
 
-# 
+    resampler_cb = PDEPointResampler2(
+        pde_points=True,
+        bc_points=False,
+        period=args.batch2_period)
+    ck_path = "./tt200_2d_mse"
+
+    start = time.time()
+    losshistory, train_state = model.train(
+        iterations=num_epochs,
+        display_every=de,
+        callbacks=[resampler_cb],
+        model_save_path=ck_path)
+    end = time.time()
+
+    dde.saveplot(losshistory, train_state, issave=True, isplot=True)
+    model_path = model.save(ck_path)
+    print(model_path)
+
+    # 
