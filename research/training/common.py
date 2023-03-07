@@ -2735,8 +2735,8 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
 
     all_results = {}
 
-    mus = np.zeros(d)
-    variances = np.zeros(d)
+    mus = np.zeros(d*2)
+    variances = np.zeros(d*2)
 
     pde_key = d
     if len(args.pde_key) > 0:
@@ -2807,8 +2807,12 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
                 tmp = tmp[tmp > args.state_bound_min]
                 tmp = tmp[tmp < args.state_bound_max]
 
-                mus[j] = np.mean(tmp)
-                variances[j] = np.var(tmp)
+                mus[2*j] = np.mean(with_control[:, j, -1])
+                variances[2*j] = np.var(with_control[:, j, -1])
+
+                mus[2*j+1] = np.mean(without_control[:, j, -1])
+                variances[2*j+1] = np.var(without_control[:, j, -1])
+
             mu_s = "{}".format(mus)
             var_s = "{}".format(variances)
             print("vs %.3f, b %.3f" % (vs, b))

@@ -644,7 +644,9 @@ if __name__ == '__main__':
             axs[ax_i + j].set_aspect('equal', 'box')
             axs[ax_i + j].set_zlim(b, 2*np.max([h1, h2]))
             axs[ax_i + j].set_title(
-                'mu %.2f, var %.2f' % (mus[j], variances[j]))
+                'with: %.2f, %.2f\nwithout: %.2f, %.2f' % (
+                    mus[2*j], variances[2*j],
+                    mus[2*j+1], variances[2*j+1]))
 
         ##############################
 
