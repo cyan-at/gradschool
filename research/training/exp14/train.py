@@ -314,7 +314,7 @@ if __name__ == '__main__':
     parser.add_argument('--fullstate',
         type=int, default=1)
     parser.add_argument('--interp_mode',
-        type=str, default="nearest")
+        type=str, default="linear")
     parser.add_argument('--grid_n',
         type=int, default=30)
     parser.add_argument('--control_strategy',
