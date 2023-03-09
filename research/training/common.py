@@ -2204,7 +2204,7 @@ def WASS_batch_2(y_true, y_pred, device, sinkhorn, rho, state, *_):
         y_pred.reshape(-1),
         rho_tensor)
 
-    return 10 * p1 + dist
+    return 5*(10 * p1 + dist)
 
 def WASS_batch_3(y_true, y_pred, device, sinkhorn, rho_tensor, rho, state, expected_sum):
     p1 = -torch.sum(y_pred[y_pred < 0])
