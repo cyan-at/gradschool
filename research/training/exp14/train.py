@@ -445,11 +445,14 @@ if __name__ == '__main__':
 
     ######################################
 
+    inputs_copy = np.copy(model.sampled_points)
+    # do this in case you want to keep training the model
+
     test, T_t,\
     rho0, rhoT,\
     bc_grids, domain_grids, grid_n_meshes,\
     control_data = make_control_data(
-        model, model.train_state.X_test, N, d, meshes, args)
+        model, inputs_copy, N, d, meshes, args)
 
     fname = '%s_%d_%d_%s_%d_%d_all_control_data.npy' % (
             model_path.replace(".pt", ""),

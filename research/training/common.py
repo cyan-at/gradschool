@@ -1734,6 +1734,10 @@ class WASSPDE(dde.data.TimePDE):
         self.notbc_sampler = dde.data.sampler.BatchSampler(
             num_domain, shuffle=True)
         self.domain_batch_size = domain_batch_size
+        
+        # we will ONLY predict on previously trained points
+        # so as to not risk corrupting control signal
+        self.sampled_points = None
 
         super().__init__(
             geometryxtime,
@@ -1758,6 +1762,14 @@ class WASSPDE(dde.data.TimePDE):
             print("sampling domain by ", self.domain_batch_size)
             indices = self.notbc_sampler.get_next(self.domain_batch_size)
             X = X[indices]
+
+            if self.sampled_points is None:
+                print("setting self.sampled_points")
+                self.sampled_points = np.copy(X)
+            else:
+                print("adding to self.sampled_points")
+                self.sampled_points = np.vstack(
+                    (self.sampled_points, np.copy(X)))
 
         if self.num_initial > 0:
             if self.train_distribution == "uniform":
@@ -2771,44 +2783,49 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
             for result in results:
                 print("done with {}".format(result))
 
+    with_control = None
+
     for vs in v_scales:
         for b in biases:
-            with_control_affine = lambda v: v * vs + b
 
-            with_control = np.empty(
-                (
-                    initial_sample.shape[0],
-                    initial_sample.shape[1],
-                    len(ts),
-                ))
+            if control_data is not None:
+                with_control_affine = lambda v: v * vs + b
 
-            with ThreadPoolExecutor(max_workers=args.workers) as executor:
-                results = executor.map(
-                    integrator.task,
-                    list(range(initial_sample.shape[0])),
-                    [with_control]*initial_sample.shape[0],
-                    [control_data]*initial_sample.shape[0],
-                    [with_control_affine]*initial_sample.shape[0],
-                    [args.control_strategy]*initial_sample.shape[0]
-                )
-                if len(v_scales) == 1:
-                    for result in results:
-                        print("done with {}".format(result))
+                with_control = np.empty(
+                    (
+                        initial_sample.shape[0],
+                        initial_sample.shape[1],
+                        len(ts),
+                    ))
+
+                with ThreadPoolExecutor(max_workers=args.workers) as executor:
+                    results = executor.map(
+                        integrator.task,
+                        list(range(initial_sample.shape[0])),
+                        [with_control]*initial_sample.shape[0],
+                        [control_data]*initial_sample.shape[0],
+                        [with_control_affine]*initial_sample.shape[0],
+                        [args.control_strategy]*initial_sample.shape[0]
+                    )
+                    if len(v_scales) == 1:
+                        for result in results:
+                            print("done with {}".format(result))
 
             ##############################
 
             for j in range(d):
-                tmp = with_control[:, j, -1]
+                if control_data is not None:
+                    tmp = with_control[:, j, -1]
 
-                # filter out nans
-                tmp = tmp[~np.isnan(tmp)]
+                    # filter out nans
+                    tmp = tmp[~np.isnan(tmp)]
 
-                # filter out trajectories that end outside the bounds
-                tmp = tmp[tmp > args.state_bound_min]
-                tmp = tmp[tmp < args.state_bound_max]
+                    # filter out trajectories that end outside the bounds
+                    tmp = tmp[tmp > args.state_bound_min]
+                    tmp = tmp[tmp < args.state_bound_max]
 
-                mus[2*j] = np.mean(with_control[:, j, -1])
-                variances[2*j] = np.var(with_control[:, j, -1])
+                    mus[2*j] = np.mean(with_control[:, j, -1])
+                    variances[2*j] = np.var(with_control[:, j, -1])
 
                 mus[2*j+1] = np.mean(without_control[:, j, -1])
                 variances[2*j+1] = np.var(without_control[:, j, -1])
