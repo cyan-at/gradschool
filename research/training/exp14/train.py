@@ -445,7 +445,7 @@ if __name__ == '__main__':
 
     ######################################
 
-    inputs_copy = np.copy(model.sampled_points)
+    inputs_copy = np.copy(model.data.sampled_points)
     # do this in case you want to keep training the model
 
     test, T_t,\
