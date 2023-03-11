@@ -1809,10 +1809,7 @@ class WASSPDE(dde.data.TimePDE):
             num_domain, shuffle=True)
         self.domain_batch_size = domain_batch_size
 
-        # only compute data ONCE
-        # and sample it
-        self.X = super().train_points()
-
+        self.X = None
         super().__init__(
             geometryxtime,
             pde,
@@ -1829,6 +1826,12 @@ class WASSPDE(dde.data.TimePDE):
 
     @run_if_all_none("train_x_all")
     def train_points(self):
+        if self.X is None:
+            print("only computing population ONCE")
+            # only compute data ONCE
+            # and sample it
+            self.X = super().train_points()
+
         if self.domain_batch_size is not None:
             print("sampling domain by ", self.domain_batch_size)
             indices = self.notbc_sampler.get_next(self.domain_batch_size)
