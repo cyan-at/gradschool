@@ -1766,11 +1766,13 @@ class BatchSampler2:
                 )
             )
 
+        self.total_seen += batch_size
+        self.total_seen = max(self.total_seen, self.num_samples)
+
         start = self._index_in_epoch
         if start + batch_size <= self.num_samples:
             self._index_in_epoch += batch_size
             end = self._index_in_epoch
-            self.total_seen = self._index_in_epoch
             return self._indices[start:end]
         else:
             self.total_seen = self.num_samples
