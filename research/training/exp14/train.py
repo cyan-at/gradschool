@@ -447,6 +447,7 @@ if __name__ == '__main__':
 
     inputs_copy = np.copy(model.data.sampled_points)
     # do this in case you want to keep training the model
+    print("inputs_copy", inputs_copy.shape)
 
     test, T_t,\
     rho0, rhoT,\
