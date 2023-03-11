@@ -1805,6 +1805,14 @@ class WASSPDE(dde.data.TimePDE):
         auxiliary_var_function=None,
         domain_batch_size=None
     ):
+        self.notbc_sampler = BatchSampler2(
+            num_domain, shuffle=True)
+        self.domain_batch_size = domain_batch_size
+
+        # only compute data ONCE
+        # and sample it
+        self.X = super().train_points()
+
         super().__init__(
             geometryxtime,
             pde,
@@ -1818,14 +1826,6 @@ class WASSPDE(dde.data.TimePDE):
             num_test=num_test,
             auxiliary_var_function=auxiliary_var_function,
         )
-
-        self.notbc_sampler = BatchSampler2(
-            num_domain, shuffle=True)
-        self.domain_batch_size = domain_batch_size
-        
-        # only compute data ONCE
-        # and sample it
-        self.X = super().train_points()
 
     @run_if_all_none("train_x_all")
     def train_points(self):
