@@ -1743,6 +1743,7 @@ class BatchSampler2:
         self._indices = np.arange(self.num_samples)
         self._epochs_completed = 0
         self._index_in_epoch = 0
+        self.total_seen = 0
 
         # Shuffle for the first epoch
         if shuffle:
@@ -1769,8 +1770,10 @@ class BatchSampler2:
         if start + batch_size <= self.num_samples:
             self._index_in_epoch += batch_size
             end = self._index_in_epoch
+            self.total_seen = self._index_in_epoch
             return self._indices[start:end]
         else:
+            self.total_seen = self.num_samples
             # Finished epoch
             self._epochs_completed += 1
             # Get the rest examples in this epoch
