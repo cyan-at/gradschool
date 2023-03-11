@@ -445,10 +445,10 @@ if __name__ == '__main__':
 
     ######################################
 
-    print("self.data.notbc_sampler._index_in_epoch",
-        self.data.notbc_sampler._index_in_epoch)
+    print("model.data.notbc_sampler._index_in_epoch",
+        model.data.notbc_sampler._index_in_epoch)
     inputs_copy = np.copy(
-        model.data.X[:self.data.notbc_sampler._index_in_epoch]
+        model.data.X[:model.data.notbc_sampler._index_in_epoch]
     )
     # do this in case you want to keep training the model
     print("inputs_copy", inputs_copy.shape)
