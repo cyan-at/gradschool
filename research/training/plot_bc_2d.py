@@ -119,6 +119,117 @@ sys.path.insert(0,call_dir)
 print("expect train.py in %s" % (call_dir))
 from train import *
 
+from scipy.signal import hilbert, butter, filtfilt
+import scipy.stats
+from FillBetween3d import *
+from sklearn.neighbors import KernelDensity
+
+def plot_stems(idx, initial_sample, with_control, without_control, d, h1, h2, axs, ax_i, args):
+    for j in range(d):
+        for i in range(initial_sample.shape[0]):
+            axs[ax_i + j].plot(
+                [with_control[i, j, idx]]*2, # repeat 2x same x for start / end point
+                [ts[idx]]*2, # repeat 2x same y for start / end point
+                [0.0, h1], # start at 0, end at h1
+                lw=1,
+                c='g')
+
+            axs[ax_i + j].scatter(
+                with_control[i, j, idx],
+                ts[idx],
+                h1,
+                c='g',
+                s=50,
+            )
+
+            axs[ax_i + j].plot(
+                [without_control[i, j, idx]]*2,
+                [ts[idx]]*2,
+                [0.0, h2],
+                lw=1,
+                c='b')
+
+            axs[ax_i + j].scatter(
+                without_control[i, j, idx],
+                ts[idx],
+                h2,
+                c='b',
+                s=50,
+            )
+
+        b = 100
+
+        w = with_control[:, j, idx]
+        X = np.linspace(args.state_bound_min, args.state_bound_max, args.N)
+
+        # w_dist = scipy.stats.rv_histogram(np.histogram(w, bins=b), density=False)
+        # w_pdf = w_dist.pdf(X)
+
+        # axs[ax_i + j].plot(
+        #     X,
+        #     [ts[idx]]*len(X),
+        #     w_pdf,
+        #     lw=1,
+        #     c='b')
+
+        # fill_between_3d(axs[ax_i + j],
+        #     X,
+        #     [ts[idx]]*len(X),
+        #     [0.0]*len(X),
+        #     X,
+        #     [ts[idx]]*len(X),
+        #     tmp,
+        #     mode = 2, c="C0")
+
+        band = 1.0
+
+        kde = KernelDensity(kernel="gaussian", bandwidth=band).fit(w[:, np.newaxis])
+        log_dens = 1.5* kde.score_samples(X[:, np.newaxis])
+
+        w_pdf = np.exp(log_dens)
+        print("hi", np.trapz(w_pdf, x=X))
+
+        # w_pdf /= np.trapz(w_pdf, x=X)
+
+        axs[ax_i + j].add_collection3d(
+            axs[ax_i + j].fill_between(
+                X,
+                w_pdf,
+                color='C2',
+                alpha=0.1),
+            zs=ts[idx], zdir='y')
+
+
+        # axs[ax_i + j].add_collection3d(
+        #     plt.fill_between(
+        #         X,
+        #         w_pdf,
+        #         color='k',
+        #         alpha=0.1),
+        #     zdir='y')
+
+        wo = without_control[:, j, idx]
+        # wo_dist = scipy.stats.rv_histogram(np.histogram(wo, bins=b), density=False)
+        # wo_pdf = w_dist.pdf(X)
+
+        # ax.plot(x_0[:,0], t_0[:,0] ,rho_0[:,0], color='k',lw=1)
+
+        kde = KernelDensity(kernel="gaussian", bandwidth=band).fit(wo[:, np.newaxis])
+        log_dens = 1.5* kde.score_samples(X[:, np.newaxis])
+
+        wo_pdf = np.exp(log_dens)
+        print("hi", np.trapz(wo_pdf, x=X))
+
+        # wo_pdf /= np.trapz(wo_pdf, x=X)
+
+        axs[ax_i + j].add_collection3d(
+            axs[ax_i + j].fill_between(
+                X,
+                wo_pdf,
+                color='C0',
+                alpha=0.1),
+            zs=ts[idx] + 5e-3, zdir='y')
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
@@ -329,14 +440,17 @@ if __name__ == '__main__':
 
     ax1 = fig.add_subplot(1, ax_count, 1, projection='3d')
     ax2 = fig.add_subplot(1, ax_count, 2, projection='3d')
-    ax3 = fig.add_subplot(1, ax_count, 3, projection='3d')
-    axs = [ax1, ax2, ax3]
+    axs = [ax1, ax2]
+
+    if ax_count > 2:
+        ax3 = fig.add_subplot(1, ax_count, 3, projection='3d')
+        axs.append(ax3)
 
     ax_i = 0
 
     z1 = T_0
     z2 = T_t
-    p = 0.01
+    p = 0.5
 
     ########################################################
 
@@ -548,12 +662,14 @@ if __name__ == '__main__':
             axs.append(fig.add_subplot(1, ax_count, 4, projection='3d'))
             axs.append(fig.add_subplot(1, ax_count, 5, projection='3d'))
 
-        h1 = 0.2
-        h2 = 0.3
+        h1 = 0.05
+        h2 = 0.05
         b = -0.05
 
         for i in range(initial_sample.shape[0]):
             for j in range(d):
+                # trajectories
+
                 axs[ax_i + j].plot(
                     without_control[i, j, :],
                     ts,
@@ -572,77 +688,22 @@ if __name__ == '__main__':
                     c='g',
                     alpha=0.5)
 
-                ########################################
-                ########################################
+        ########################################
+        ########################################
 
-                axs[ax_i + j].plot(
-                    [with_control[i, j, 0]]*2,
-                    [ts[0]]*2,
-                    [0.0, h1],
-                    lw=1,
-                    c='g')
+        slices = np.round(np.linspace(0, len(ts)-1, 4))
 
-                axs[ax_i + j].scatter(
-                    with_control[i, j, 0],
-                    ts[0],
-                    h1,
-                    c='g',
-                    s=50,
-                )
-
-                axs[ax_i + j].plot(
-                    [with_control[i, j, -1]]*2,
-                    [ts[-1]]*2,
-                    [0.0, h1],
-                    lw=1,
-                    c='g')
-
-                axs[ax_i + j].scatter(
-                    with_control[i, j, -1],
-                    ts[-1],
-                    h1,
-                    c='g',
-                    s=50,
-                )
-
-                ########################################
-                ########################################
-
-                axs[ax_i + j].plot(
-                    [without_control[i, j, 0]]*2,
-                    [ts[0]]*2,
-                    [0.0, h2],
-                    lw=1,
-                    c='b')
-
-                axs[ax_i + j].scatter(
-                    without_control[i, j, 0],
-                    ts[0],
-                    h2,
-                    c='b',
-                    s=50,
-                )
-
-                axs[ax_i + j].plot(
-                    [without_control[i, j, -1]]*2,
-                    [ts[-1]]*2,
-                    [0.0, h2],
-                    lw=1,
-                    c='b')
-
-                axs[ax_i + j].scatter(
-                    without_control[i, j, -1],
-                    ts[-1],
-                    h2,
-                    c='b',
-                    s=50,
-                )
+        for s in slices:
+            print(s)
+            # import ipdb; ipdb.set_trace()
+            plot_stems(int(s), initial_sample, with_control, without_control, d, h1, h2, axs, ax_i, args)
 
         ##############################
 
         for j in range(d):
-            axs[ax_i + j].set_aspect('equal', 'box')
-            axs[ax_i + j].set_zlim(b, 2*np.max([h1, h2]))
+            # axs[ax_i + j].set_aspect('equal', 'box')
+            # # axs[ax_i + j].set_zlim(b, 2*np.max([h1, h2]))
+            axs[ax_i + j].set_zlim(b, 0.5)
             axs[ax_i + j].set_title(
                 'with: %.2f, %.2f\nwithout: %.2f, %.2f' % (
                     mus[2*j], variances[2*j],
