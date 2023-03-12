@@ -1841,6 +1841,8 @@ class WASSPDE(dde.data.TimePDE):
             print("sampling domain by ", self.domain_batch_size)
             indices = self.notbc_sampler.get_next(self.domain_batch_size)
             X = self.X[indices]
+        else:
+            X = self.X
 
         if self.num_initial > 0:
             if self.train_distribution == "uniform":

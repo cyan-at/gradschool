@@ -452,12 +452,18 @@ if __name__ == '__main__':
     )
     # do this in case you want to keep training the model
     print("inputs_copy", inputs_copy.shape)
+    np.savetxt("%s_inputs_copy.dat" % (model_path), inputs_copy)
 
     test, T_t,\
     rho0, rhoT,\
     bc_grids, domain_grids, grid_n_meshes,\
     control_data = make_control_data(
-        model, inputs_copy, N, d, meshes, args)
+        model, model.train_state.X_test, N, d, meshes, args)
+
+    # import ipdb; ipdb.set_trace();
+    if args.diff_on_cpu:
+        print("returning net to cuda")
+        model.net = model.net.to(cuda0).requires_grad_(True)
 
     fname = '%s_%d_%d_%s_%d_%d_all_control_data.npy' % (
             model_path.replace(".pt", ""),
