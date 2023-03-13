@@ -124,73 +124,38 @@ import scipy.stats
 from FillBetween3d import *
 from sklearn.neighbors import KernelDensity
 
+plt.rcParams['text.usetex'] = True
+
+from pyqtgraph.Qt import QtCore, QtGui
+import pyqtgraph as pg
+import pyqtgraph.opengl as gl
+import numpy as np
+import os, pickle, time, sys
+from matplotlib import cm
+
 def plot_stems(idx, initial_sample, with_control, without_control, d, h1, h2, axs, ax_i, args):
     for j in range(d):
-        for i in range(initial_sample.shape[0]):
-            axs[ax_i + j].plot(
-                [with_control[i, j, idx]]*2, # repeat 2x same x for start / end point
-                [ts[idx]]*2, # repeat 2x same y for start / end point
-                [0.0, h1], # start at 0, end at h1
-                lw=1,
-                c='g')
-
-            axs[ax_i + j].scatter(
-                with_control[i, j, idx],
-                ts[idx],
-                h1,
-                c='g',
-                s=50,
-            )
-
-            axs[ax_i + j].plot(
-                [without_control[i, j, idx]]*2,
-                [ts[idx]]*2,
-                [0.0, h2],
-                lw=1,
-                c='b')
-
-            axs[ax_i + j].scatter(
-                without_control[i, j, idx],
-                ts[idx],
-                h2,
-                c='b',
-                s=50,
-            )
 
         b = 100
 
         w = with_control[:, j, idx]
         X = np.linspace(args.state_bound_min, args.state_bound_max, args.N)
 
-        # w_dist = scipy.stats.rv_histogram(np.histogram(w, bins=b), density=False)
-        # w_pdf = w_dist.pdf(X)
-
-        # axs[ax_i + j].plot(
-        #     X,
-        #     [ts[idx]]*len(X),
-        #     w_pdf,
-        #     lw=1,
-        #     c='b')
-
-        # fill_between_3d(axs[ax_i + j],
-        #     X,
-        #     [ts[idx]]*len(X),
-        #     [0.0]*len(X),
-        #     X,
-        #     [ts[idx]]*len(X),
-        #     tmp,
-        #     mode = 2, c="C0")
-
         band = 1.0
 
         kde = KernelDensity(kernel="gaussian", bandwidth=band).fit(w[:, np.newaxis])
-        log_dens = 1.5* kde.score_samples(X[:, np.newaxis])
+        log_dens = kde.score_samples(X[:, np.newaxis])
 
         w_pdf = np.exp(log_dens)
         print("hi", np.trapz(w_pdf, x=X))
+        w_pdf /= np.trapz(w_pdf, x=X)
 
-        # w_pdf /= np.trapz(w_pdf, x=X)
-
+        axs[ax_i + j].plot(
+            X,
+            [ts[idx]]*len(X),
+            w_pdf,
+            lw=1,
+            c='k')
         axs[ax_i + j].add_collection3d(
             axs[ax_i + j].fill_between(
                 X,
@@ -199,36 +164,75 @@ def plot_stems(idx, initial_sample, with_control, without_control, d, h1, h2, ax
                 alpha=0.1),
             zs=ts[idx], zdir='y')
 
+        if args.plot_without_control:
+            wo = without_control[:, j, idx]
 
-        # axs[ax_i + j].add_collection3d(
-        #     plt.fill_between(
-        #         X,
-        #         w_pdf,
-        #         color='k',
-        #         alpha=0.1),
-        #     zdir='y')
+            kde = KernelDensity(kernel="gaussian", bandwidth=band).fit(wo[:, np.newaxis])
+            log_dens = kde.score_samples(X[:, np.newaxis])
 
-        wo = without_control[:, j, idx]
-        # wo_dist = scipy.stats.rv_histogram(np.histogram(wo, bins=b), density=False)
-        # wo_pdf = w_dist.pdf(X)
+            wo_pdf = np.exp(log_dens)
+            print("hi", np.trapz(wo_pdf, x=X))
+            wo_pdf /= np.trapz(wo_pdf, x=X)
 
-        # ax.plot(x_0[:,0], t_0[:,0] ,rho_0[:,0], color='k',lw=1)
-
-        kde = KernelDensity(kernel="gaussian", bandwidth=band).fit(wo[:, np.newaxis])
-        log_dens = 1.5* kde.score_samples(X[:, np.newaxis])
-
-        wo_pdf = np.exp(log_dens)
-        print("hi", np.trapz(wo_pdf, x=X))
-
-        # wo_pdf /= np.trapz(wo_pdf, x=X)
-
-        axs[ax_i + j].add_collection3d(
-            axs[ax_i + j].fill_between(
+            axs[ax_i + j].plot(
                 X,
+                [ts[idx]]*len(X),
                 wo_pdf,
-                color='C0',
-                alpha=0.1),
-            zs=ts[idx] + 5e-3, zdir='y')
+                lw=1,
+                c='k')
+            axs[ax_i + j].add_collection3d(
+                axs[ax_i + j].fill_between(
+                    X,
+                    wo_pdf,
+                    color='C0',
+                    alpha=0.1),
+                zs=ts[idx] + 5e-3, zdir='y')
+
+        for i in range(initial_sample.shape[0]):
+            axs[ax_i + j].plot(
+                [with_control[i, j, idx]]*2, # repeat 2x same x for start / end point
+                [ts[idx]]*2, # repeat 2x same y for start / end point
+                [0.0, h1], # start at 0, end at h1
+                lw=1,
+                c='g')
+
+            if args.plot_sample_rhos == 0:
+                axs[ax_i + j].scatter(
+                    with_control[i, j, idx],
+                    ts[idx],
+                    h1,
+                    c='g',
+                    s=50,
+                )
+
+            if args.plot_without_control:
+                axs[ax_i + j].plot(
+                    [without_control[i, j, idx]]*2,
+                    [ts[idx]]*2,
+                    [0.0, h2],
+                    lw=1,
+                    c='b')
+
+                axs[ax_i + j].scatter(
+                    without_control[i, j, idx],
+                    ts[idx],
+                    h2,
+                    c='b',
+                    s=50,
+                )
+
+        if args.plot_sample_rhos:
+            # do this with linear interp mode
+            # nearest its hard to see distribution falloff
+            axs[ax_i + j].scatter(
+                with_control[:, j, idx].reshape(-1),
+                [ts[idx]]*with_control.shape[0],
+                h1,
+                c=with_control[:, -1, idx], # 'g'
+                s=50,
+                cmap=cm.jet,
+                alpha=0.5
+            )
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -313,6 +317,21 @@ if __name__ == '__main__':
     parser.add_argument('--plot_bc',
         type=int,
         default=0)
+    parser.add_argument('--plot_without_control',
+        type=int,
+        default=0)
+    parser.add_argument('--plot_sample_rhos',
+        type=int,
+        default=0)
+    parser.add_argument('--plot_d',
+        type=str,
+        default="")
+    parser.add_argument('--plot_3d',
+        type=int,
+        default=0)
+    parser.add_argument('--plot_samples',
+        type=int,
+        default=4)
 
     args, _ = parser.parse_known_args()
 
@@ -417,7 +436,48 @@ if __name__ == '__main__':
     )
     print("saved control_data to %s" % (fname))
 
+    if args.do_integration > 0:
+        print("T_t", T_t, sigma_0)
+
+        ts, initial_sample, with_control, without_control,\
+            all_results, mus, variances = do_integration(control_data, d, T_0, T_t, mu_0, 0.5, args)
+
     ########################################################
+    ########################################################
+    ########################################################
+    ########################################################
+    ########################################################
+    ########################################################
+
+    if args.plot_3d == 1:
+        ## Create a GL View widget to display data
+        app = pg.mkQApp("")
+
+        initial_pdf_sample = gl.GLScatterPlotItem(
+            pos=initial_sample[:, :3],
+            size=np.ones(args.M) * point_size,
+            color=green,
+            pxMode=False)
+
+        w = MyGLViewWidget(
+            args,
+            initial_pdf_sample,
+            with_control,
+            without_control
+            )
+        w.setWindowTitle('snapshots')
+        w.setCameraPosition(distance=20)
+
+        ## Add a grid to the view
+        g = gl.GLGridItem()
+        g.scale(2,2,1)
+        g.setDepthValue(10)  # draw grid after surfaces since they may be translucent
+        # w.addItem(g)
+
+        ## Start Qt event loop unless running in interactive mode.
+        w.show()
+        pg.exec()
+        sys.exit(0)
 
     # training specific volume / inverse of density: total state space / total sample points in that space
     v = (args.state_bound_max - args.state_bound_min) ** d
@@ -425,6 +485,10 @@ if __name__ == '__main__':
     m = args.bif
     print("specific volume", v / m)
     print("density", m / v)
+
+    plot_d = d
+    if len(args.plot_d) > 0:
+        plot_d = int(args.plot_d)
 
     ########################################################
 
@@ -434,13 +498,16 @@ if __name__ == '__main__':
     if args.plot_bc > 0:
         ax_count += 2
     if args.do_integration > 0:
-        ax_count += d
+        ax_count += plot_d
 
     ########################################################
 
     ax1 = fig.add_subplot(1, ax_count, 1, projection='3d')
-    ax2 = fig.add_subplot(1, ax_count, 2, projection='3d')
-    axs = [ax1, ax2]
+    axs = [ax1]
+
+    if ax_count > 1:
+        ax2 = fig.add_subplot(1, ax_count, 2, projection='3d')
+        axs.append(ax2)
 
     if ax_count > 2:
         ax3 = fig.add_subplot(1, ax_count, 3, projection='3d')
@@ -490,7 +557,7 @@ if __name__ == '__main__':
 
         # import ipdb; ipdb.set_trace()
 
-        for d_i in range(d):
+        for d_i in range(plot_d):
             axs[ax_i].contourf(
                 meshes[0],
                 meshes[1],
@@ -635,7 +702,7 @@ if __name__ == '__main__':
     #         np.max(dphi_dinput_tT_dy)
     #     )
 
-    plt.suptitle(title_str)
+    # plt.suptitle(title_str)
 
     manager = plt.get_current_fig_manager()
 
@@ -653,11 +720,6 @@ if __name__ == '__main__':
     )
 
     if args.do_integration > 0:
-        print("T_t", T_t)
-
-        ts, initial_sample, with_control, without_control,\
-            all_results, mus, variances = do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args)
-
         if ax_i == d-1:
             axs.append(fig.add_subplot(1, ax_count, 4, projection='3d'))
             axs.append(fig.add_subplot(1, ax_count, 5, projection='3d'))
@@ -667,16 +729,17 @@ if __name__ == '__main__':
         b = -0.05
 
         for i in range(initial_sample.shape[0]):
-            for j in range(d):
+            for j in range(plot_d):
                 # trajectories
 
-                axs[ax_i + j].plot(
-                    without_control[i, j, :],
-                    ts,
-                    [0.0]*len(ts),
-                    lw=.3,
-                    c='b',
-                    alpha=0.5)
+                if args.plot_without_control:
+                    axs[ax_i + j].plot(
+                        without_control[i, j, :],
+                        ts,
+                        [0.0]*len(ts),
+                        lw=.3,
+                        c='b',
+                        alpha=0.5)
 
                 ########################################
 
@@ -691,23 +754,28 @@ if __name__ == '__main__':
         ########################################
         ########################################
 
-        slices = np.round(np.linspace(0, len(ts)-1, 4))
+        slices = np.round(np.linspace(0, len(ts)-1, args.plot_samples))
 
         for s in slices:
             print(s)
             # import ipdb; ipdb.set_trace()
-            plot_stems(int(s), initial_sample, with_control, without_control, d, h1, h2, axs, ax_i, args)
+            plot_stems(int(s), initial_sample, with_control, without_control, plot_d, h1, h2, axs, ax_i, args)
 
         ##############################
 
-        for j in range(d):
+        for j in range(plot_d):
             # axs[ax_i + j].set_aspect('equal', 'box')
             # # axs[ax_i + j].set_zlim(b, 2*np.max([h1, h2]))
             axs[ax_i + j].set_zlim(b, 0.5)
-            axs[ax_i + j].set_title(
-                'with: %.2f, %.2f\nwithout: %.2f, %.2f' % (
-                    mus[2*j], variances[2*j],
-                    mus[2*j+1], variances[2*j+1]))
+
+            # axs[ax_i + j].set_title(
+            #     'with: %.2f, %.2f\nwithout: %.2f, %.2f' % (
+            #         mus[2*j], variances[2*j],
+            #         mus[2*j+1], variances[2*j+1]))
+
+            axs[ax_i + j].set_xlabel(r'$x_%d$' % (j+1))
+            axs[ax_i + j].set_ylabel(r't [s]')
+            axs[ax_i + j].set_zlabel(r'$\rho^{\pi}_{opt}$')
 
         ##############################
 

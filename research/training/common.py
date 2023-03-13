@@ -2362,7 +2362,7 @@ def euler_maru(
 
     return ts, ys
 
-def apply_control_strategy0(state, t, T_0, T_t, control_data, affine, statedot):
+def query_u(state, t, T_0, T_t, control_data):
     if np.abs(t - T_0) < 1e-8:
         t_key = 't0'
     elif np.abs(t - T_t) < 1e-8:
@@ -2387,6 +2387,11 @@ def apply_control_strategy0(state, t, T_0, T_t, control_data, affine, statedot):
             closest_grid_idx = np.linalg.norm(query - t_control_data['grid'], ord=1, axis=1).argmin()
     else:
         closest_grid_idx = np.linalg.norm(query - t_control_data['grid'], ord=1, axis=1).argmin()
+
+    return t_control_data, closest_grid_idx
+
+def apply_control_strategy0(state, t, T_0, T_t, control_data, affine, statedot):
+    t_control_data, closest_grid_idx = query_u(state, t, T_0, T_t, control_data)
 
     # print("####################")
     # print(query)
@@ -2681,6 +2686,7 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
 
     rho0 = t0[:, inputs.shape[1] + 2 - 1]
     rhoT = tT[:, inputs.shape[1] + 2 - 1]
+    rhoTT = tt[:, inputs.shape[1] + 2 - 1]
 
     if rho0.shape[0] != M:
         print("interpolating rho0 and rhoT because bc was batched using original meshes",
@@ -2724,10 +2730,12 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
 
     t0_control_data = {
         'grid' : bc_grids,
+        'rho' : rho0,
     }
 
     tT_control_data = {
         'grid' : bc_grids,
+        'rho' : rhoT,
     }
 
     if batchsize == M:
@@ -2784,6 +2792,14 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
 
     tt_control_data['grid_tree'] = KDTree(domain_grids, leaf_size=2)
 
+    rhoTT_gd = gd(
+      tuple(tt_list),
+      rhoTT,
+      tuple(grid_n_meshes),
+      method=args.interp_mode)
+    rhoTT_gd = np.nan_to_num(rhoTT_gd)
+    tt_control_data['rho'] = rhoTT_gd.reshape(-1)
+
     ########################################################
 
     control_data = {
@@ -2806,12 +2822,34 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
     #     [DPHI_DINPUT_tt_0, DPHI_DINPUT_tt_1, DPHI_DINPUT_tt_2],\
     #     [grid_x1, grid_x2, grid_x3, grid_t]
 
+try:
+    import pymc3 as pm
+except Exception as e:
+    print("no pymc3", e)
+
 def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
     dt = (T_t - T_0)/(args.integrate_N)
     ts = np.arange(T_0, T_t + dt, dt)
 
-    initial_sample = np.random.multivariate_normal(
-        np.array([mu_0]*d), np.eye(d)*sigma_0, args.M) # 100 x 3
+    print("M", args.M)
+
+    with pm.Model():
+        mu0 = pm.Normal('mu0',
+            np.array([mu_0]*d),
+            np.array([sigma_0]*d),
+            shape=3)
+        trace = pm.sample(args.M, cores=1)
+        initial_sample = np.array([x['mu0'] for x in list(trace.points())])
+
+    # with pm.Model():
+    #      points=pm.HalfNormal('mu', sd=.2)
+    #      trace=pm.sample(num_sims)
+    # y_init=trace.mu # initial points
+
+    # initial_sample = np.random.multivariate_normal(
+    #     np.array([mu_0]*d), np.eye(d)*sigma_0, args.M) # 100 x 3
+
+    initial_sample = initial_sample[:M]
 
     v_scales = [float(x) for x in args.v_scale.split(",")]
     biases = [float(x) for x in args.bias.split(",")]
@@ -2841,6 +2879,13 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
             len(ts),
         ))
 
+    without_control2 = np.empty(
+        (
+            initial_sample.shape[0],
+            initial_sample.shape[1]+1,
+            len(ts),
+        ))
+
     ##############################
 
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
@@ -2856,8 +2901,37 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
             for result in results:
                 print("done with {}".format(result))
 
-    with_control = None
+    # for each integrated spacetime point, query rho
+    for i in range(without_control.shape[0]):
+        for t in range(len(ts)):
+            # print(without_control[i, :, t], ts[t])
 
+            t_control_data, closest_grid_idx = query_u(
+                without_control[i, :, t],
+                ts[t],
+                T_0,
+                T_t,
+                control_data)
+
+            # import ipdb; ipdb.set_trace()
+            # r = t_control_data['rho'][closest_grid_idx]
+
+            tmp = t_control_data['rho'][closest_grid_idx]
+            if len(tmp.shape) < 1:
+                tmp = t_control_data['rho'][closest_grid_idx, np.newaxis]
+            elif len(tmp.shape) == 2:
+                tmp = t_control_data['rho'][closest_grid_idx][0]
+
+            try:
+                without_control2[i, :, t] = np.concatenate((
+                    without_control[i, :, t], tmp))
+            except Exception as e:
+                import ipdb; ipdb.set_trace()
+                print("what", without_control[i, :, t], ts[t])
+
+    ##############################
+
+    with_control = None
     for vs in v_scales:
         for b in biases:
 
@@ -2914,5 +2988,90 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
             if len(v_scales) > 1:
                 del with_control
 
-    return ts, initial_sample, with_control, without_control,\
+    with_control2 = np.empty(
+        (
+            initial_sample.shape[0],
+            initial_sample.shape[1]+1,
+            len(ts),
+        ))
+    # for each integrated spacetime point, query rho
+    for i in range(with_control.shape[0]):
+        for t in range(len(ts)):
+            # print(with_control[i, :, t], ts[t])
+
+            t_control_data, closest_grid_idx = query_u(
+                with_control[i, :, t],
+                ts[t],
+                T_0,
+                T_t,
+                control_data)
+
+            # import ipdb; ipdb.set_trace()
+            # r = t_control_data['rho'][closest_grid_idx]
+
+            tmp = t_control_data['rho'][closest_grid_idx]
+            if len(tmp.shape) < 1:
+                tmp = t_control_data['rho'][closest_grid_idx, np.newaxis]
+            elif len(tmp.shape) == 2:
+                tmp = t_control_data['rho'][closest_grid_idx][0]
+
+            try:
+                with_control2[i, :, t] = np.concatenate((
+                    with_control[i, :, t], tmp))
+            except Exception as e:
+                import ipdb; ipdb.set_trace()
+                print("what", with_control[i, :, t], ts[t])
+
+    # import ipdb; ipdb.set_trace()
+
+    with_control2[:, -1, :] /= np.sum(with_control2[:, -1, :])
+    without_control2[:, -1, :] /= np.sum(without_control2[:, -1, :])
+
+    return ts, initial_sample, with_control2, without_control2,\
         all_results, mus, variances
+
+
+from pyqtgraph.Qt import QtCore, QtGui
+import pyqtgraph as pg
+import pyqtgraph.opengl as gl
+import numpy as np
+import os, pickle, time, sys
+from matplotlib import cm
+colors = [
+    (0, 0, 0),
+    (45, 5, 61),
+    (84, 42, 55),
+    (150, 87, 60),
+    (208, 171, 141),
+    (255, 255, 255)
+]
+cmap = pg.ColorMap(pos=np.linspace(0.0, 0.25, len(colors)), color=colors)
+cmap = cm.get_cmap('gist_heat') # you want a colormap that for 0 is close to clearColor (black)
+red = (1, 0, 0, 1)
+green = (0, 1, 0, 1)
+gray = (0.5, 0.5, 0.5, 0.3)
+blue = (0, 0, 1, 1)
+yellow = (1, 1, 0, 1)
+point_size = 0.08
+class MyGLViewWidget(gl.GLViewWidget):
+    def __init__(self,
+        args,
+        initial_pdf,
+        with_control,
+        without_control,
+        parent=None,
+        devicePixelRatio=None,
+        rotationMethod='euler'):
+        super(MyGLViewWidget, self).__init__(parent, devicePixelRatio)
+
+        self.initial_pdf = initial_pdf
+        self.args = args
+        self.with_control = with_control
+        self.without_control = without_control
+
+        self.addItem(self.initial_pdf)
+
+    def keyPressEvent(self, ev):
+        print("keyPressEvent",
+            str(ev.text()), str(ev.key()))
+        super(MyGLViewWidget, self).keyPressEvent(ev)
