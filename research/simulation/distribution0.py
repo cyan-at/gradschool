@@ -503,26 +503,26 @@ def init_data(
 
             t_samples = np.linspace(0, t_e, 30)
 
-            all_time_data = np.empty(
-                (
-                    initial_sample.shape[0],
-                    initial_sample.shape[1],
-                    len(t_samples))
-                )
-            # x/y slice is all samples at that time, 1 x/y slice per z time initial_sample
+            # all_time_data = np.empty(
+            #     (
+            #         initial_sample.shape[0],
+            #         initial_sample.shape[1],
+            #         len(t_samples))
+            #     )
+            # # x/y slice is all samples at that time, 1 x/y slice per z time initial_sample
 
-            # x[i] is sample [i]
-            # y[i] is state dim [i]
-            # z[i] is time [i]
+            # # x[i] is sample [i]
+            # # y[i] is state dim [i]
+            # # z[i] is time [i]
 
-            for sample_i in range(initial_sample.shape[0]):
-                print("forcing sample_i", sample_i)
-                sample_states = integrate.odeint(
-                    dynamics,
-                    initial_sample[sample_i, :],
-                    t_samples,
-                    args=(j1, j2, j3, {}))
-                all_time_data[sample_i, :, :] = sample_states.T
+            # for sample_i in range(initial_sample.shape[0]):
+            #     print("forcing sample_i", sample_i)
+            #     sample_states = integrate.odeint(
+            #         dynamics,
+            #         initial_sample[sample_i, :],
+            #         t_samples,
+            #         args=(j1, j2, j3, {}))
+            #     all_time_data[sample_i, :, :] = sample_states.T
 
             unforced_all_time_data = np.empty(
                 (
@@ -620,7 +620,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--times',
         type=str,
-        default="0,1.0,2.0,3.0,4.0,5.0",
+        default="0,1.0,2.0,3.0,4.0",
         required=False)
 
     parser.add_argument('--mu_0',
@@ -630,12 +630,12 @@ if __name__ == '__main__':
 
     parser.add_argument('--sampling',
         type=str,
-        default="15,15,15,15,15,15,100,200",
+        default="-5,5,-5,5,-5,5,25,100",
         required=False)
 
     parser.add_argument('--system',
         type=str,
-        default="1,1,2", # 3,2,1
+        default="0.45,0.5,0.55", # 3,2,1
         required=False)
 
     parser.add_argument('--ignore_symmetry',
@@ -659,6 +659,7 @@ if __name__ == '__main__':
     # sampling
     ts = [float(x) for x in args.times.split(",")]
     # ts = np.linspace(T_0, T_t, 2)
+    ts = np.linspace(0.0, 4.0, 4)
 
     sampling = [int(x) for x in args.sampling.split(",")]
     window0 = sampling[0]

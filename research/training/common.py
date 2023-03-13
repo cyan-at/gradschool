@@ -2841,15 +2841,10 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
         trace = pm.sample(args.M, cores=1)
         initial_sample = np.array([x['mu0'] for x in list(trace.points())])
 
-    # with pm.Model():
-    #      points=pm.HalfNormal('mu', sd=.2)
-    #      trace=pm.sample(num_sims)
-    # y_init=trace.mu # initial points
-
     # initial_sample = np.random.multivariate_normal(
     #     np.array([mu_0]*d), np.eye(d)*sigma_0, args.M) # 100 x 3
 
-    initial_sample = initial_sample[:M]
+    initial_sample = initial_sample[:args.M]
 
     v_scales = [float(x) for x in args.v_scale.split(",")]
     biases = [float(x) for x in args.bias.split(",")]
@@ -3056,7 +3051,6 @@ point_size = 0.08
 class MyGLViewWidget(gl.GLViewWidget):
     def __init__(self,
         args,
-        initial_pdf,
         with_control,
         without_control,
         parent=None,
@@ -3069,6 +3063,12 @@ class MyGLViewWidget(gl.GLViewWidget):
         self.with_control = with_control
         self.without_control = without_control
 
+        import ipdb; ipdb.set_trace()
+        initial_pdf_sample = gl.GLScatterPlotItem(
+            pos=initial_sample[:, :3],
+            size=np.ones(args.M) * point_size,
+            color=green,
+            pxMode=False)
         self.addItem(self.initial_pdf)
 
     def keyPressEvent(self, ev):

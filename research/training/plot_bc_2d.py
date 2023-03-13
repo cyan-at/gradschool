@@ -451,17 +451,12 @@ if __name__ == '__main__':
 
     if args.plot_3d == 1:
         ## Create a GL View widget to display data
-        app = pg.mkQApp("")
+        pg.setConfigOption('background', (255,255,255, 100))
 
-        initial_pdf_sample = gl.GLScatterPlotItem(
-            pos=initial_sample[:, :3],
-            size=np.ones(args.M) * point_size,
-            color=green,
-            pxMode=False)
+        app = pg.mkQApp("")
 
         w = MyGLViewWidget(
             args,
-            initial_pdf_sample,
             with_control,
             without_control
             )
