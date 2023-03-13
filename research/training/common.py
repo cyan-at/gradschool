@@ -3058,7 +3058,6 @@ class MyGLViewWidget(gl.GLViewWidget):
         rotationMethod='euler'):
         super(MyGLViewWidget, self).__init__(parent, devicePixelRatio)
 
-        self.initial_pdf = initial_pdf
         self.args = args
         self.with_control = with_control
         self.without_control = without_control
@@ -3069,7 +3068,7 @@ class MyGLViewWidget(gl.GLViewWidget):
             size=np.ones(args.M) * point_size,
             color=green,
             pxMode=False)
-        self.addItem(self.initial_pdf)
+        # self.addItem(self.initial_pdf)
 
     def keyPressEvent(self, ev):
         print("keyPressEvent",
