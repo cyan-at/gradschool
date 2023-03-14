@@ -3,7 +3,15 @@
 
 '''
 USAGE:
-./plot_bc.py --testdat ./wass_2d_model-99875-99875.dat --modelpt ./wass_2d_model-99875.pt
+
+../../plot_loss_func.py --lossdat ./loss2.dat --modelpt ./exp29v13-92000.pt
+
+../../plot_bc_2d.py --testdat ./test2.dat --modelpt ./exp29v13-92000.pt --a '-0.1, 0.2, -0.09' --T_t 4.0 --batchsize 450 --N 25 --bif 100000 --noise --interp_mode linear --plot_bc 0 --grid_n 30 --plot_without_control 1 --plot_3d 1 --M 200 --sigma_0 0.5
+
+../../plot_bc_2d.py --testdat ./test2.dat --modelpt ./exp29v13-92000.pt --a '-0.1, 0.2, -0.09' --T_t 4.0 --batchsize 450 --N 25 --bif 10000 --noise --interp_mode linear --plot_bc 0 --grid_n 30 --plot_without_control 0 --M 100 --sigma_0 1.0
+
+../../plot_bc_2d.py --testdat ./test2.dat --modelpt ./exp29v13-92000.pt --a '-0.1, 0.2, -0.09' --T_t 4.0 --batchsize 450 --N 25 --bif 100000 --noise --interp_mode linear --plot_bc 0 --grid_n 30 --plot_without_control 0 --M 100 --plot_u 1 --do_integration 0 --sigma_0 1.0
+
 '''
 
 # 0 define backend
@@ -377,6 +385,10 @@ if __name__ == '__main__':
         type=int,
         default=0)
 
+    parser.add_argument('--sigma_0',
+        type=str,
+        default="")
+
     args, _ = parser.parse_known_args()
 
     if len(args.mu_T) > 0:
@@ -389,6 +401,9 @@ if __name__ == '__main__':
     if len(args.T_t) > 0:
         T_t = float(args.T_t)
     print("T_t", T_t)
+
+    if len(args.sigma_0) > 0:
+        sigma_0 = float(args.sigma_0)
 
     ################################################
 
@@ -486,7 +501,7 @@ if __name__ == '__main__':
         print("T_t", T_t, sigma_0)
 
         ts, initial_sample, with_control, without_control,\
-            all_results, mus, variances = do_integration(control_data, d, T_0, T_t, mu_0, 1.0, args)
+            all_results, mus, variances = do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args)
 
     ########################################################
     ########################################################
