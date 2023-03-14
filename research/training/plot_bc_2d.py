@@ -440,7 +440,7 @@ if __name__ == '__main__':
         print("T_t", T_t, sigma_0)
 
         ts, initial_sample, with_control, without_control,\
-            all_results, mus, variances = do_integration(control_data, d, T_0, T_t, mu_0, 0.5, args)
+            all_results, mus, variances = do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args)
 
     ########################################################
     ########################################################
@@ -451,23 +451,27 @@ if __name__ == '__main__':
 
     if args.plot_3d == 1:
         ## Create a GL View widget to display data
-        pg.setConfigOption('background', (255,255,255, 100))
+        # pg.setConfigOption('background', (255,255,255, 50))
+        pg.setConfigOption('background', 'w')
 
         app = pg.mkQApp("")
+        # app = mkQApp()
 
         w = MyGLViewWidget(
             args,
+            ts,
             with_control,
             without_control
             )
-        w.setWindowTitle('snapshots')
         w.setCameraPosition(distance=20)
 
-        ## Add a grid to the view
-        g = gl.GLGridItem()
-        g.scale(2,2,1)
-        g.setDepthValue(10)  # draw grid after surfaces since they may be translucent
-        # w.addItem(g)
+        # ## Add a grid to the view
+        # g = gl.GLGridItem()
+        # g.scale(2,2,1)
+        # g.setDepthValue(10)  # draw grid after surfaces since they may be translucent
+        # # w.addItem(g)
+
+        pyqtgraph_plot_gnomon(w, np.eye(4), 1.0, 1.0)
 
         ## Start Qt event loop unless running in interactive mode.
         w.show()

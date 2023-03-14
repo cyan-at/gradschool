@@ -2838,13 +2838,17 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
             np.array([mu_0]*d),
             np.array([sigma_0]*d),
             shape=3)
-        trace = pm.sample(args.M, cores=1)
-        initial_sample = np.array([x['mu0'] for x in list(trace.points())])
+        # trace = pm.sample(args.M, cores=1)
+        # initial_sample = np.array(
+        #     [x['mu0'] for x in list(trace.points())])
 
-    # initial_sample = np.random.multivariate_normal(
-    #     np.array([mu_0]*d), np.eye(d)*sigma_0, args.M) # 100 x 3
+        initial_sample = mu0.random(size=args.M)
 
-    initial_sample = initial_sample[:args.M]
+        # import ipdb; ipdb.set_trace()
+    # initial_sample = initial_sample[:args.M]
+
+    initial_sample = np.random.multivariate_normal(
+        np.array([mu_0]*d), np.eye(d)*sigma_0, args.M) # 100 x 3
 
     v_scales = [float(x) for x in args.v_scale.split(",")]
     biases = [float(x) for x in args.bias.split(",")]
@@ -3019,8 +3023,8 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
 
     # import ipdb; ipdb.set_trace()
 
-    with_control2[:, -1, :] /= np.sum(with_control2[:, -1, :])
-    without_control2[:, -1, :] /= np.sum(without_control2[:, -1, :])
+    # with_control2[:, -1, :] /= np.sum(with_control2[:, -1, :])
+    # without_control2[:, -1, :] /= np.sum(without_control2[:, -1, :])
 
     return ts, initial_sample, with_control2, without_control2,\
         all_results, mus, variances
@@ -3032,6 +3036,8 @@ import pyqtgraph.opengl as gl
 import numpy as np
 import os, pickle, time, sys
 from matplotlib import cm
+from pyqtgraph.opengl.GLGraphicsItem import GLGraphicsItem
+
 colors = [
     (0, 0, 0),
     (45, 5, 61),
@@ -3041,16 +3047,83 @@ colors = [
     (255, 255, 255)
 ]
 cmap = pg.ColorMap(pos=np.linspace(0.0, 0.25, len(colors)), color=colors)
-cmap = cm.get_cmap('gist_heat') # you want a colormap that for 0 is close to clearColor (black)
+cmap = cm.get_cmap('inferno')
+
+# gist_heat
+# you want a colormap that for 0 is close to 
+# clearColor (black)
+
+cmaps = [
+    cm.get_cmap('OrRd'),
+    cm.get_cmap('Greens'),
+    cm.get_cmap('Blues')
+]
 red = (1, 0, 0, 1)
 green = (0, 1, 0, 1)
-gray = (0.5, 0.5, 0.5, 0.3)
+gray = (0.5, 0.5, 0.5, 0.8)
 blue = (0, 0, 1, 1)
 yellow = (1, 1, 0, 1)
 point_size = 0.08
+all_colors = [red, green, blue, yellow, gray]
+def pyqtgraph_plot_line(
+    view,
+    line_points_row_xyz,
+    mode = 'lines', # 'line_strip' = all points are one line
+    color = red,
+    linewidth = 5.0):
+    plt = gl.GLLinePlotItem(
+        pos = line_points_row_xyz,
+        mode = mode,
+        color = color,
+        width = linewidth
+    )
+    plt.setGLOptions('translucent') # 2019-02-22 SUPER SUPER IMPORTANT
+    view.addItem(plt)
+
+def pyqtgraph_plot_gnomon(view, g, length = 0.5, linewidth = 5):
+    o = g.dot(np.array([0.0, 0.0, 0.0, 1.0]))
+    x = g.dot(np.array([length, 0.0, 0.0, 1.0]))
+    y = g.dot(np.array([0.0, length, 0.0, 1.0]))
+    z = g.dot(np.array([0.0, 0.0, length, 1.0]))
+
+    # import ipdb; ipdb.set_trace();
+
+    pyqtgraph_plot_line(view, np.vstack([o, x])[:, :-1], color = red, linewidth = linewidth)
+    pyqtgraph_plot_line(view, np.vstack([o, y])[:, :-1], color = green, linewidth = linewidth)
+    pyqtgraph_plot_line(view, np.vstack([o, z])[:, :-1], color = blue, linewidth = linewidth)
+
+class GLLabelItem(GLGraphicsItem):
+    def __init__(self, pos=None, text=None, color=None, font=QtGui.QFont()):
+        GLGraphicsItem.__init__(self)
+        self.color = color
+        if color is None:
+            self.color = QtCore.Qt.white
+        self.text = text
+        self.pos = pos
+        self.font = font
+        self.font.setPointSizeF(20)
+
+    def setGLViewWidget(self, GLViewWidget):
+        self.GLViewWidget = GLViewWidget
+
+    def setData(self, pos, text, color):
+        self.text = text
+        self.pos = pos
+        self.color = color
+        self.update()
+
+    def paint(self):
+        self.GLViewWidget.qglColor(self.color)
+        if self.pos is not None and self.text is not None:
+            if isinstance(self.pos, (list, tuple, np.ndarray)):
+                for p, text in zip(self.pos, self.text):
+                    self.GLViewWidget.renderText(*p, text, self.font)
+            else:
+                self.GLViewWidget.renderText(*self.pos, self.text, self.font)
 class MyGLViewWidget(gl.GLViewWidget):
     def __init__(self,
         args,
+        ts,
         with_control,
         without_control,
         parent=None,
@@ -3062,15 +3135,90 @@ class MyGLViewWidget(gl.GLViewWidget):
         self.with_control = with_control
         self.without_control = without_control
 
-        import ipdb; ipdb.set_trace()
-        initial_pdf_sample = gl.GLScatterPlotItem(
-            pos=initial_sample[:, :3],
-            size=np.ones(args.M) * point_size,
-            color=green,
-            pxMode=False)
-        # self.addItem(self.initial_pdf)
+        # norm = matplotlib.colors.SymLogNorm(
+        norm = matplotlib.colors.CenteredNorm(
+            np.mean(with_control[:, -1, 0]), 0.05)
+
+        print(np.std(with_control[:, -1, 0]))
+        norm = matplotlib.colors.Normalize(
+            np.mean(with_control[:, -1, 0]) - np.std(with_control[:, -1, 0]) / 4.0,
+            np.mean(with_control[:, -1, 0]) + np.std(with_control[:, -1, 0]) / 4.0
+            )   
+
+
+        # plt.hist(with_control[:, -1, 0], density=True, bins=30)  # density=False would make counts
+        # plt.ylabel('Probability')
+        # plt.xlabel('Data');
+        # plt.show()
+
+        slices = np.round(np.linspace(0, len(ts)-1, 3))
+
+        sizes = np.round(np.linspace(3.0, 5.0, 3))
+
+        alphas = np.round(np.linspace(0.8, 1.0, 3))
+
+        # t.setGLViewWidget(w)
+
+        color_strs = ["red", "green", "blue"]
+        for s_i, s in enumerate(slices):
+            tmp = all_colors[s_i % (len(all_colors))]
+            # import ipdb; ipdb.set_trace()
+            # tmp = [int(x) for x in tmp]
+            tmp = [int(x * 255) for x in tmp]
+            t = gl.GLTextItem(
+                pos=np.array([5, 2, 0 - s_i * 0.4]),
+                text="t = %.2f" % (ts[int(s)]),
+                color=tmp,
+                font=QtGui.QFont('Helvetica', 5)
+            )
+            self.addItem(t)
+
+        tmp = [int(x * 255) for x in gray]
+        t = gl.GLTextItem(
+            pos=np.array([5, 2, 0 - len(slices) * 0.4]),
+            text="gray = unforced",
+            color=tmp,
+            font=QtGui.QFont('Helvetica', 5)
+        )
+        self.addItem(t)
+
+        for s_i, s in enumerate(slices):
+            print(s)
+
+            # import ipdb; ipdb.set_trace()
+
+            tmp = all_colors[s_i % (len(all_colors))]
+
+            # tmp = cmaps[s_i](norm(with_control[:, -1, int(s)]))
+
+            # tmp[:, -1] *= alphas[s_i]
+
+            pdf_sample = gl.GLScatterPlotItem(
+                pos=with_control[:, :3, int(s)],
+                size=np.ones(args.M) * 5.0, # * sizes[s_i],
+                color=tmp,
+                pxMode=True)
+            pdf_sample.setGLOptions('translucent') # 2019-02-22 SUPER SUPER IMPORTANT
+            self.addItem(pdf_sample)
+
+            pdf_sample = gl.GLScatterPlotItem(
+                pos=without_control[:, :3, int(s)],
+                size=np.ones(args.M) * 5.0, # sizes[s_i],
+                color=gray,
+                pxMode=True)
+            pdf_sample.setGLOptions('translucent') # 2019-02-22 SUPER SUPER IMPORTANT
+            self.addItem(pdf_sample)
 
     def keyPressEvent(self, ev):
         print("keyPressEvent",
             str(ev.text()), str(ev.key()))
         super(MyGLViewWidget, self).keyPressEvent(ev)
+
+        if ev.text() == "p":
+            dir_name = os.path.dirname(self.args.modelpt)
+            bname = os.path.basename(self.args.modelpt).replace(".pt", "") + "_3dplot"
+            fname, _ = Util.get_next_valid_name_increment(
+                dir_name, bname, 0, '', 'png')
+
+            d = self.renderToArray((1000, 1000))
+            pg.makeQImage(d).save(fname)
