@@ -37,7 +37,7 @@ def slice(matrix, i, j, mode):
     if mode == 0:
         return matrix[:, i, j]
     elif mode == 1:
-        return matrix[j, :, i]
+        return matrix[i, :, j]
     else:
         return matrix[i, j, :]
 
@@ -47,29 +47,54 @@ def slice2d(matrix, i, mode):
     else:
         return matrix[i, :]
 
-def get_pdf_support(matrix, xs):
+def get_pdf_support(matrix, xs, mode=0, indices=None, t=False):
     d = len(xs)
 
     if d == 3:
         # flatten z down into xy cell
         # flatten x down to y row
         # flatten y into number
-        buffer0 = np.zeros(len(xs[0]))
-        buffer1 = np.zeros(len(xs[1]))
-        for j in range(len(xs[1])):
-            for i in range(len(xs[0])):
-                buffer0[i] = np.trapz(
-                    slice(matrix, i, j, 2),
-                    x=xs[2])
-                # buffer0[i] = trapz out z
-                # buffer[i][j] = matrix[i][j][:]
-            # buffer0 is now filled with accumulated z
+        idx = [2, 0, 1]
+        if indices is not None:
+            idx = indices
+
+        dim0 = idx[0]
+        dim1 = idx[1]
+        dim2 = idx[2]
+
+        buffer0 = np.zeros(
+            (
+                len(xs[dim1]),
+                len(xs[dim2])
+            ))
+
+        # collapse away dim0 to a 2D matrix dim1 x dim2
+        for i in range(len(xs[dim1])):
+            for j in range(len(xs[dim2])):
+                buffer0[i, j] = np.trapz(
+                    slice(matrix, i, j, dim0),
+                    x=xs[dim0])
+
+        if (dim0 == 0 and dim1 == 2):
+            buffer0 = buffer0.T
+        elif (dim2 == 0):
+            buffer0 = buffer0.T
+
+        # collapse away dim1
+        buffer1 = np.zeros(len(xs[dim2]))
+        for j in range(len(xs[dim2])):
             buffer1[j] = np.trapz(
-                buffer0,
-                x=xs[0])
-            # buffer1[j] = trapz out x
-            # buffer[j] = matrix[:][j][:]
-        return np.trapz(buffer1, x=xs[1])
+                buffer0[:, j],
+                x=xs[dim1])
+
+        total = np.trapz(buffer1, x=xs[dim2])
+
+        buffer1 /= total
+
+        if mode == 1:
+            return buffer1
+        return total
+
     elif d == 2:
         # flatten x into y row
         # flatten y into number
@@ -2390,6 +2415,27 @@ def query_u(state, t, T_0, T_t, control_data):
 
     return t_control_data, closest_grid_idx
 
+class Helper(object):
+    def __init__(self, T_0, T_t, t, control_data, j):
+        self.T_0 = T_0
+        self.T_t = T_t
+        self.control_data = control_data
+        self.t = t
+        self.j = j
+
+    @np.vectorize
+    def test(self, a, b):
+        return a + b + self.t
+
+    @np.vectorize
+    def query_u_helper(self, x1, x2, x3):
+        cd, idx = query_u([x1, x2, x3],
+            self.t,
+            self.T_0,
+            self.T_t,
+            self.control_data)
+        return cd[str(self.j)][idx]
+
 def apply_control_strategy0(state, t, T_0, T_t, control_data, affine, statedot):
     t_control_data, closest_grid_idx = query_u(state, t, T_0, T_t, control_data)
 
@@ -2612,6 +2658,17 @@ def get_u(test, output_tensor, inputs_tensor, args, batchsize):
 
     return t0_u, tT_u, tt_u
 
+def query_control_grid(control_data, meshes, t, T_0, T_t):
+    print("query_control_grid", t)
+
+    d = {}
+    for i in range(3):
+        h2 = Helper(T_0, T_t, t, control_data, i)
+        d[i] = h2.query_u_helper(h2, *meshes)
+
+    # import ipdb; ipdb.set_trace()
+    return d
+
 from scipy.interpolate import griddata as gd
 def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
     M = N**d
@@ -2711,6 +2768,27 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
           method=args.interp_mode)
         rhoT = rhoT_meshed.reshape(-1)
 
+    rho0 = np.nan_to_num(rho0)
+    rhoT = np.nan_to_num(rhoT)
+
+    linspaces = []
+    for i in range(d):
+        linspaces.append(np.transpose(
+            np.linspace(args.state_bound_min, args.state_bound_max, N))
+        )
+
+    rho0_cube = rho0.reshape((args.N, args.N, args.N))
+    # the LAST dimension is what matters
+    rho0_0 = get_pdf_support(rho0_cube, linspaces, 1, [2, 1, 0])
+    rho0_1 = get_pdf_support(rho0_cube, linspaces, 1, [2, 0, 1])
+    rho0_2 = get_pdf_support(rho0_cube, linspaces, 1, [0, 1, 2])
+
+    rhoT_cube = rhoT.reshape((args.N, args.N, args.N))
+    # the LAST dimension is what matters
+    rhoT_0 = get_pdf_support(rhoT_cube, linspaces, 1, [2, 1, 0])
+    rhoT_1 = get_pdf_support(rhoT_cube, linspaces, 1, [2, 0, 1])
+    rhoT_2 = get_pdf_support(rhoT_cube, linspaces, 1, [0, 1, 2])
+
     ######################################################## bc control
 
     tmp = []
@@ -2731,11 +2809,17 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
     t0_control_data = {
         'grid' : bc_grids,
         'rho' : rho0,
+        'rho_0' : rho0_0,
+        'rho_1' : rho0_1,
+        'rho_2' : rho0_2,
     }
 
     tT_control_data = {
         'grid' : bc_grids,
         'rho' : rhoT,
+        'rho_0' : rhoT_0,
+        'rho_1' : rhoT_1,
+        'rho_2' : rhoT_2,
     }
 
     if batchsize == M:
@@ -2755,14 +2839,14 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
               t0_u[:, d_i],
               tuple(meshes), # tuple(grid_n_meshes[:-1]),
               method=args.interp_mode)
-            t0_control_data[str(d_i)] = t0_di.reshape(-1)
+            t0_control_data[str(d_i)] = np.nan_to_num(t0_di.reshape(-1))
 
             tT_di = gd(
               tuple(tT_list),
               tT_u[:, d_i],
               tuple(meshes), # tuple(grid_n_meshes[:-1]),
               method=args.interp_mode)
-            tT_control_data[str(d_i)] = tT_di.reshape(-1)
+            tT_control_data[str(d_i)] = np.nan_to_num(tT_di.reshape(-1))
 
     ########################################################
 
@@ -2808,6 +2892,26 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
             'tt' : tt_control_data,
             'time_slices' : None,
         }
+
+    ########################################################
+
+    dt = (T_t - T_0)/(args.integrate_N)
+    ts = np.arange(T_0, T_t + dt, dt)
+
+    slice_control_grids = {}
+    slices = [int(x) for x in np.round(np.linspace(0, len(ts)-1, args.plot_samples))]
+    for s in slices:
+        print(s, ts[s])
+        slice_control_grids[s] = query_control_grid(
+            control_data,
+            meshes,
+            ts[s],
+            T_0,
+            T_t
+            )
+    tt_control_data['slices'] = slice_control_grids
+
+    ########################################################
 
     # import ipdb; ipdb.set_trace()
 
@@ -3091,34 +3195,6 @@ def pyqtgraph_plot_gnomon(view, g, length = 0.5, linewidth = 5):
     pyqtgraph_plot_line(view, np.vstack([o, y])[:, :-1], color = green, linewidth = linewidth)
     pyqtgraph_plot_line(view, np.vstack([o, z])[:, :-1], color = blue, linewidth = linewidth)
 
-class GLLabelItem(GLGraphicsItem):
-    def __init__(self, pos=None, text=None, color=None, font=QtGui.QFont()):
-        GLGraphicsItem.__init__(self)
-        self.color = color
-        if color is None:
-            self.color = QtCore.Qt.white
-        self.text = text
-        self.pos = pos
-        self.font = font
-        self.font.setPointSizeF(20)
-
-    def setGLViewWidget(self, GLViewWidget):
-        self.GLViewWidget = GLViewWidget
-
-    def setData(self, pos, text, color):
-        self.text = text
-        self.pos = pos
-        self.color = color
-        self.update()
-
-    def paint(self):
-        self.GLViewWidget.qglColor(self.color)
-        if self.pos is not None and self.text is not None:
-            if isinstance(self.pos, (list, tuple, np.ndarray)):
-                for p, text in zip(self.pos, self.text):
-                    self.GLViewWidget.renderText(*p, text, self.font)
-            else:
-                self.GLViewWidget.renderText(*self.pos, self.text, self.font)
 class MyGLViewWidget(gl.GLViewWidget):
     def __init__(self,
         args,

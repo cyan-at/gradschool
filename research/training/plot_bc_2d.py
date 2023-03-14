@@ -133,7 +133,7 @@ import numpy as np
 import os, pickle, time, sys
 from matplotlib import cm
 
-def plot_stems(idx, initial_sample, with_control, without_control, d, h1, h2, axs, ax_i, args):
+def plot_stems(idx, initial_sample, with_control, without_control, d, h1, h2, axs, ax_i, args, control_data, ts):
     for j in range(d):
 
         b = 100
@@ -243,6 +243,38 @@ def plot_stems(idx, initial_sample, with_control, without_control, d, h1, h2, ax
                 alpha=0.5
             )
 
+
+        if idx == 0:
+            # plot marginal pdf
+            axs[ax_i + j].plot(
+                X,
+                [ts[idx]]*len(X),
+                control_data['t0']['rho_%d' % (j)],
+                lw=1,
+                c='k')
+            axs[ax_i + j].add_collection3d(
+                axs[ax_i + j].fill_between(
+                    X,
+                    control_data['t0']['rho_%d' % (j)],
+                    color='C2',
+                    alpha=0.1),
+                zs=ts[idx] + 5e-3, zdir='y')
+
+        if idx == len(ts) - 1:
+            axs[ax_i + j].plot(
+                X,
+                [ts[idx]]*len(X),
+                control_data['tT']['rho_%d' % (j)],
+                lw=1,
+                c='k')
+            axs[ax_i + j].add_collection3d(
+                axs[ax_i + j].fill_between(
+                    X,
+                    control_data['tT']['rho_%d' % (j)],
+                    color='C2',
+                    alpha=0.1),
+                zs=ts[idx] + 5e-3, zdir='y')
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
@@ -341,6 +373,9 @@ if __name__ == '__main__':
     parser.add_argument('--plot_samples',
         type=int,
         default=4)
+    parser.add_argument('--plot_u',
+        type=int,
+        default=0)
 
     args, _ = parser.parse_known_args()
 
@@ -431,6 +466,8 @@ if __name__ == '__main__':
     control_data = make_control_data(
         model, inputs, N, d, meshes, args)
 
+    # import ipdb; ipdb.set_trace()
+
     fname = '%s_%d_%d_%s_%d_%d_all_control_data.npy' % (
             args.modelpt.replace(".pt", ""),
             batchsize,
@@ -502,24 +539,65 @@ if __name__ == '__main__':
 
     fig = plt.figure()
 
+    rows = 1
+    if args.plot_u > 0:
+        rows = args.plot_samples
+
     ax_count = 0
     if args.plot_bc > 0:
         ax_count += 2
-    if args.do_integration > 0:
+
+    if args.plot_u > 0:
+        ax_count = plot_d*rows
+    elif args.do_integration > 0:
         ax_count += plot_d
+
+    print("ax_count", ax_count)
 
     ########################################################
 
-    ax1 = fig.add_subplot(1, ax_count, 1, projection='3d')
+    ax1 = fig.add_subplot(rows, 3, 1, projection='3d')
     axs = [ax1]
 
     if ax_count > 1:
-        ax2 = fig.add_subplot(1, ax_count, 2, projection='3d')
+        ax2 = fig.add_subplot(rows, 3, 2, projection='3d')
         axs.append(ax2)
 
     if ax_count > 2:
-        ax3 = fig.add_subplot(1, ax_count, 3, projection='3d')
+        ax3 = fig.add_subplot(rows, 3, 3, projection='3d')
         axs.append(ax3)
+
+    if rows > 1:
+        for r in range(1, args.plot_samples):
+            for i in range(3):
+                tmp = fig.add_subplot(
+                    rows, 3, 3*r + (i+1), projection='3d')
+                axs.append(tmp)
+
+    dt = (T_t - T_0)/(args.integrate_N)
+    ts = np.arange(T_0, T_t + dt, dt)
+
+    # axs = []
+    # # create 3x1 subfigs
+    # subfigs = fig.subfigures(nrows=2, ncols=1)
+    # for row, subfig in enumerate(subfigs):
+    #     if row == 0:
+    #         t = ts[0]
+    #     elif row == len(subfigs) - 1:
+    #         t = ts[-1]
+
+    #     subfig.suptitle('t=%.2f' % (t))
+
+    #     # create 1x3 subplots per subfig
+    #     axxx = subfig.subplots(nrows=1, ncols=3)
+    #     for col, ax in enumerate(axxx):
+    #         # ax.plot()
+    #         # ax.set_title(f'Plot title {col}')
+    #         axs.append(ax)
+
+    print("len(axs)", len(axs))
+
+    ########################################################
 
     ax_i = 0
 
@@ -609,7 +687,77 @@ if __name__ == '__main__':
 
     ########################################################
 
-    if d == 3 and args.plot_bc > 0:
+    k = 2.0
+    slices = np.round(np.linspace(0, len(ts)-1, args.plot_samples))
+
+    if d == 3 and args.plot_u > 0:
+        for j in range(plot_d):
+            sc1=axs[ax_i].scatter(
+                *meshes,
+                c=control_data['t0'][str(j)].reshape(N, N, N),
+                s=np.abs(control_data['t0'][str(j)]*k),
+                cmap=cm.jet,
+                alpha=1.0)
+            plt.colorbar(sc1, shrink=0.25)
+            # axs[ax_i].set_title(
+            #     'rho0:\nmu=%.3f\nsigma=%.3f\nsum=%.3f\nmin=%.3f\nmax=%.3f' % (
+            #     mu_0,
+            #     sigma_0,
+            #     np.sum(t0[:, -1]),
+            #     np.min(t0[:, -1]),
+            #     np.max(t0[:, -1])
+            # ))
+            axs[ax_i].set_xlabel('x')
+            axs[ax_i].set_ylabel('y')
+            axs[ax_i].set_zlabel('z')
+
+            if (j == 1):
+                for s_i, s in enumerate(slices):
+                    aaa = 3*(s_i) + j
+                    axs[aaa].set_title('t=%.2f' % (ts[int(s)]))
+
+            for s_i, s in enumerate(slices[1:-1]):
+                print("GETTING TT S", s)
+
+                ax3 = 3*(s_i+1)+j
+                print("ax3", ax3)
+
+                tmp = control_data['tt']['slices'][int(s)][j]
+
+                sc1=axs[ax3].scatter(
+                    *meshes,
+                    c=tmp.reshape(N, N, N),
+                    s=np.abs(tmp*k),
+                    cmap=cm.jet,
+                    alpha=1.0)
+                plt.colorbar(sc1, shrink=0.25)
+
+            ax2 = 3*(args.plot_samples-1)+j
+            print("ax2", ax2)
+
+            sc1=axs[ax2].scatter(
+                *meshes,
+                c=control_data['tT'][str(j)].reshape(N, N, N),
+                s=np.abs(control_data['tT'][str(j)]*k),
+                cmap=cm.jet,
+                alpha=1.0)
+            plt.colorbar(sc1, shrink=0.25)
+            # axs[ax_i].set_title(
+            #     'rho0:\nmu=%.3f\nsigma=%.3f\nsum=%.3f\nmin=%.3f\nmax=%.3f' % (
+            #     mu_0,
+            #     sigma_0,
+            #     np.sum(t0[:, -1]),
+            #     np.min(t0[:, -1]),
+            #     np.max(t0[:, -1])
+            # ))
+            axs[ax2].set_xlabel('x')
+            axs[ax2].set_ylabel('y')
+            axs[ax2].set_zlabel('z')
+
+            ax_i += 1
+
+
+    elif d == 3 and args.plot_bc > 0:
         # import ipdb; ipdb.set_trace()
 
         sc1=axs[ax_i].scatter(
@@ -727,7 +875,7 @@ if __name__ == '__main__':
         )
     )
 
-    if args.do_integration > 0:
+    if args.do_integration > 0 and args.plot_u == 0:
         if ax_i == d-1:
             axs.append(fig.add_subplot(1, ax_count, 4, projection='3d'))
             axs.append(fig.add_subplot(1, ax_count, 5, projection='3d'))
@@ -767,10 +915,10 @@ if __name__ == '__main__':
         for s in slices:
             print(s)
             # import ipdb; ipdb.set_trace()
-            plot_stems(int(s), initial_sample, with_control, without_control, plot_d, h1, h2, axs, ax_i, args)
+            plot_stems(int(s), initial_sample, with_control, without_control, plot_d, h1, h2, axs, ax_i, args, control_data, ts)
 
         # plot marginal pdfs at T0, Tt
-        import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
 
 
         ##############################
