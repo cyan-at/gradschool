@@ -147,52 +147,61 @@ def plot_stems(idx, initial_sample, with_control, without_control, d, h1, h2, ax
         log_dens = kde.score_samples(X[:, np.newaxis])
 
         w_pdf = np.exp(log_dens)
-        print("hi", np.trapz(w_pdf, x=X))
-        w_pdf /= np.trapz(w_pdf, x=X)
+        a =  np.trapz(w_pdf, x=X)
+        print("hi",a)
+        w_pdf /= a # np.trapz(w_pdf, x=X)
 
-        axs[ax_i + j].plot(
-            X,
-            [ts[idx]]*len(X),
-            w_pdf,
-            lw=1,
-            c='k')
-        axs[ax_i + j].add_collection3d(
-            axs[ax_i + j].fill_between(
-                X,
-                w_pdf,
-                color='C2',
-                alpha=0.1),
-            zs=ts[idx], zdir='y')
+        # axs[ax_i + j].plot(
+        #     X,
+        #     [ts[idx]]*len(X),
+        #     w_pdf,
+        #     lw=1,
+        #     c='k')
+        # axs[ax_i + j].add_collection3d(
+        #     axs[ax_i + j].fill_between(
+        #         X,
+        #         w_pdf,
+        #         color='C2',
+        #         alpha=0.1),
+        #     zs=ts[idx], zdir='y')
+
+        wo = without_control[:, j, idx]
+
+        kde2 = KernelDensity(kernel="gaussian", bandwidth=band).fit(wo[:, np.newaxis])
+        log_dens2 = kde2.score_samples(X[:, np.newaxis])
+
+        wo_pdf = np.exp(log_dens2)
+        print("hi", np.trapz(wo_pdf, x=X))
+        wo_pdf /= np.trapz(wo_pdf, x=X)
 
         if args.plot_without_control:
-            wo = without_control[:, j, idx]
+            # axs[ax_i + j].plot(
+            #     X,
+            #     [ts[idx]]*len(X),
+            #     wo_pdf,
+            #     lw=1,
+            #     c='k')
+            # axs[ax_i + j].add_collection3d(
+            #     axs[ax_i + j].fill_between(
+            #         X,
+            #         wo_pdf,
+            #         color='C0',
+            #         alpha=0.1),
+            #     zs=ts[idx] + 5e-3, zdir='y')
+            pass
 
-            kde = KernelDensity(kernel="gaussian", bandwidth=band).fit(wo[:, np.newaxis])
-            log_dens = kde.score_samples(X[:, np.newaxis])
-
-            wo_pdf = np.exp(log_dens)
-            print("hi", np.trapz(wo_pdf, x=X))
-            wo_pdf /= np.trapz(wo_pdf, x=X)
-
-            axs[ax_i + j].plot(
-                X,
-                [ts[idx]]*len(X),
-                wo_pdf,
-                lw=1,
-                c='k')
-            axs[ax_i + j].add_collection3d(
-                axs[ax_i + j].fill_between(
-                    X,
-                    wo_pdf,
-                    color='C0',
-                    alpha=0.1),
-                zs=ts[idx] + 5e-3, zdir='y')
+        zs = kde.score_samples(w[:, np.newaxis])
+        zs = np.exp(zs) / a
 
         for i in range(initial_sample.shape[0]):
+            z = h1
+
+            z = zs[i]
+
             axs[ax_i + j].plot(
                 [with_control[i, j, idx]]*2, # repeat 2x same x for start / end point
                 [ts[idx]]*2, # repeat 2x same y for start / end point
-                [0.0, h1], # start at 0, end at h1
+                [0.0, z], # start at 0, end at h1
                 lw=1,
                 c='g')
 
@@ -200,7 +209,7 @@ def plot_stems(idx, initial_sample, with_control, without_control, d, h1, h2, ax
                 axs[ax_i + j].scatter(
                     with_control[i, j, idx],
                     ts[idx],
-                    h1,
+                    z,
                     c='g',
                     s=50,
                 )
@@ -440,7 +449,7 @@ if __name__ == '__main__':
         print("T_t", T_t, sigma_0)
 
         ts, initial_sample, with_control, without_control,\
-            all_results, mus, variances = do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args)
+            all_results, mus, variances = do_integration(control_data, d, T_0, T_t, mu_0, 1.0, args)
 
     ########################################################
     ########################################################
@@ -759,6 +768,10 @@ if __name__ == '__main__':
             print(s)
             # import ipdb; ipdb.set_trace()
             plot_stems(int(s), initial_sample, with_control, without_control, plot_d, h1, h2, axs, ax_i, args)
+
+        # plot marginal pdfs at T0, Tt
+        import ipdb; ipdb.set_trace()
+
 
         ##############################
 

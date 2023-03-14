@@ -3029,7 +3029,6 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
     return ts, initial_sample, with_control2, without_control2,\
         all_results, mus, variances
 
-
 from pyqtgraph.Qt import QtCore, QtGui
 import pyqtgraph as pg
 import pyqtgraph.opengl as gl
