@@ -2383,7 +2383,12 @@ def euler_maru(
     for i in range(1, ts.size):
         t = t_span[0] + (i - 1) * dt
         y = ys[i - 1, :]
-        ys[i, :] = y + np.array(mu_func(t, y, *args)) * dt + sigma_func(y, t) * dw_func(dt)
+        s = sigma_func(y, t)
+        dw = dw_func(dt)
+
+        # print("s", s, "dw", dw)
+
+        ys[i, :] = y + np.array(mu_func(t, y, *args)) * dt + s * dw
 
     return ts, ys
 
@@ -2588,15 +2593,16 @@ class Integrator(object):
 
     def task(self, i, target, control_data, affine, strategy_key):
         # print("starting {}".format(i))
+        print("args.noise", self.args.noise)
 
-        if self.args.noise:
+        if self.args.noise > 0.0:
             _, tmp = euler_maru(
                 self.initial_sample[i, :],
                 self.t_span,
                 self.dynamics,
                 (self.t_span[-1] - self.t_span[0])/(self.args.integrate_N),
                 lambda delta_t: np.random.normal(loc=0.0, scale=np.sqrt(delta_t)),
-                lambda y, t: 0.01,
+                lambda y, t: self.args.noise,
                 (
                     self.alpha1, self.alpha2, self.alpha3,
                     self.T_t,
@@ -3094,7 +3100,7 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
     with_control2 = np.empty(
         (
             initial_sample.shape[0],
-            initial_sample.shape[1]+1,
+            initial_sample.shape[1]+1+3,
             len(ts),
         ))
     # for each integrated spacetime point, query rho
@@ -3118,9 +3124,15 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
             elif len(tmp.shape) == 2:
                 tmp = t_control_data['rho'][closest_grid_idx][0]
 
+
+            # also get the u / tau for this coordinate
+            tmp2 = np.array([0.0]*3)
+            for j in range(3):
+                tmp2[j] = t_control_data[str(j)][closest_grid_idx]
+
             try:
                 with_control2[i, :, t] = np.concatenate((
-                    with_control[i, :, t], tmp))
+                    with_control[i, :, t], tmp, tmp2))
             except Exception as e:
                 import ipdb; ipdb.set_trace()
                 print("what", with_control[i, :, t], ts[t])

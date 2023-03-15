@@ -141,23 +141,41 @@ import numpy as np
 import os, pickle, time, sys
 from matplotlib import cm
 
+controlled_color = 'C2'
+uncontrolled_color = 'C3'
+
 def plot_stems(idx, initial_sample, with_control, without_control, d, h1, h2, axs, ax_i, args, control_data, ts):
+
+    '''
+    one of {'C0', 'C1', 'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C8', 'C9'}
+    one of {'tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan'}
+    '''
+
     for j in range(d):
 
         b = 100
-
-        w = with_control[:, j, idx]
-        X = np.linspace(args.state_bound_min, args.state_bound_max, args.N)
-
         band = 1.0
 
+        X = np.linspace(args.state_bound_min, args.state_bound_max, args.N)
+
+        w = with_control[:, j, idx]
         kde = KernelDensity(kernel="gaussian", bandwidth=band).fit(w[:, np.newaxis])
         log_dens = kde.score_samples(X[:, np.newaxis])
 
         w_pdf = np.exp(log_dens)
-        a =  np.trapz(w_pdf, x=X)
-        print("hi",a)
-        w_pdf /= a # np.trapz(w_pdf, x=X)
+        w_trapz =  np.trapz(w_pdf, x=X)
+        print("hi",w_trapz)
+        w_pdf /= w_trapz # np.trapz(w_pdf, x=X)
+
+        wo = without_control[:, j, idx]
+        kde2 = KernelDensity(kernel="gaussian", bandwidth=band).fit(wo[:, np.newaxis])
+        log_dens2 = kde2.score_samples(X[:, np.newaxis])
+        wo_pdf = np.exp(log_dens2)
+        print("hi", np.trapz(wo_pdf, x=X))
+        wo_pdf /= np.trapz(wo_pdf, x=X)
+
+        zs = kde.score_samples(w[:, np.newaxis])
+        zs = np.exp(zs) / w_trapz
 
         # axs[ax_i + j].plot(
         #     X,
@@ -169,18 +187,9 @@ def plot_stems(idx, initial_sample, with_control, without_control, d, h1, h2, ax
         #     axs[ax_i + j].fill_between(
         #         X,
         #         w_pdf,
-        #         color='C2',
+        #         color=uncontrolled_color,
         #         alpha=0.1),
         #     zs=ts[idx], zdir='y')
-
-        wo = without_control[:, j, idx]
-
-        kde2 = KernelDensity(kernel="gaussian", bandwidth=band).fit(wo[:, np.newaxis])
-        log_dens2 = kde2.score_samples(X[:, np.newaxis])
-
-        wo_pdf = np.exp(log_dens2)
-        print("hi", np.trapz(wo_pdf, x=X))
-        wo_pdf /= np.trapz(wo_pdf, x=X)
 
         if args.plot_without_control:
             # axs[ax_i + j].plot(
@@ -193,14 +202,12 @@ def plot_stems(idx, initial_sample, with_control, without_control, d, h1, h2, ax
             #     axs[ax_i + j].fill_between(
             #         X,
             #         wo_pdf,
-            #         color='C0',
+            #         color=controlled_color,
             #         alpha=0.1),
             #     zs=ts[idx] + 5e-3, zdir='y')
             pass
 
-        zs = kde.score_samples(w[:, np.newaxis])
-        zs = np.exp(zs) / a
-
+        '''
         for i in range(initial_sample.shape[0]):
             z = h1
 
@@ -211,14 +218,14 @@ def plot_stems(idx, initial_sample, with_control, without_control, d, h1, h2, ax
                 [ts[idx]]*2, # repeat 2x same y for start / end point
                 [0.0, z], # start at 0, end at h1
                 lw=1,
-                c='g')
+                c=controlled_color)
 
             if args.plot_sample_rhos == 0:
                 axs[ax_i + j].scatter(
                     with_control[i, j, idx],
                     ts[idx],
                     z,
-                    c='g',
+                    c=controlled_color,
                     s=50,
                 )
 
@@ -228,13 +235,13 @@ def plot_stems(idx, initial_sample, with_control, without_control, d, h1, h2, ax
                     [ts[idx]]*2,
                     [0.0, h2],
                     lw=1,
-                    c='b')
+                    c=uncontrolled_color)
 
                 axs[ax_i + j].scatter(
                     without_control[i, j, idx],
                     ts[idx],
                     h2,
-                    c='b',
+                    c=uncontrolled_color,
                     s=50,
                 )
 
@@ -245,13 +252,14 @@ def plot_stems(idx, initial_sample, with_control, without_control, d, h1, h2, ax
                 with_control[:, j, idx].reshape(-1),
                 [ts[idx]]*with_control.shape[0],
                 h1,
-                c=with_control[:, -1, idx], # 'g'
+                c=with_control[:, 4, idx], # 'g'
                 s=50,
                 cmap=cm.jet,
                 alpha=0.5
             )
+        '''
 
-
+        # plot marginals at the boundaries
         if idx == 0:
             # plot marginal pdf
             axs[ax_i + j].plot(
@@ -264,11 +272,27 @@ def plot_stems(idx, initial_sample, with_control, without_control, d, h1, h2, ax
                 axs[ax_i + j].fill_between(
                     X,
                     control_data['t0']['rho_%d' % (j)],
-                    color='C2',
+                    color=controlled_color,
                     alpha=0.1),
                 zs=ts[idx] + 5e-3, zdir='y')
 
-        if idx == len(ts) - 1:
+            if args.plot_without_control:
+                axs[ax_i + j].plot(
+                    X,
+                    [ts[idx]]*len(X),
+                    wo_pdf,
+                    lw=1,
+                    c='k')
+                axs[ax_i + j].add_collection3d(
+                    axs[ax_i + j].fill_between(
+                        X,
+                        wo_pdf,
+                        color=uncontrolled_color,
+                        alpha=0.1),
+                    zs=ts[idx] + 5e-3, zdir='y')
+                pass
+
+        elif idx == len(ts) - 1:
             axs[ax_i + j].plot(
                 X,
                 [ts[idx]]*len(X),
@@ -279,9 +303,55 @@ def plot_stems(idx, initial_sample, with_control, without_control, d, h1, h2, ax
                 axs[ax_i + j].fill_between(
                     X,
                     control_data['tT']['rho_%d' % (j)],
-                    color='C2',
+                    color=controlled_color,
                     alpha=0.1),
                 zs=ts[idx] + 5e-3, zdir='y')
+
+            if args.plot_without_control:
+                axs[ax_i + j].plot(
+                    X,
+                    [ts[idx]]*len(X),
+                    wo_pdf,
+                    lw=1,
+                    c='k')
+                axs[ax_i + j].add_collection3d(
+                    axs[ax_i + j].fill_between(
+                        X,
+                        wo_pdf,
+                        color=uncontrolled_color,
+                        alpha=0.1),
+                    zs=ts[idx] + 5e-3, zdir='y')
+                pass
+
+        else:
+            axs[ax_i + j].plot(
+                X,
+                [ts[idx]]*len(X),
+                w_pdf,
+                lw=1,
+                c='k')
+            axs[ax_i + j].add_collection3d(
+                axs[ax_i + j].fill_between(
+                    X,
+                    w_pdf,
+                    color=controlled_color,
+                    alpha=0.1),
+                zs=ts[idx], zdir='y')
+
+            if args.plot_without_control:
+                axs[ax_i + j].plot(
+                    X,
+                    [ts[idx]]*len(X),
+                    wo_pdf,
+                    lw=1,
+                    c='k')
+                axs[ax_i + j].add_collection3d(
+                    axs[ax_i + j].fill_between(
+                        X,
+                        wo_pdf,
+                        color=uncontrolled_color,
+                        alpha=0.1),
+                    zs=ts[idx] + 5e-3, zdir='y')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -351,7 +421,8 @@ if __name__ == '__main__':
         type=int,
         default=4)
     parser.add_argument('--noise',
-        action='store_true')
+        type=float,
+        default=0.0)
     parser.add_argument('--v_scale',
         type=str,
         default="1.0")
@@ -483,13 +554,17 @@ if __name__ == '__main__':
 
     # import ipdb; ipdb.set_trace()
 
-    fname = '%s_%d_%d_%s_%d_%d_all_control_data.npy' % (
-            args.modelpt.replace(".pt", ""),
-            batchsize,
-            args.diff_on_cpu,
-            args.interp_mode,
-            args.grid_n,
-            T_t,
+    run_identifier = "%s_%d_%d_%s_%d_%d" % (
+        args.modelpt.replace(".pt", ""),
+        batchsize,
+        args.diff_on_cpu,
+        args.interp_mode,
+        args.grid_n,
+        T_t,
+    )
+
+    fname = '%s_all_control_data.npy' % (
+        run_identifier
         )
     np.save(
         fname, 
@@ -502,6 +577,16 @@ if __name__ == '__main__':
 
         ts, initial_sample, with_control, without_control,\
             all_results, mus, variances = do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args)
+
+        # for abhishek
+        fname = './%s_closedlooptrajectories.npy' % (run_identifier)
+        np.save(
+            fname,
+            {
+                'without_control' : without_control,
+                'with_control' : with_control
+            })
+        print("saved fname", fname)
 
     ########################################################
     ########################################################
@@ -705,6 +790,34 @@ if __name__ == '__main__':
     k = 2.0
     slices = np.round(np.linspace(0, len(ts)-1, args.plot_samples))
 
+    # for abhishek
+    if d == 3 and args.plot_u > 0:
+        for j in range(plot_d):
+
+            fname = "tau%d_t=%.2f.npy" % (j, 0.0)
+            np.save(
+                fname, 
+                control_data['t0'][str(j)]
+            )
+            print("saving fname", fname)
+
+            fname = "tau%d_t=%.2f.npy" % (j, T_t)
+            np.save(
+                fname, 
+                control_data['t0'][str(j)]
+            )
+            print("saving fname", fname)
+
+            for s_i, s in enumerate(slices[1:-1]):
+                print("saving ts[int(s)]", ts[int(s)])
+
+                fname = "tau%d_t=%.2f.npy" % (j, ts[int(s)])
+                print("saving fname", fname)
+                np.save(
+                    fname, 
+                    control_data['tt']['slices'][int(s)][j]
+                )
+
     if d == 3 and args.plot_u > 0:
         for j in range(plot_d):
             sc1=axs[ax_i].scatter(
@@ -897,30 +1010,30 @@ if __name__ == '__main__':
 
         h1 = 0.05
         h2 = 0.05
-        b = -0.05
+        b = 0.005
 
-        for i in range(initial_sample.shape[0]):
-            for j in range(plot_d):
-                # trajectories
+        # for i in range(initial_sample.shape[0]):
+        #     for j in range(plot_d):
+        #         # trajectories
 
-                if args.plot_without_control:
-                    axs[ax_i + j].plot(
-                        without_control[i, j, :],
-                        ts,
-                        [0.0]*len(ts),
-                        lw=.3,
-                        c='b',
-                        alpha=0.5)
+        #         if args.plot_without_control:
+        #             axs[ax_i + j].plot(
+        #                 without_control[i, j, :],
+        #                 ts,
+        #                 [0.0]*len(ts),
+        #                 lw=.3,
+        #                 c=uncontrolled_color,
+        #                 alpha=0.5)
 
-                ########################################
+        #         ########################################
 
-                axs[ax_i + j].plot(
-                    with_control[i, j, :],
-                    ts,
-                    [0.0]*len(ts),
-                    lw=.3,
-                    c='g',
-                    alpha=0.5)
+        #         axs[ax_i + j].plot(
+        #             with_control[i, j, :],
+        #             ts,
+        #             [0.0]*len(ts),
+        #             lw=.3,
+        #             c=controlled_color,
+        #             alpha=0.5)
 
         ########################################
         ########################################
@@ -948,9 +1061,9 @@ if __name__ == '__main__':
             #         mus[2*j], variances[2*j],
             #         mus[2*j+1], variances[2*j+1]))
 
-            axs[ax_i + j].set_xlabel(r'$x_%d$' % (j+1))
+            axs[ax_i + j].set_xlabel(r'$\omega_%d$' % (j+1))
             axs[ax_i + j].set_ylabel(r't [s]')
-            axs[ax_i + j].set_zlabel(r'$\rho^{\pi}_{opt}$')
+            axs[ax_i + j].set_zlabel(r'$\rho_{'+str(j+1)+'}\pi_{opt}$')
 
         ##############################
 
