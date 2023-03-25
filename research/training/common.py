@@ -3309,3 +3309,13 @@ class MyGLViewWidget(gl.GLViewWidget):
 
             d = self.renderToArray((1000, 1000))
             pg.makeQImage(d).save(fname)
+
+bcc = np.array([0.41235, 0.37605])
+fcc = np.array([0.012857, 0.60008])
+sc = np.array([0.41142, 0.69550])
+
+tcst_map = {
+    "bcc" : bcc,
+    "fcc" : fcc,
+    "sc" : sc
+}

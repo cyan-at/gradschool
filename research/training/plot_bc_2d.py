@@ -151,6 +151,8 @@ def plot_stems(idx, initial_sample, with_control, without_control, d, h1, h2, ax
     one of {'tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan'}
     '''
 
+    all_dims = {}
+
     for j in range(d):
 
         b = 100
@@ -207,44 +209,45 @@ def plot_stems(idx, initial_sample, with_control, without_control, d, h1, h2, ax
             #     zs=ts[idx] + 5e-3, zdir='y')
             pass
 
-        '''
-        for i in range(initial_sample.shape[0]):
-            z = h1
+        if args.plot_stems > 0:
+            for i in range(initial_sample.shape[0]):
+                z = h1
 
-            z = zs[i]
+                # z = zs[i]
 
-            axs[ax_i + j].plot(
-                [with_control[i, j, idx]]*2, # repeat 2x same x for start / end point
-                [ts[idx]]*2, # repeat 2x same y for start / end point
-                [0.0, z], # start at 0, end at h1
-                lw=1,
-                c=controlled_color)
-
-            if args.plot_sample_rhos == 0:
-                axs[ax_i + j].scatter(
-                    with_control[i, j, idx],
-                    ts[idx],
-                    z,
-                    c=controlled_color,
-                    s=50,
-                )
-
-            if args.plot_without_control:
                 axs[ax_i + j].plot(
-                    [without_control[i, j, idx]]*2,
-                    [ts[idx]]*2,
-                    [0.0, h2],
+                    [with_control[i, j, idx]]*2, # repeat 2x same x for start / end point
+                    [ts[idx]]*2, # repeat 2x same y for start / end point
+                    [0.0, z], # start at 0, end at h1
                     lw=1,
-                    c=uncontrolled_color)
+                    c=controlled_color)
 
-                axs[ax_i + j].scatter(
-                    without_control[i, j, idx],
-                    ts[idx],
-                    h2,
-                    c=uncontrolled_color,
-                    s=50,
-                )
+                if args.plot_sample_rhos == 0:
+                    axs[ax_i + j].scatter(
+                        with_control[i, j, idx],
+                        ts[idx],
+                        z,
+                        c=controlled_color,
+                        s=50,
+                    )
 
+                if args.plot_without_control:
+                    axs[ax_i + j].plot(
+                        [without_control[i, j, idx]]*2,
+                        [ts[idx]]*2,
+                        [0.0, h2],
+                        lw=1,
+                        c=uncontrolled_color)
+
+                    axs[ax_i + j].scatter(
+                        without_control[i, j, idx],
+                        ts[idx],
+                        h2,
+                        c=uncontrolled_color,
+                        s=50,
+                    )
+
+        '''
         if args.plot_sample_rhos:
             # do this with linear interp mode
             # nearest its hard to see distribution falloff
@@ -259,99 +262,54 @@ def plot_stems(idx, initial_sample, with_control, without_control, d, h1, h2, ax
             )
         '''
 
-        # plot marginals at the boundaries
+        t_plotdata = [ts[idx]]*len(X)
+
         if idx == 0:
-            # plot marginal pdf
-            axs[ax_i + j].plot(
-                X,
-                [ts[idx]]*len(X),
-                control_data['t0']['rho_%d' % (j)],
-                lw=1,
-                c='k')
-            axs[ax_i + j].add_collection3d(
-                axs[ax_i + j].fill_between(
-                    X,
-                    control_data['t0']['rho_%d' % (j)],
-                    color=controlled_color,
-                    alpha=0.1),
-                zs=ts[idx] + 5e-3, zdir='y')
-
-            if args.plot_without_control:
-                axs[ax_i + j].plot(
-                    X,
-                    [ts[idx]]*len(X),
-                    wo_pdf,
-                    lw=1,
-                    c='k')
-                axs[ax_i + j].add_collection3d(
-                    axs[ax_i + j].fill_between(
-                        X,
-                        wo_pdf,
-                        color=uncontrolled_color,
-                        alpha=0.1),
-                    zs=ts[idx] + 5e-3, zdir='y')
-                pass
-
+            controlled_y = control_data['t0']['rho_%d' % (j)]
         elif idx == len(ts) - 1:
+            controlled_y = control_data['tT']['rho_%d' % (j)]
+        else:
+            controlled_y = w_pdf
+
+        uncontrolled_y = wo_pdf
+
+        all_dims[j] = {
+            't' : t_plotdata,
+            'x' : X,
+            'uncontrolled_y' : uncontrolled_y,
+            'controlled_y' : controlled_y
+        }
+
+        axs[ax_i + j].plot(
+            X,
+            t_plotdata,
+            controlled_y,
+            lw=1,
+            c='k')
+        axs[ax_i + j].add_collection3d(
+            axs[ax_i + j].fill_between(
+                X,
+                controlled_y,
+                color=controlled_color,
+                alpha=0.1),
+            zs=ts[idx], zdir='y')
+
+        if args.plot_without_control:
             axs[ax_i + j].plot(
                 X,
-                [ts[idx]]*len(X),
-                control_data['tT']['rho_%d' % (j)],
+                t_plotdata,
+                uncontrolled_y,
                 lw=1,
                 c='k')
             axs[ax_i + j].add_collection3d(
                 axs[ax_i + j].fill_between(
                     X,
-                    control_data['tT']['rho_%d' % (j)],
-                    color=controlled_color,
+                    uncontrolled_y,
+                    color=uncontrolled_color,
                     alpha=0.1),
                 zs=ts[idx] + 5e-3, zdir='y')
 
-            if args.plot_without_control:
-                axs[ax_i + j].plot(
-                    X,
-                    [ts[idx]]*len(X),
-                    wo_pdf,
-                    lw=1,
-                    c='k')
-                axs[ax_i + j].add_collection3d(
-                    axs[ax_i + j].fill_between(
-                        X,
-                        wo_pdf,
-                        color=uncontrolled_color,
-                        alpha=0.1),
-                    zs=ts[idx] + 5e-3, zdir='y')
-                pass
-
-        else:
-            axs[ax_i + j].plot(
-                X,
-                [ts[idx]]*len(X),
-                w_pdf,
-                lw=1,
-                c='k')
-            axs[ax_i + j].add_collection3d(
-                axs[ax_i + j].fill_between(
-                    X,
-                    w_pdf,
-                    color=controlled_color,
-                    alpha=0.1),
-                zs=ts[idx], zdir='y')
-
-            if args.plot_without_control:
-                axs[ax_i + j].plot(
-                    X,
-                    [ts[idx]]*len(X),
-                    wo_pdf,
-                    lw=1,
-                    c='k')
-                axs[ax_i + j].add_collection3d(
-                    axs[ax_i + j].fill_between(
-                        X,
-                        wo_pdf,
-                        color=uncontrolled_color,
-                        alpha=0.1),
-                    zs=ts[idx] + 5e-3, zdir='y')
+    return all_dims
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -453,6 +411,14 @@ if __name__ == '__main__':
         type=int,
         default=4)
     parser.add_argument('--plot_u',
+        type=int,
+        default=0)
+
+    parser.add_argument('--plot_stems',
+        type=int,
+        default=0)
+
+    parser.add_argument('--plot_trajectories',
         type=int,
         default=0)
 
@@ -1012,42 +978,51 @@ if __name__ == '__main__':
         h2 = 0.05
         b = 0.005
 
-        # for i in range(initial_sample.shape[0]):
-        #     for j in range(plot_d):
-        #         # trajectories
+        if args.plot_trajectories > 0:
+            for i in range(initial_sample.shape[0]):
+                for j in range(plot_d):
+                    # trajectories
 
-        #         if args.plot_without_control:
-        #             axs[ax_i + j].plot(
-        #                 without_control[i, j, :],
-        #                 ts,
-        #                 [0.0]*len(ts),
-        #                 lw=.3,
-        #                 c=uncontrolled_color,
-        #                 alpha=0.5)
+                    if args.plot_without_control:
+                        axs[ax_i + j].plot(
+                            without_control[i, j, :],
+                            ts,
+                            [0.0]*len(ts),
+                            lw=.3,
+                            c=uncontrolled_color,
+                            alpha=0.5)
 
-        #         ########################################
-
-        #         axs[ax_i + j].plot(
-        #             with_control[i, j, :],
-        #             ts,
-        #             [0.0]*len(ts),
-        #             lw=.3,
-        #             c=controlled_color,
-        #             alpha=0.5)
+                    axs[ax_i + j].plot(
+                        with_control[i, j, :],
+                        ts,
+                        [0.0]*len(ts),
+                        lw=.3,
+                        c=controlled_color,
+                        alpha=0.5)
 
         ########################################
         ########################################
 
         slices = np.round(np.linspace(0, len(ts)-1, args.plot_samples))
 
+        all_marginal_data = {}
         for s in slices:
             print(s)
             # import ipdb; ipdb.set_trace()
-            plot_stems(int(s), initial_sample, with_control, without_control, plot_d, h1, h2, axs, ax_i, args, control_data, ts)
+            plotted_data = plot_stems(int(s), initial_sample, with_control, without_control, plot_d, h1, h2, axs, ax_i, args, control_data, ts)
+
+            all_marginal_data[ts[int(s)]] = plotted_data
 
         # plot marginal pdfs at T0, Tt
         # import ipdb; ipdb.set_trace()
-
+        fname = '%s_marginal_data.npy' % (
+            run_identifier
+            )
+        np.save(
+            fname, 
+            all_marginal_data
+        )
+        print("saved all_marginal_data to %s" % (fname))
 
         ##############################
 
