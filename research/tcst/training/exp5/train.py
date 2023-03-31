@@ -163,8 +163,8 @@ def get_model(
         time_0,
         rho0[..., np.newaxis],
         component=1,
-        batch_size=batchsize,
-        shuffle=True
+        # batch_size=batchsize,
+        # shuffle=True
         )
 
     ######################################
@@ -177,8 +177,8 @@ def get_model(
         time_t,
         rhoT[..., np.newaxis],
         component=1,
-        batch_size=batchsize,
-        shuffle=True
+        # batch_size=batchsize,
+        # shuffle=True
         )
 
     ######################################
