@@ -105,8 +105,11 @@ def get_model(
     ni=0,
     epsilon=1e-3
     ):
-    M = N**d
+    print("mu_0", mu_0, sigma_0)
+    print("mu_T", mu_T, sigma_T)
 
+    M = N**d
+    
     linspaces = []
     for i in range(d):
         linspaces.append(np.transpose(

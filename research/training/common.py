@@ -2230,7 +2230,7 @@ def WASS_3(y_true, y_pred, ignore1, sinkhorn, rho_tensor, C, *_):
     dist, _, _ = sinkhorn(C, y_pred.reshape(-1), rho_tensor)
     # print("Sinkhorn distance: {:.3f}".format(dist.item()))
 
-    return 10 * p1 + dist
+    return 10*(10 * p1 + dist)
 
 def WASS_4(y_true, y_pred, ignore1, sinkhorn, rho_tensor, C, n, dx):
     p1 = -torch.sum(y_pred[y_pred < 0])
