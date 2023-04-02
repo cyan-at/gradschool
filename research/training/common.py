@@ -2433,8 +2433,8 @@ class Helper(object):
         return a + b + self.t
 
     @np.vectorize
-    def query_u_helper(self, x1, x2, x3):
-        cd, idx = query_u([x1, x2, x3],
+    def query_u_helper(self, x1, x2):
+        cd, idx = query_u([x1, x2],
             self.t,
             self.T_0,
             self.T_t,
@@ -2635,6 +2635,20 @@ class Integrator(object):
 
         return i
 
+def get_tcst(test, output_tensor, inputs, args, batchsize):
+    # import ipdb; ipdb.set_trace()
+
+    t0_u = test[:batchsize, inputs.shape[1] + 3 - 1:inputs.shape[1] + 5 - 1]
+    tT_u = test[batchsize:2*batchsize, inputs.shape[1] + 3 - 1:inputs.shape[1] + 5 - 1]
+    tt_u = test[2*batchsize:, inputs.shape[1] + 3 - 1:inputs.shape[1] + 5 - 1]
+    print(
+        np.max(t0_u),
+        np.max(tT_u),
+        np.max(tt_u)
+    )
+
+    return t0_u, tT_u, tt_u
+
 def get_u(test, output_tensor, inputs_tensor, args, batchsize):
     # only possible if tensors on cpu
     # maybe moving to cuda makes input non-leaf
@@ -2668,7 +2682,7 @@ def query_control_grid(control_data, meshes, t, T_0, T_t):
     print("query_control_grid", t)
 
     d = {}
-    for i in range(3):
+    for i in range(len(meshes)):
         h2 = Helper(T_0, T_t, t, control_data, i)
         d[i] = h2.query_u_helper(h2, *meshes)
 
@@ -2783,13 +2797,13 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
             np.linspace(args.state_bound_min, args.state_bound_max, N))
         )
 
-    rho0_cube = rho0.reshape((args.N, args.N, args.N))
+    rho0_cube = rho0.reshape((args.N,)*d)
     # the LAST dimension is what matters
     rho0_0 = get_pdf_support(rho0_cube, linspaces, 1, [2, 1, 0])
     rho0_1 = get_pdf_support(rho0_cube, linspaces, 1, [2, 0, 1])
     rho0_2 = get_pdf_support(rho0_cube, linspaces, 1, [0, 1, 2])
 
-    rhoT_cube = rhoT.reshape((args.N, args.N, args.N))
+    rhoT_cube = rhoT.reshape((args.N,)*d)
     # the LAST dimension is what matters
     rhoT_0 = get_pdf_support(rhoT_cube, linspaces, 1, [2, 1, 0])
     rhoT_1 = get_pdf_support(rhoT_cube, linspaces, 1, [2, 0, 1])
@@ -2907,6 +2921,9 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
     slice_control_grids = {}
     slices = [int(x) for x in np.round(np.linspace(0, len(ts)-1, args.plot_samples))]
     for s in slices:
+
+        # import ipdb;ipdb.set_trace()
+
         print(s, ts[s])
         slice_control_grids[s] = query_control_grid(
             control_data,

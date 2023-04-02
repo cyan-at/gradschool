@@ -375,7 +375,7 @@ if __name__ == '__main__':
     # load model parameters
 
     files = glob.glob(
-        sde_path + "/*.pt", 
+        sde_path + "/27hyper*.pt", 
         recursive = False)
     assert(len(files) == 1)
     print("using model: ", files[0])
