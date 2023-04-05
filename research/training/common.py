@@ -1430,8 +1430,8 @@ try:
             # print("g", self.network_g.forward(input_vec))
 
             return self.network_g.forward(input_vec)
-except Exception:
-    print("no SDE")
+except Exception as e:
+    print("no SDE", e)
 
 euler_pdes = {
     1 : euler_pde_1,

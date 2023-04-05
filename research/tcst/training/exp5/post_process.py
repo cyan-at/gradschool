@@ -112,9 +112,83 @@ import numpy as np
 
 import argparse
 
+from trained_sde_model import SDE_3 as SDE
+
+# import ipdb; ipdb.set_trace()
+class SDE2(SDE):
+    '''
+    Initialize neural network module
+    '''
+
+    def __init__(self, control_data):
+        super(SDE2, self).__init__()
+        
+        self.control_data = control_data
+
+    def query_u(self, t, y):
+        if torch.abs(t - 0) < 1e-8:
+            t_key = 't0'
+        elif torch.abs(t - 1.0) < 1e-8:
+            t_key = 'tT'
+        else:
+            t_key = 'tt'
+        t_control_data = self.control_data[t_key]
+
+        query = y[0].detach().cpu().numpy()
+
+        if t_control_data['grid'].shape[1] == 2 + 1:
+            t2 = t.detach().cpu().numpy()
+            query = np.append(query, t2)
+
+        if 'grid_tree' in t_control_data:
+            _, closest_grid_idx = t_control_data['grid_tree'].query(
+                np.expand_dims(query, axis=0),
+                k=1)
+        else:
+            closest_grid_idx = np.linalg.norm(
+                query - t_control_data['grid'], ord=1, axis=1).argmin()
+
+        u1 = t_control_data['0'][closest_grid_idx]
+        u2 = t_control_data['1'][closest_grid_idx]
+
+        u_tensor = torch.tensor(np.array([u1, u2]), dtype=torch.float32)
+        u_tensor = u_tensor.reshape([-1, 2])
+
+        return u_tensor
+
+    # drift
+    def f(self, t, y): # ~D1
+        u_tensor = self.query_u(t, y)
+
+        t = torch.reshape(t, [-1, 1])
+        # need to cat the ramp rates on the input vector for y
+        input_vec = torch.cat([y, u_tensor, t], axis=1)
+
+        # print(self.network_f.forward(input_vec).shape)
+
+        return self.network_f.forward(input_vec)
+    
+    # diffusion
+    def g(self, t, y): # ~D2
+        """
+        Output of g: should be a single tensor of size
+        (batch_size, d)
+        """
+        u_tensor = self.query_u(t, y)
+
+        t = torch.reshape(t, [-1, 1])
+
+        # need to cat the ramp rates on the input vector for g
+        input_vec = torch.cat([y, u_tensor, t], axis=1)
+
+        # print("g", self.network_g.forward(input_vec))
+
+        return self.network_g.forward(input_vec)
+
 from common import *
 
 sys.path.insert(0, "..")
+sys.path.insert(0, ".")
 
 call_dir = os.getcwd()
 sys.path.insert(0,call_dir)
@@ -136,10 +210,10 @@ if not hasattr(Axis, "_get_coord_info_old"):
 def do_integration2(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde, sde2):
     # dt = (T_t - T_0)/(args.bif)
     # ts = np.arange(T_0, T_t + dt, dt)
-    ts = torch.linspace(T_0, T_t, int(T_t * 500), device=cuda0)
+    ts = torch.linspace(T_0, T_t, 500, device=cuda0)
     # ts = torch.linspace(T_0, 1, int(1 * 500), device=cuda0)
 
-    import ipdb; ipdb.set_trace()
+    # import ipdb; ipdb.set_trace()
 
     initial_sample = np.random.multivariate_normal(
         np.array(mu_0), np.eye(d)*sigma_0, args.M) # 100 x 3
@@ -155,11 +229,6 @@ def do_integration2(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde, sde2):
 
     mus = np.zeros(d*2)
     variances = np.zeros(d*2)
-
-    pde_key = d
-    if len(args.pde_key) > 0:
-        pde_key = int(args.pde_key)
-    print("pde_key", pde_key)
 
     without_control = np.empty(
         (
@@ -196,11 +265,13 @@ def do_integration2(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde, sde2):
             device=cuda0,
         )  # We need space-time Levy area to use the SRK solver
 
-        y_pred = torchsde.sdeint(sde, y0, ts, method='euler', bm=bm, dt=1/(T_t*500)).squeeze()
-        # calculate predictions
-        without_control[i, :, :] = y_pred.detach().cpu().numpy().T
+        # y_pred = torchsde.sdeint(sde, y0, ts, method='euler', bm=bm, dt=1/(T_t*500)).squeeze()
+        # # calculate predictions
+        # without_control[i, :, :] = y_pred.detach().cpu().numpy().T
 
-        y_pred = torchsde.sdeint(sde2, y0, ts, method='euler', bm=bm, dt=1/(T_t*500)).squeeze()
+        F = T_t*500
+        F = 500
+        y_pred = torchsde.sdeint(sde2, y0, ts, method='euler', bm=bm, dt=1/(F)).squeeze()
         with_control[i, :, :] = y_pred.detach().cpu().numpy().T
 
         print(i)
@@ -213,6 +284,11 @@ def do_integration2(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde, sde2):
 
         mus[2*d_i+1] = np.mean(without_control[:, d_i, -1])
         variances[2*d_i+1] = np.var(without_control[:, d_i, -1])
+
+    mu_s = "{}".format(mus)
+    var_s = "{}".format(variances)
+    print("mu_s", mu_s)
+    print("var_s", var_s)
 
     ts = ts.detach().cpu().numpy()
 
@@ -404,7 +480,27 @@ if __name__ == '__main__':
     control_data = make_control_data(
         model, inputs, N, d, meshes, args, get_tcst)
 
-    # import ipdb; ipdb.set_trace()
+    if args.do_integration > 0:
+        print("T_t", T_t)
+
+        sde2 = SDE2(control_data)
+        # state path to model information file
+        # load model parameters
+        sde2.load_state_dict(torch.load(files[0]))
+        if torch.cuda.is_available():
+            print("Using GPU.")
+            sde2 = sde2.to(cuda0)
+        # set model to evaluation mode
+        sde2.eval()
+
+        ts, initial_sample, with_control, without_control,\
+            all_results, mus, variances = do_integration2(
+                control_data, d, T_0, T_t, mu_0, args.sigma,
+                args, sde, sde2)
+
+    ########################################
+
+    import ipdb; ipdb.set_trace()
 
     fig = plt.figure()
 
