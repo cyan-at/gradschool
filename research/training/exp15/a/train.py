@@ -177,7 +177,7 @@ def get_model(
     C = cdist(state, state, 'sqeuclidean')
     C = torch.from_numpy(
         C)
-    C_device = C_device.to(device).requires_grad_(False)
+    C_device = C.to(device).requires_grad_(False)
 
     ######################################
 
@@ -227,10 +227,10 @@ def get_model(
     print("name_tmp", name_tmp)
 
     rho0_WASS = lambda y_true, y_pred: loss_func_dict[args.loss_func](
-        y_true, y_pred, sinkhorn, rho0_tensor, C_device, N, dx)
+        y_true, y_pred, device, sinkhorn, rho0_tensor, C_device, N, dx)
     rho0_WASS.__name__ = name_tmp
     rhoT_WASS = lambda y_true, y_pred: loss_func_dict[args.loss_func](
-        y_true, y_pred, sinkhorn, rhoT_tensor, C_device, N, dx)
+        y_true, y_pred, device, sinkhorn, rhoT_tensor, C_device, N, dx)
     rhoT_WASS.__name__ = name_tmp
     losses=[
         "MSE","MSE",
