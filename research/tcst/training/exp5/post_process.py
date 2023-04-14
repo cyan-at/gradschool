@@ -132,6 +132,8 @@ class SDE2(SDE):
             t_key = 'tT'
         else:
             t_key = 'tt'
+        # print("t_key", t_key)
+
         t_control_data = self.control_data[t_key]
 
         query = y[0].detach().cpu().numpy()
@@ -139,14 +141,21 @@ class SDE2(SDE):
         if t_control_data['grid'].shape[1] == 2 + 1:
             t2 = t.detach().cpu().numpy()
             query = np.append(query, t2)
+        #     print("adding time")
+
+        # print("query", query)
 
         if 'grid_tree' in t_control_data:
             _, closest_grid_idx = t_control_data['grid_tree'].query(
                 np.expand_dims(query, axis=0),
                 k=1)
+
+            # print("closest_grid_idx", closest_grid_idx)
+            # print("t_control_data[closest]", t_control_data['grid'][closest_grid_idx])
         else:
             closest_grid_idx = np.linalg.norm(
                 query - t_control_data['grid'], ord=1, axis=1).argmin()
+            # print("t_control_data[closest]", t_control_data['grid'][closest_grid_idx])
 
         u1 = t_control_data['0'][closest_grid_idx]
         u2 = t_control_data['1'][closest_grid_idx]
@@ -154,11 +163,15 @@ class SDE2(SDE):
         u_tensor = torch.tensor(np.array([u1, u2]), dtype=torch.float32)
         u_tensor = u_tensor.reshape([-1, 2])
 
+        # print(u_tensor)
+
         return u_tensor
 
     # drift
     def f(self, t, y): # ~D1
         u_tensor = self.query_u(t, y)
+
+        # import ipdb; ipdb.set_trace()
 
         t = torch.reshape(t, [-1, 1])
         # need to cat the ramp rates on the input vector for y
@@ -175,6 +188,8 @@ class SDE2(SDE):
         (batch_size, d)
         """
         u_tensor = self.query_u(t, y)
+
+        # import ipdb; ipdb.set_trace()
 
         t = torch.reshape(t, [-1, 1])
 
@@ -237,7 +252,7 @@ def do_integration2(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde, sde2):
             len(ts),
         ))
 
-    with_control = np.empty(
+    with_control = np.zeros(
         (
             initial_sample.shape[0],
             initial_sample.shape[1],
@@ -472,13 +487,27 @@ if __name__ == '__main__':
 
     inputs = np.float32(test[:, :d+1])
 
+    domain = inputs[(N**2)*2:, :]
+
     print("inputs.shape", inputs.shape)
 
     test, T_t,\
     rho0, rhoT,\
     bc_grids, domain_grids, grid_n_meshes,\
-    control_data = make_control_data(
+    control_data, tt_u = make_control_data(
         model, inputs, N, d, meshes, args, get_tcst)
+
+    # import ipdb; ipdb.set_trace()
+
+    m = 0.0
+    b = 5.0
+
+    control_data['t0']['0'] = control_data['t0']['0'] * m + b
+    control_data['t0']['1'] = control_data['t0']['1'] * m + b
+    control_data['tT']['0'] = control_data['tT']['0'] * m + b
+    control_data['tT']['1'] = control_data['tT']['1'] * m + b
+    control_data['tt']['0'] = control_data['tt']['0'] * m + b
+    control_data['tt']['1'] = control_data['tt']['1'] * m + b
 
     if args.do_integration > 0:
         print("T_t", T_t)
@@ -500,12 +529,12 @@ if __name__ == '__main__':
 
     ########################################
 
-    import ipdb; ipdb.set_trace()
+    # import ipdb; ipdb.set_trace()
 
     fig = plt.figure()
 
     axs = []
-    ax_count = 1
+    ax_count = 3
 
     ax1 = fig.add_subplot(1, ax_count, 1, projection='3d')
     axs.append(ax1)
@@ -553,6 +582,142 @@ if __name__ == '__main__':
     fig.colorbar(rho0_contour, shrink=0.25)
     fig.colorbar(rhoT_contour, shrink=0.25)
 
+    ########################################################
+
+    z1 = T_0
+    z2 = T_t
+
+    p = 1.
+    a = 0.25
+
+    ax2 = fig.add_subplot(1, 3, 2, projection='3d')
+
+    ax2.contourf(
+        meshes[0],
+        meshes[1],
+        control_data['t0']['0'].reshape(N, N),
+        50, zdir='z',
+        cmap=cm.jet,
+        offset=z1,
+        alpha=0.4
+    )
+
+    ax2.contourf(
+        meshes[0],
+        meshes[1],
+        control_data['tT']['0'].reshape(N, N),
+        50, zdir='z',
+        cmap=cm.jet,
+        offset=z2,
+        alpha=0.4,
+    )
+
+    tmp = control_data['tt']['0'].reshape(args.grid_n, args.grid_n, 2*args.grid_n)
+
+    sc2=ax2.scatter(
+        control_data['tt']['grid'][:, 0],
+        control_data['tt']['grid'][:, 1],
+        control_data['tt']['grid'][:, 2],
+        c=tmp,
+        s=np.abs(tmp*p),
+        cmap=cm.jet,
+        alpha=a)
+    plt.colorbar(sc2, shrink=0.25)
+
+    ax2.set_xlim(args.state_bound_min, args.state_bound_max)
+    ax2.set_zlim(T_0 - 0.1, T_t + 0.1)
+
+    ax2.set_xlabel('x')
+    ax2.set_ylabel('y')
+    ax2.set_zlabel('t')
+
+    ########################################################
+
+    tmp = tt_u[:, 0]
+
+    sc2=ax2.scatter(
+        domain[:, 0],
+        domain[:, 1],
+        domain[:, 2],
+        c=tmp,
+        s=np.abs(tmp*p*2.0),
+        cmap=cm.jet,
+        alpha=1.0)
+    plt.colorbar(sc2, shrink=0.25)
+
+    ax2.set_xlim(args.state_bound_min, args.state_bound_max)
+    ax2.set_zlim(T_0 - 0.1, T_t + 0.1)
+
+    ax2.set_xlabel('x')
+    ax2.set_ylabel('y')
+    ax2.set_zlabel('t')
+
+    ########################################################
+
+    ax2 = fig.add_subplot(1, 3, 3, projection='3d')
+
+    ax2.contourf(
+        meshes[0],
+        meshes[1],
+        control_data['t0']['1'].reshape(N, N),
+        50, zdir='z',
+        cmap=cm.jet,
+        offset=z1,
+        alpha=0.4
+    )
+
+    ax2.contourf(
+        meshes[0],
+        meshes[1],
+        control_data['tT']['1'].reshape(N, N),
+        50, zdir='z',
+        cmap=cm.jet,
+        offset=z2,
+        alpha=0.4,
+    )
+
+    tmp = control_data['tt']['1'].reshape(args.grid_n, args.grid_n, 2*args.grid_n)
+
+    sc2=ax2.scatter(
+        control_data['tt']['grid'][:, 0],
+        control_data['tt']['grid'][:, 1],
+        control_data['tt']['grid'][:, 2],
+        c=tmp,
+        s=np.abs(tmp*p),
+        cmap=cm.jet,
+        alpha=a)
+    plt.colorbar(sc2, shrink=0.25)
+
+    ax2.set_xlim(args.state_bound_min, args.state_bound_max)
+    ax2.set_zlim(T_0 - 0.1, T_t + 0.1)
+
+    ax2.set_xlabel('x')
+    ax2.set_ylabel('y')
+    ax2.set_zlabel('t')
+
+    ########################################################
+
+    tmp = tt_u[:, 1]
+
+    sc2=ax2.scatter(
+        domain[:, 0],
+        domain[:, 1],
+        domain[:, 2],
+        c=tmp,
+        s=np.abs(tmp*p*2.0),
+        cmap=cm.jet,
+        alpha=1.0)
+    plt.colorbar(sc2, shrink=0.25)
+
+    ax2.set_xlim(args.state_bound_min, args.state_bound_max)
+    ax2.set_zlim(T_0 - 0.1, T_t + 0.1)
+
+    ax2.set_xlabel('x')
+    ax2.set_ylabel('y')
+    ax2.set_zlabel('t')
+
+    ########################################################
+    fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
 
     manager = plt.get_current_fig_manager()
 

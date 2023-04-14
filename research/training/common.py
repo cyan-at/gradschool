@@ -1406,6 +1406,8 @@ try:
         def f(self, t, y): # ~D1
             u_tensor = self.query_u(t, y)
 
+            import ipdb; ipdb.set_trace()
+
             t = torch.reshape(t, [-1, 1])
             # need to cat the ramp rates on the input vector for y
             input_vec = torch.cat([y, u_tensor, t], axis=1)
@@ -1421,6 +1423,8 @@ try:
             (batch_size, d)
             """
             u_tensor = self.query_u(t, y)
+
+            import ipdb; ipdb.set_trace()
 
             t = torch.reshape(t, [-1, 1])
 
@@ -2941,7 +2945,7 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
     return test, T_t,\
         rho0, rhoT,\
         bc_grids, domain_grids, grid_n_meshes,\
-        control_data
+        control_data, tt_u
 
     # return test, rho0, rhoT, T_t, control_data,\
     #     [t0_u_dx, t0_u_dy, t0_u_dz],\

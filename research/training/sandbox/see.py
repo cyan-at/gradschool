@@ -228,7 +228,8 @@ if __name__ == '__main__':
                 s=1.0*np.ones(x.shape[0]),
                 cmap=cm.jet,
                 alpha=1.0,
-                label=k_tokens[x_i])
+                # label=k_tokens[x_i]
+                )
             plt.colorbar(sc1, shrink=0.25)
             ax1.set_xlabel('x')
             ax1.set_ylabel('y')

@@ -151,7 +151,7 @@ def do_integration2(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde, sde2):
     ts = torch.linspace(T_0, T_t, int(T_t * 500), device=cuda0)
     # ts = torch.linspace(T_0, 1, int(1 * 500), device=cuda0)
 
-    import ipdb; ipdb.set_trace()
+    # import ipdb; ipdb.set_trace()
 
     initial_sample = np.random.multivariate_normal(
         np.array(mu_0), np.eye(d)*sigma_0, args.M) # 100 x 3
@@ -441,7 +441,7 @@ if __name__ == '__main__':
     control_data = make_control_data(
         model, inputs, N, d, meshes, args, get_u2)
 
-    import ipdb; ipdb.set_trace()
+    # import ipdb; ipdb.set_trace()
 
     ########################################################
 
