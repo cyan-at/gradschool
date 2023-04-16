@@ -93,6 +93,9 @@ def get_model(
     ni=0,
     epsilon=1e-3
     ):
+    print("mu_0", mu_0, sigma_0)
+    print("mu_T", mu_T, sigma_T)
+
     M = N**d
 
     linspaces = []
@@ -122,8 +125,8 @@ def get_model(
 
     ######################################
 
-    rv0 = multivariate_normal([mu_0]*d, sigma_0 * np.eye(d))
-    rvT = multivariate_normal([mu_T]*d, sigma_T * np.eye(d))
+    rv0 = multivariate_normal(mu_0, sigma_0 * np.eye(d))
+    rvT = multivariate_normal(mu_T, sigma_T * np.eye(d))
 
     rho0=rv0.pdf(state)
     rho0 = np.float32(rho0)
@@ -251,8 +254,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="")
     parser.add_argument('--a', type=str, default="-1,1,2", help='')
     parser.add_argument('--q', type=float, default=0.5, help='')
-    parser.add_argument('--mu_0', type=str, default="", help='')
-    parser.add_argument('--mu_T', type=str, default="", help='')
+
+    # parser.add_argument('--mu_0', type=str, default="", help='')
+    # parser.add_argument('--mu_T', type=str, default="", help='')
+    parser.add_argument('--mu_0', type=str, required=True, help='')
+    parser.add_argument('--mu_T', type=str, required=True, help='')
+
     parser.add_argument('--T_t', type=str, default="", help='')
     parser.add_argument('--N', type=int, default=15, help='')
     parser.add_argument('--state_bound_min', type=float, default=-5, help='')
@@ -319,13 +326,15 @@ if __name__ == '__main__':
     print("a: ", args.a)
     print("q: ", q_statepenalty_gain)
 
-    if len(args.mu_0) > 0:
-        mu_0 = float(args.mu_0)
-    print("mu_0", mu_0)
+    # if len(args.mu_0) > 0:
+    #     mu_0 = float(args.mu_0)
+    # print("mu_0", mu_0)
+    mu_0 = [float(x) for x in args.mu_0.strip().split(",")]
 
-    if len(args.mu_T) > 0:
-        mu_T = float(args.mu_T)
-    print("mu_T", mu_T)
+    # if len(args.mu_T) > 0:
+    #     mu_T = float(args.mu_T)
+    # print("mu_T", mu_T)
+    mu_T = [float(x) for x in args.mu_T.strip().split(",")]
 
     if len(args.T_t) > 0:
         T_t = float(args.T_t)

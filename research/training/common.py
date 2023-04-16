@@ -105,7 +105,15 @@ def get_pdf_support(matrix, xs, mode=0, indices=None, t=False):
                 x=xs[0])
             # buffer1[i] = trapz out x
             # buffer1[i] = matrix[:, i]
-        return np.trapz(buffer1, x=xs[1])
+
+        total = np.trapz(buffer1, x=xs[1])
+
+        buffer1 /= total
+
+        if mode == 1:
+            return buffer1
+
+        return total
 
 def get_pdf_support_torch(
     tensor,
@@ -2801,18 +2809,6 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
             np.linspace(args.state_bound_min, args.state_bound_max, N))
         )
 
-    rho0_cube = rho0.reshape((args.N,)*d)
-    # the LAST dimension is what matters
-    rho0_0 = get_pdf_support(rho0_cube, linspaces, 1, [2, 1, 0])
-    rho0_1 = get_pdf_support(rho0_cube, linspaces, 1, [2, 0, 1])
-    rho0_2 = get_pdf_support(rho0_cube, linspaces, 1, [0, 1, 2])
-
-    rhoT_cube = rhoT.reshape((args.N,)*d)
-    # the LAST dimension is what matters
-    rhoT_0 = get_pdf_support(rhoT_cube, linspaces, 1, [2, 1, 0])
-    rhoT_1 = get_pdf_support(rhoT_cube, linspaces, 1, [2, 0, 1])
-    rhoT_2 = get_pdf_support(rhoT_cube, linspaces, 1, [0, 1, 2])
-
     ######################################################## bc control
 
     tmp = []
@@ -2833,18 +2829,54 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
     t0_control_data = {
         'grid' : bc_grids,
         'rho' : rho0,
-        'rho_0' : rho0_0,
-        'rho_1' : rho0_1,
-        'rho_2' : rho0_2,
     }
 
     tT_control_data = {
         'grid' : bc_grids,
         'rho' : rhoT,
-        'rho_0' : rhoT_0,
-        'rho_1' : rhoT_1,
-        'rho_2' : rhoT_2,
     }
+
+    ########################################################
+
+    rho0_cube = rho0.reshape((args.N,)*d)
+    rhoT_cube = rhoT.reshape((args.N,)*d)
+
+    if d == 3:
+        # the LAST dimension is what matters
+        rho0_0 = get_pdf_support(rho0_cube, linspaces, 1, [2, 1, 0])
+        rho0_1 = get_pdf_support(rho0_cube, linspaces, 1, [2, 0, 1])
+        rho0_2 = get_pdf_support(rho0_cube, linspaces, 1, [0, 1, 2])
+        t0_control_data.update({
+            'rho_0' : rho0_0,
+            'rho_1' : rho0_1,
+            'rho_2' : rho0_2,
+            })
+
+        # the LAST dimension is what matters
+        rhoT_0 = get_pdf_support(rhoT_cube, linspaces, 1, [2, 1, 0])
+        rhoT_1 = get_pdf_support(rhoT_cube, linspaces, 1, [2, 0, 1])
+        rhoT_2 = get_pdf_support(rhoT_cube, linspaces, 1, [0, 1, 2])
+        tT_control_data.update({
+            'rho_0' : rhoT_0,
+            'rho_1' : rhoT_1,
+            'rho_2' : rhoT_2,
+            })
+    elif d == 2:
+        # the LAST dimension is what matters
+        rho0_0 = get_pdf_support(rho0_cube, linspaces, 1, [1, 0])
+        rho0_1 = get_pdf_support(rho0_cube, linspaces, 1, [0, 1])
+        t0_control_data.update({
+            'rho_0' : rho0_0,
+            'rho_1' : rho0_1,
+            })
+
+        # the LAST dimension is what matters
+        rhoT_0 = get_pdf_support(rhoT_cube, linspaces, 1, [1, 0])
+        rhoT_1 = get_pdf_support(rhoT_cube, linspaces, 1, [0, 1])
+        tT_control_data.update({
+            'rho_0' : rhoT_0,
+            'rho_1' : rhoT_1,
+            })
 
     if batchsize == M:
         for d_i in range(d):
