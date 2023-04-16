@@ -199,13 +199,22 @@ def get_model(
         pde_key = int(args.pde_key)
     print("pde_key", pde_key)
 
+    bif = samples_between_initial_and_final
+    if args.bif > 0:
+        bif = args.bif
+
+    batchsize2 = None
+    if len(args.batchsize2) > 0:
+        batchsize2 = int(args.batchsize2)
+
     data = WASSPDE(
         geomtime,
         lambda x, y: euler_pdes[pde_key](x,  y, epsilon, a[0], a[1]),
         [rho_0_BC,rho_T_BC],
-        num_domain=samples_between_initial_and_final,
+        num_domain=bif,
         num_initial=ni, # initial_samples,
-        train_distribution=train_distribution
+        train_distribution=train_distribution,
+        domain_batch_size=batchsize2
     )
 
     # d+1 inputs: <state> + t
@@ -322,6 +331,14 @@ if __name__ == '__main__':
         type=float,
         default=0.5)
 
+    parser.add_argument('--bif', type=int, default=1000, help='')
+    parser.add_argument('--batchsize2',
+        type=str,
+        default="")
+    parser.add_argument('--batch2_period',
+        type=int,
+        default=5)
+
     args = parser.parse_args()
 
     N = args.N
@@ -397,11 +414,32 @@ if __name__ == '__main__':
     if args.epochs > 0:
         num_epochs = args.epochs
 
+    cbs = [earlystop_cb, modelcheckpt_cb]
+
+    if len(args.batchsize2) > 0:
+        print("making minibatch support")
+
+        def save_minibatch():
+            fname, _ = Util.get_next_valid_name_increment(
+                './', model_name + '_minibatch_', 0, '', 'txt')
+            print("saving minibatch to %s" % (fname))
+            # import ipdb; ipdb.set_trace()
+            np.savetxt(fname, model.train_state.X_test)
+
+        resampler_cb = PDEPointResampler2(
+            pde_points=True,
+            bc_points=False,
+            period=args.batch2_period,
+            cbs=[save_minibatch])
+        cbs.append(resampler_cb)
+    else:
+        print("no minibatching support")
+
     start = time.time()
     losshistory, train_state = model.train(
         iterations=num_epochs,
         display_every=de,
-        callbacks=[earlystop_cb, modelcheckpt_cb],
+        callbacks=cbs,
         model_save_path=ck_path)
     end = time.time()
 
@@ -426,11 +464,6 @@ if __name__ == '__main__':
     bc_grids, domain_grids, grid_n_meshes,\
     control_data, tt_u = make_control_data(
         model, inputs, N, d, meshes, args)
-
-    # import ipdb; ipdb.set_trace();
-    if args.diff_on_cpu:
-        print("returning net to cuda")
-        model.net = model.net.to(cuda0).requires_grad_(True)
 
     fname = '%s_%d_%d_%s_%d_%d_all_control_data.npy' % (
             model_path.replace(".pt", ""),

@@ -1576,13 +1576,19 @@ class ModelCheckpoint2(dde.callbacks.ModelCheckpoint):
 ######################################
 
 class PDEPointResampler2(dde.callbacks.PDEPointResampler):
-    def __init__(self, period=100, pde_points=True, bc_points=False):
+    def __init__(self, period=100, pde_points=True, bc_points=False, cbs=[]):
         super(PDEPointResampler2, self).__init__(period, pde_points, bc_points)
+
+        self.cbs = cbs
 
     def on_epoch_end(self):
         self.epochs_since_last_resample += 1
         if self.epochs_since_last_resample < self.period:
             return
+
+        for cb in self.cbs:
+            cb()
+
         self.epochs_since_last_resample = 0
         self.model.data.resample_train_points(
             self.pde_points, self.bc_points, 1000)
@@ -1879,6 +1885,7 @@ class WASSPDE(dde.data.TimePDE):
             indices = self.notbc_sampler.get_next(self.domain_batch_size)
             X = self.X[indices]
         else:
+            print("no sampling on train_points")
             X = self.X
 
         if self.num_initial > 0:
@@ -3002,8 +3009,8 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
 
     with pm.Model():
         mu0 = pm.Normal('mu0',
-            np.array([mu_0]*d),
-            np.array([sigma_0]*d),
+            np.array(mu_0),
+            np.array(sigma_0),
             shape=d)
         # trace = pm.sample(args.M, cores=1)
         # initial_sample = np.array(
@@ -3015,7 +3022,7 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
     # initial_sample = initial_sample[:args.M]
 
     initial_sample = np.random.multivariate_normal(
-        np.array([mu_0]*d), np.eye(d)*sigma_0, args.M) # 100 x 3
+        mu_0, np.eye(d)*sigma_0, args.M) # 100 x 3
 
     v_scales = [float(x) for x in args.v_scale.split(",")]
     biases = [float(x) for x in args.bias.split(",")]

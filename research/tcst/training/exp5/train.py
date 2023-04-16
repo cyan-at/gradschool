@@ -434,10 +434,19 @@ if __name__ == '__main__':
         save_better_only=True,
         period=1)
 
+
+    def save_minibatch():
+        fname, _ = Util.get_next_valid_name_increment(
+            './', model_name + '_minibatch_', 0, '', 'npy')
+        print("saving minibatch to %s" % (fname))
+        import ipdb; ipdb.set_trace()
+        model.train_state.X_test
+
     resampler_cb = PDEPointResampler2(
         pde_points=True,
         bc_points=False,
-        period=args.batch2_period)
+        period=args.batch2_period,
+        cbs=[save_minibatch])
 
     if args.epochs > 0:
         num_epochs = args.epochs
