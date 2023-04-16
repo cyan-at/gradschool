@@ -93,8 +93,8 @@ def get_model(
     ni=0,
     epsilon=1e-3
     ):
-    print("mu_0", mu_0, sigma_0)
-    print("mu_T", mu_T, sigma_T)
+    print("mu_0", mu_0, args.sigma)
+    print("mu_T", mu_T, args.sigma)
 
     M = N**d
 
@@ -125,8 +125,8 @@ def get_model(
 
     ######################################
 
-    rv0 = multivariate_normal(mu_0, sigma_0 * np.eye(d))
-    rvT = multivariate_normal(mu_T, sigma_T * np.eye(d))
+    rv0 = multivariate_normal(mu_0, args.sigma * np.eye(d))
+    rvT = multivariate_normal(mu_T, args.sigma * np.eye(d))
 
     rho0=rv0.pdf(state)
     rho0 = np.float32(rho0)
@@ -320,7 +320,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--sigma',
         type=float,
-        default=0.01)
+        default=0.5)
 
     args = parser.parse_args()
 
