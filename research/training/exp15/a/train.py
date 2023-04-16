@@ -402,11 +402,18 @@ if __name__ == '__main__':
     #     _, _, _, _ = make_control_data(
     #     model, model.train_state.X_test, N, d, meshes, args)
 
+    inputs = model.train_state.X_test
+
     test, T_t,\
     rho0, rhoT,\
     bc_grids, domain_grids, grid_n_meshes,\
     control_data = make_control_data(
         model, inputs, N, d, meshes, args)
+
+    # import ipdb; ipdb.set_trace();
+    if args.diff_on_cpu:
+        print("returning net to cuda")
+        model.net = model.net.to(cuda0).requires_grad_(True)
 
     fname = '%s_%d_%d_%s_%d_%d_all_control_data.npy' % (
             model_path.replace(".pt", ""),

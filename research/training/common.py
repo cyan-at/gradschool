@@ -2942,6 +2942,10 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
 
     # import ipdb; ipdb.set_trace()
 
+    if args.diff_on_cpu:
+        print("returning net to cuda")
+        model.net = model.net.to(cuda0).requires_grad_(True)
+
     return test, T_t,\
         rho0, rhoT,\
         bc_grids, domain_grids, grid_n_meshes,\

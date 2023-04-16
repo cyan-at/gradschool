@@ -500,7 +500,7 @@ if __name__ == '__main__':
     # import ipdb; ipdb.set_trace()
 
     m = 0.0
-    b = 5.0
+    b = 0.25
 
     control_data['t0']['0'] = control_data['t0']['0'] * m + b
     control_data['t0']['1'] = control_data['t0']['1'] * m + b
@@ -511,6 +511,8 @@ if __name__ == '__main__':
 
     if args.do_integration > 0:
         print("T_t", T_t)
+
+        T_t = 200.0
 
         sde2 = SDE2(control_data)
         # state path to model information file
