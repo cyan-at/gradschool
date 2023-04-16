@@ -318,6 +318,10 @@ if __name__ == '__main__':
         type=str,
         default="0.0")
 
+    parser.add_argument('--sigma',
+        type=float,
+        default=0.01)
+
     args = parser.parse_args()
 
     N = args.N

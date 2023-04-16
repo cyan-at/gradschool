@@ -151,6 +151,8 @@ def plot_stems(idx, initial_sample, with_control, without_control, d, h1, h2, ax
     one of {'tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 'tab:brown', 'tab:pink', 'tab:gray', 'tab:olive', 'tab:cyan'}
     '''
 
+    print("ax_i", ax_i)
+
     all_dims = {}
 
     for j in range(d):
@@ -499,12 +501,12 @@ if __name__ == '__main__':
 
     print("test.shape", test.shape)
 
-    inputs = np.vstack((
-        model.data.bc_points(),
-        model.data.train_x_all
-    ))
+    # inputs = np.vstack((
+    #     model.data.bc_points(),
+    #     model.data.train_x_all
+    # ))
 
-    print("test.shape", test.shape)
+    # print("test.shape", test.shape)
 
     # import ipdb; ipdb.set_trace()
 
@@ -515,7 +517,7 @@ if __name__ == '__main__':
     test, T_t,\
     rho0, rhoT,\
     bc_grids, domain_grids, grid_n_meshes,\
-    control_data = make_control_data(
+    control_data, tt_u = make_control_data(
         model, inputs, N, d, meshes, args)
 
     # import ipdb; ipdb.set_trace()
@@ -622,16 +624,22 @@ if __name__ == '__main__':
 
     ########################################################
 
-    ax1 = fig.add_subplot(rows, 3, 1, projection='3d')
-    axs = [ax1]
+    axs = []
 
-    if ax_count > 1:
-        ax2 = fig.add_subplot(rows, 3, 2, projection='3d')
-        axs.append(ax2)
+    # ax1 = fig.add_subplot(rows, 3, 1, projection='3d')
+    # axs = [ax1]
 
-    if ax_count > 2:
-        ax3 = fig.add_subplot(rows, 3, 3, projection='3d')
-        axs.append(ax3)
+    # if ax_count > 1:
+    #     ax2 = fig.add_subplot(rows, 3, 2, projection='3d')
+    #     axs.append(ax2)
+
+    # if ax_count > 2:
+    #     ax3 = fig.add_subplot(rows, 3, 3, projection='3d')
+    #     axs.append(ax3)
+
+    for i in range(ax_count):
+        ax_i = fig.add_subplot(rows, ax_count, i+1, projection='3d')
+        axs.append(ax_i)
 
     if rows > 1:
         for r in range(1, args.plot_samples):
@@ -953,6 +961,8 @@ if __name__ == '__main__':
     #     )
 
     # plt.suptitle(title_str)
+
+    fig.subplots_adjust(left=0, right=1, bottom=0, top=1)
 
     manager = plt.get_current_fig_manager()
 
