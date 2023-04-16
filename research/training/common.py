@@ -2972,7 +2972,7 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
         mu0 = pm.Normal('mu0',
             np.array([mu_0]*d),
             np.array([sigma_0]*d),
-            shape=3)
+            shape=d)
         # trace = pm.sample(args.M, cores=1)
         # initial_sample = np.array(
         #     [x['mu0'] for x in list(trace.points())])
@@ -3125,7 +3125,7 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
     with_control2 = np.empty(
         (
             initial_sample.shape[0],
-            initial_sample.shape[1]+1+3,
+            initial_sample.shape[1]+1+d,
             len(ts),
         ))
     # for each integrated spacetime point, query rho
@@ -3151,8 +3151,8 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
 
 
             # also get the u / tau for this coordinate
-            tmp2 = np.array([0.0]*3)
-            for j in range(3):
+            tmp2 = np.array([0.0]*d)
+            for j in range(d):
                 tmp2[j] = t_control_data[str(j)][closest_grid_idx]
 
             try:

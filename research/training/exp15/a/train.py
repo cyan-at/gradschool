@@ -411,7 +411,7 @@ if __name__ == '__main__':
     test, T_t,\
     rho0, rhoT,\
     bc_grids, domain_grids, grid_n_meshes,\
-    control_data = make_control_data(
+    control_data, tt_u = make_control_data(
         model, inputs, N, d, meshes, args)
 
     # import ipdb; ipdb.set_trace();
