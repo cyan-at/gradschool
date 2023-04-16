@@ -287,6 +287,10 @@ if __name__ == '__main__':
         type=int,
         default=0)
 
+    parser.add_argument('--plot_samples',
+        type=int,
+        default=4)
+
     parser.add_argument('--integrate_N',
         type=int,
         default=2000,
