@@ -314,7 +314,6 @@ if __name__ == '__main__':
         type=str,
         required=True)
 
-    '''
     parser.add_argument('--diff_on_cpu',
         type=int, default=1)
     parser.add_argument('--fullstate',
@@ -346,6 +345,8 @@ if __name__ == '__main__':
     parser.add_argument('--bias',
         type=str,
         default="0.0")
+
+    '''
     '''
 
     args = parser.parse_args()
@@ -437,10 +438,22 @@ if __name__ == '__main__':
 
     def save_minibatch():
         fname, _ = Util.get_next_valid_name_increment(
-            './', model_name + '_minibatch_', 0, '', 'npy')
+            './', model_name + '_minibatch', 0, '', 'npy')
+        np.save(
+            fname,
+            model.train_state.X_test)
         print("saving minibatch to %s" % (fname))
-        import ipdb; ipdb.set_trace()
-        model.train_state.X_test
+
+        _, _, _, _, control_data,\
+            _, _, _, _ = make_control_data(
+            model, model.train_state.X_test, N, d, meshes, args)
+        fname, _ = Util.get_next_valid_name_increment(
+            './', model_name + '_minibatch_control_data', 0, '', 'npy')
+        np.save(
+            fname, 
+            control_data
+        )
+        print("saved control_data to %s" % (fname))
 
     resampler_cb = PDEPointResampler2(
         pde_points=True,

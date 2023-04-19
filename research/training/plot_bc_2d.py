@@ -6,11 +6,11 @@ USAGE:
 
 ../../plot_loss_func.py --lossdat ./loss2.dat --modelpt ./exp29v13-92000.pt
 
-../../plot_bc_2d.py --testdat ./test2.dat --modelpt ./exp29v13-92000.pt --a '-0.1, 0.2, -0.09' --T_t 4.0 --batchsize 450 --N 25 --bif 100000 --noise --interp_mode linear --plot_bc 0 --grid_n 30 --plot_without_control 1 --plot_3d 1 --M 200 --sigma_0 0.5
+../../plot_bc_2d.py --testdat ./test2.dat --modelpt ./exp29v13-92000.pt --a '-0.1, 0.2, -0.09' --T_t 4.0 --batchsize 450 --N 25 --bif 100000 --noise --interp_mode linear --plot_bc 0 --grid_n 30 --plot_without_control 1 --plot_3d 1 --M 200 --sigma 0.5
 
-../../plot_bc_2d.py --testdat ./test2.dat --modelpt ./exp29v13-92000.pt --a '-0.1, 0.2, -0.09' --T_t 4.0 --batchsize 450 --N 25 --bif 10000 --noise --interp_mode linear --plot_bc 0 --grid_n 30 --plot_without_control 0 --M 100 --sigma_0 1.0
+../../plot_bc_2d.py --testdat ./test2.dat --modelpt ./exp29v13-92000.pt --a '-0.1, 0.2, -0.09' --T_t 4.0 --batchsize 450 --N 25 --bif 10000 --noise --interp_mode linear --plot_bc 0 --grid_n 30 --plot_without_control 0 --M 100 --sigma 1.0
 
-../../plot_bc_2d.py --testdat ./test2.dat --modelpt ./exp29v13-92000.pt --a '-0.1, 0.2, -0.09' --T_t 4.0 --batchsize 450 --N 25 --bif 100000 --noise --interp_mode linear --plot_bc 0 --grid_n 30 --plot_without_control 0 --M 100 --plot_u 1 --do_integration 0 --sigma_0 1.0
+../../plot_bc_2d.py --testdat ./test2.dat --modelpt ./exp29v13-92000.pt --a '-0.1, 0.2, -0.09' --T_t 4.0 --batchsize 450 --N 25 --bif 100000 --noise --interp_mode linear --plot_bc 0 --grid_n 30 --plot_without_control 0 --M 100 --plot_u 1 --do_integration 0 --sigma 1.0
 
 '''
 
@@ -338,10 +338,14 @@ if __name__ == '__main__':
     parser.add_argument('--optimizer',
         type=str, default="adam", help='')
 
-    parser.add_argument('--mu_0',
-        type=str, default="", help='')
-    parser.add_argument('--mu_T',
-        type=str, default="", help='')
+    # parser.add_argument('--mu_0',
+    #     type=str, default="", help='')
+    # parser.add_argument('--mu_T',
+    #     type=str, default="", help='')
+
+    parser.add_argument('--mu_0', type=str, required=True, help='')
+    parser.add_argument('--mu_T', type=str, required=True, help='')
+
     parser.add_argument('--T_t',
         type=str, default='', help='')
     parser.add_argument('--a', type=str, default="-1,1,2", help='')
@@ -424,25 +428,27 @@ if __name__ == '__main__':
         type=int,
         default=0)
 
-    parser.add_argument('--sigma_0',
-        type=str,
-        default="")
+    parser.add_argument('--sigma',
+        type=float,
+        default=0.5)
 
     args, _ = parser.parse_known_args()
 
-    if len(args.mu_T) > 0:
-        mu_T = float(args.mu_T)
-    if len(args.mu_0) > 0:
-        mu_0 = float(args.mu_0)
+    # if len(args.mu_0) > 0:
+    #     mu_0 = float(args.mu_0)
+    # print("mu_0", mu_0)
+    mu_0 = [float(x) for x in args.mu_0.strip().split(",")]
+
+    mu_T = [float(x) for x in args.mu_T.strip().split(",")]
+
+    #     mu_T = float(args.mu_T)
+    # print("mu_T", mu_T)
 
     print("mu_0", mu_0)
 
     if len(args.T_t) > 0:
         T_t = float(args.T_t)
     print("T_t", T_t)
-
-    if len(args.sigma_0) > 0:
-        sigma_0 = float(args.sigma_0)
 
     ################################################
 
@@ -541,10 +547,10 @@ if __name__ == '__main__':
     print("saved control_data to %s" % (fname))
 
     if args.do_integration > 0:
-        print("T_t", T_t, sigma_0)
+        print("T_t", T_t, args.sigma)
 
         ts, initial_sample, with_control, without_control,\
-            all_results, mus, variances = do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args)
+            all_results, mus, variances = do_integration(control_data, d, T_0, T_t, mu_0, args.sigma, args)
 
         # for abhishek
         fname = './%s_closedlooptrajectories.npy' % (run_identifier)
@@ -612,8 +618,16 @@ if __name__ == '__main__':
         rows = args.plot_samples
 
     ax_count = 0
+
+    # for bc
     if args.plot_bc > 0:
-        ax_count += 2
+        if plot_d == 3:
+            ax_count += 2
+        elif plot_d == 2:
+            ax_count += 1
+
+    # for u1, u2
+    ax_count += 2
 
     if args.plot_u > 0:
         ax_count = plot_d*rows
@@ -804,7 +818,7 @@ if __name__ == '__main__':
             # axs[ax_i].set_title(
             #     'rho0:\nmu=%.3f\nsigma=%.3f\nsum=%.3f\nmin=%.3f\nmax=%.3f' % (
             #     mu_0,
-            #     sigma_0,
+            #     sigma,
             #     np.sum(t0[:, -1]),
             #     np.min(t0[:, -1]),
             #     np.max(t0[:, -1])
@@ -847,7 +861,7 @@ if __name__ == '__main__':
             # axs[ax_i].set_title(
             #     'rho0:\nmu=%.3f\nsigma=%.3f\nsum=%.3f\nmin=%.3f\nmax=%.3f' % (
             #     mu_0,
-            #     sigma_0,
+            #     sigma,
             #     np.sum(t0[:, -1]),
             #     np.min(t0[:, -1]),
             #     np.max(t0[:, -1])
@@ -872,7 +886,7 @@ if __name__ == '__main__':
         # axs[ax_i].set_title(
         #     'rho0:\nmu=%.3f\nsigma=%.3f\nsum=%.3f\nmin=%.3f\nmax=%.3f' % (
         #     mu_0,
-        #     sigma_0,
+        #     sigma,
         #     np.sum(t0[:, -1]),
         #     np.min(t0[:, -1]),
         #     np.max(t0[:, -1])
@@ -1039,7 +1053,7 @@ if __name__ == '__main__':
         for j in range(plot_d):
             # axs[ax_i + j].set_aspect('equal', 'box')
             # # axs[ax_i + j].set_zlim(b, 2*np.max([h1, h2]))
-            axs[ax_i + j].set_zlim(b, 0.5)
+            axs[ax_i + j].set_zlim(b, 5.0)
 
             # axs[ax_i + j].set_title(
             #     'with: %.2f, %.2f\nwithout: %.2f, %.2f' % (

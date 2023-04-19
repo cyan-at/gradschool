@@ -2630,6 +2630,7 @@ class Integrator(object):
                     strategy_key
                 ))
         else:
+            print("no noise")
             _, tmp = euler_maru(
                 self.initial_sample[i, :],
                 self.t_span,
@@ -2647,8 +2648,13 @@ class Integrator(object):
                     strategy_key
                 ))
 
+        print("# nans:", np.count_nonzero(
+            np.isnan(tmp)), tmp.size)
+        tmp = np.nan_to_num(tmp)
+
         if np.max(tmp) > self.args.state_bound_max or np.min(tmp) < self.args.state_bound_min:
             print("integrator blew up, tossing out")
+
         else:
             target[i, :, :] = tmp.T
 
@@ -2784,6 +2790,19 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
     rhoT = tT[:, inputs.shape[1] + 2 - 1]
     rhoTT = tt[:, inputs.shape[1] + 2 - 1]
 
+    ################################################ bc rho
+
+    # import ipdb; ipdb.set_trace()
+
+    print("np.where(rho0 < 0)", np.where(rho0 < 0)[0].shape[0])
+    print("np.where(rhoT < 0)", np.where(rhoT < 0)[0].shape[0])
+
+    rho0 = np.where(rho0 < 0, 0, rho0)
+    rhoT = np.where(rhoT < 0, 0, rhoT)
+    rhoTT = np.where(rhoTT < 0, 0, rhoTT)
+
+    ################################################ bc rho
+
     if rho0.shape[0] != M:
         print("interpolating rho0 and rhoT because bc was batched using original meshes",
             rho0.shape,
@@ -2847,6 +2866,16 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
 
     rho0_cube = rho0.reshape((args.N,)*d)
     rhoT_cube = rhoT.reshape((args.N,)*d)
+
+    ################################################ bc rho
+
+    # import ipdb; ipdb.set_trace()
+
+    # print("np.where(rho0 < 0)", np.where(rho0_cube < 0)[0].shape[0])
+    # print("np.where(rhoT < 0)", np.where(rhoT_cube < 0)[0].shape[0])
+
+    # rho0_cube = np.where(rho0_cube < 0, 0, rho0_cube)
+    # rhoT_cube = np.where(rhoT_cube < 0, 0, rhoT_cube)
 
     if d == 3:
         # the LAST dimension is what matters
@@ -2961,21 +2990,22 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
     dt = (T_t - T_0)/(args.integrate_N)
     ts = np.arange(T_0, T_t + dt, dt)
 
-    slice_control_grids = {}
-    slices = [int(x) for x in np.round(np.linspace(0, len(ts)-1, args.plot_samples))]
-    for s in slices:
+    if hasattr(args, 'plot_samples'):
+        slice_control_grids = {}
+        slices = [int(x) for x in np.round(np.linspace(0, len(ts)-1, args.plot_samples))]
+        for s in slices:
 
-        # import ipdb;ipdb.set_trace()
+            # import ipdb;ipdb.set_trace()
 
-        print(s, ts[s])
-        slice_control_grids[s] = query_control_grid(
-            control_data,
-            meshes,
-            ts[s],
-            T_0,
-            T_t
-            )
-    tt_control_data['slices'] = slice_control_grids
+            print(s, ts[s])
+            slice_control_grids[s] = query_control_grid(
+                control_data,
+                meshes,
+                ts[s],
+                T_0,
+                T_t
+                )
+        tt_control_data['slices'] = slice_control_grids
 
     ########################################################
 
@@ -3007,16 +3037,16 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
 
     print("M", args.M)
 
-    with pm.Model():
-        mu0 = pm.Normal('mu0',
-            np.array(mu_0),
-            np.array(sigma_0),
-            shape=d)
-        # trace = pm.sample(args.M, cores=1)
-        # initial_sample = np.array(
-        #     [x['mu0'] for x in list(trace.points())])
+    # with pm.Model():
+    #     mu0 = pm.Normal('mu0',
+    #         np.array(mu_0),
+    #         np.array(sigma_0),
+    #         shape=d)
+    #     # trace = pm.sample(args.M, cores=1)
+    #     # initial_sample = np.array(
+    #     #     [x['mu0'] for x in list(trace.points())])
 
-        initial_sample = mu0.random(size=args.M)
+    #     initial_sample = mu0.random(size=args.M)
 
         # import ipdb; ipdb.set_trace()
     # initial_sample = initial_sample[:args.M]
@@ -3045,21 +3075,16 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
         args,
         dynamics_map[pde_key])
 
+    ##############################
+
+    print("without_control")
+
     without_control = np.empty(
         (
             initial_sample.shape[0],
             initial_sample.shape[1],
             len(ts),
         ))
-
-    without_control2 = np.empty(
-        (
-            initial_sample.shape[0],
-            initial_sample.shape[1]+1,
-            len(ts),
-        ))
-
-    ##############################
 
     with ThreadPoolExecutor(max_workers=args.workers) as executor:
         results = executor.map(
@@ -3073,6 +3098,15 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
         if len(v_scales) == 1:
             for result in results:
                 print("done with {}".format(result))
+
+    print("without_control2")
+
+    without_control2 = np.empty(
+        (
+            initial_sample.shape[0],
+            initial_sample.shape[1]+1,
+            len(ts),
+        ))
 
     # for each integrated spacetime point, query rho
     for i in range(without_control.shape[0]):
@@ -3111,6 +3145,8 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
             if control_data is not None:
                 with_control_affine = lambda v: v * vs + b
 
+                print("with_control")
+
                 with_control = np.empty(
                     (
                         initial_sample.shape[0],
@@ -3144,8 +3180,13 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
                     tmp = tmp[tmp > args.state_bound_min]
                     tmp = tmp[tmp < args.state_bound_max]
 
-                    mus[2*j] = np.mean(with_control[:, j, -1])
-                    variances[2*j] = np.var(with_control[:, j, -1])
+                    # import ipdb; ipdb.set_trace()
+
+                    mus[2*j] = np.mean(tmp)
+                    variances[2*j] = np.var(tmp)
+
+                    with_control[:, j, -1] =\
+                        np.nan_to_num(with_control[:, j, -1])
 
                 mus[2*j+1] = np.mean(without_control[:, j, -1])
                 variances[2*j+1] = np.var(without_control[:, j, -1])
@@ -3161,45 +3202,47 @@ def do_integration(control_data, d, T_0, T_t, mu_0, sigma_0, args):
             if len(v_scales) > 1:
                 del with_control
 
+    print("with_control2")
+
     with_control2 = np.empty(
         (
             initial_sample.shape[0],
             initial_sample.shape[1]+1+d,
             len(ts),
         ))
-    # for each integrated spacetime point, query rho
-    for i in range(with_control.shape[0]):
-        for t in range(len(ts)):
-            # print(with_control[i, :, t], ts[t])
+    # # for each integrated spacetime point, query rho
+    # for i in range(with_control.shape[0]):
+    #     for t in range(len(ts)):
+    #         # print(with_control[i, :, t], ts[t])
 
-            t_control_data, closest_grid_idx = query_u(
-                with_control[i, :, t],
-                ts[t],
-                T_0,
-                T_t,
-                control_data)
+    #         t_control_data, closest_grid_idx = query_u(
+    #             with_control[i, :, t],
+    #             ts[t],
+    #             T_0,
+    #             T_t,
+    #             control_data)
 
-            # import ipdb; ipdb.set_trace()
-            # r = t_control_data['rho'][closest_grid_idx]
+    #         # import ipdb; ipdb.set_trace()
+    #         # r = t_control_data['rho'][closest_grid_idx]
 
-            tmp = t_control_data['rho'][closest_grid_idx]
-            if len(tmp.shape) < 1:
-                tmp = t_control_data['rho'][closest_grid_idx, np.newaxis]
-            elif len(tmp.shape) == 2:
-                tmp = t_control_data['rho'][closest_grid_idx][0]
+    #         tmp = t_control_data['rho'][closest_grid_idx]
+    #         if len(tmp.shape) < 1:
+    #             tmp = t_control_data['rho'][closest_grid_idx, np.newaxis]
+    #         elif len(tmp.shape) == 2:
+    #             tmp = t_control_data['rho'][closest_grid_idx][0]
 
 
-            # also get the u / tau for this coordinate
-            tmp2 = np.array([0.0]*d)
-            for j in range(d):
-                tmp2[j] = t_control_data[str(j)][closest_grid_idx]
+    #         # also get the u / tau for this coordinate
+    #         tmp2 = np.array([0.0]*d)
+    #         for j in range(d):
+    #             tmp2[j] = t_control_data[str(j)][closest_grid_idx]
 
-            try:
-                with_control2[i, :, t] = np.concatenate((
-                    with_control[i, :, t], tmp, tmp2))
-            except Exception as e:
-                import ipdb; ipdb.set_trace()
-                print("what", with_control[i, :, t], ts[t])
+    #         try:
+    #             with_control2[i, :, t] = np.concatenate((
+    #                 with_control[i, :, t], tmp, tmp2))
+    #         except Exception as e:
+    #             import ipdb; ipdb.set_trace()
+    #             print("what", with_control[i, :, t], ts[t])
 
     # import ipdb; ipdb.set_trace()
 
