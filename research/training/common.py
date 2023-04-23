@@ -1593,12 +1593,15 @@ class PDEPointResampler2(dde.callbacks.PDEPointResampler):
         self.model.data.resample_train_points(
             self.pde_points, self.bc_points, 1000)
 
+        self.model.train_state.set_data_test(*self.model.data.test())
+
         if not np.array_equal(self.num_bcs_initial, self.model.data.num_bcs):
             print("Initial value of self.num_bcs:", self.num_bcs_initial)
             print("self.model.data.num_bcs:", self.model.data.num_bcs)
             raise ValueError(
                 "`num_bcs` changed! Please update the loss function by `model.compile`."
             )
+
 
 class NonNeg_LastLayer_Model(dde.Model):
     def _train_sgd(self, iterations, display_every):
@@ -1888,6 +1891,8 @@ class WASSPDE(dde.data.TimePDE):
             print("no sampling on train_points")
             X = self.X
 
+        # import ipdb; ipdb.set_trace()
+
         if self.num_initial > 0:
             if self.train_distribution == "uniform":
                 tmp = self.geom.uniform_initial_points(self.num_initial)
@@ -1905,6 +1910,7 @@ class WASSPDE(dde.data.TimePDE):
 
                 tmp = np.array(list(filter(is_not_excluded, tmp)))
             X = np.vstack((tmp, X))
+
         self.train_x_all = X
         return X
 
@@ -1931,6 +1937,10 @@ class WASSPDE(dde.data.TimePDE):
         if bc_points:
             self.train_x_bc = None
         self.train_x, self.train_y, self.train_aux_vars = None, None, None
+
+        # important: for update of test_x == train_x
+        self.test_x, self.test_y, self.test_aux_vars = None, None, None
+
         self.train_next_batch()
 
     def losses(self, targets, outputs, loss_fn, inputs, model, aux=None):
