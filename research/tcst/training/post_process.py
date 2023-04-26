@@ -441,7 +441,12 @@ if __name__ == '__main__':
     control_data = make_control_data(
         model, inputs, N, d, meshes, args, get_u2)
 
-    # import ipdb; ipdb.set_trace()
+    tmp = np.matrix(control_data['tt']['rho']).T
+    collated = np.hstack((domain_grids, tmp))
+    sorted_collated = collated[np.argsort(collated[:, 2], 0)]
+    np.save('sc.npy', sorted_collated[:, 0, :])
+
+    import ipdb; ipdb.set_trace()
 
     ########################################################
 

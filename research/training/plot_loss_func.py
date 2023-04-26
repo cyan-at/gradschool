@@ -66,12 +66,12 @@ if __name__ == '__main__':
     lbl = 'eq %d' % (i)
     if i == num_cols - 2:
       lbl = r'$\rho_0$ boundary condition'
-      data /= 5.0
-      data -= (10*0.01)
+      # data /= 5.0
+      # data -= (10*0.01)
     elif i == num_cols - 1:
       lbl = r'$\rho_T$ boundary condition'
-      data /= 5.0
-      data -= (10*0.01)
+      # data /= 5.0
+      # data -= (10*0.01)
     elif i in label_lookup:
       lbl = label_lookup[i]
 
@@ -81,7 +81,7 @@ if __name__ == '__main__':
       label=lbl)
 
   ax.grid()
-  ax.legend(loc="upper right", frameon=False)
+  ax.legend(loc="lower right", frameon=False)
   # ax.set_title('training error/residual plots, %d epochs' % (len(epoch)))
 
   ax.set_yscale('log')

@@ -94,6 +94,7 @@ def get_model(
     sigma_0,
     mu_T,
     sigma_T,
+    T_0,
     T_t,
     args,
     network_f,
@@ -270,7 +271,7 @@ def get_model(
 
     # import ipdb; ipdb.set_trace()
 
-    return model, meshes
+    return model, meshes, C_device, rho0_tensor, rhoT_tensor
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="")
@@ -282,6 +283,8 @@ if __name__ == '__main__':
 
     parser.add_argument('--mu_0', type=str, required=True, help='')
     # parser.add_argument('--mu_T', type=str, default="", help='')
+
+    parser.add_argument('--T_0', type=str, default="0", help='')
     parser.add_argument('--T_t', type=str, default="200", help='')
 
     parser.add_argument('--optimizer', type=str, default="adam", help='')
@@ -354,6 +357,10 @@ if __name__ == '__main__':
     N = args.N
     print("N: ", N)
 
+    if len(args.T_0) > 0:
+        T_0 = float(args.T_0)
+    print("T_0", T_0)
+
     if len(args.T_t) > 0:
         T_t = float(args.T_t)
     print("T_t", T_t)
@@ -395,7 +402,7 @@ if __name__ == '__main__':
 
     target = tcst_map[args.crystal]
 
-    model, meshes = get_model(
+    model, meshes, _, _, _ = get_model(
         d,
         N,
         batchsize,
@@ -405,6 +412,7 @@ if __name__ == '__main__':
         args.sigma,
         target,
         args.sigma,
+        T_0,
         T_t,
         args,
         sde.network_f,

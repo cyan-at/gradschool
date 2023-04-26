@@ -114,6 +114,8 @@ import argparse
 
 from trained_sde_model import SDE_3 as SDE
 
+from layers import *
+
 # import ipdb; ipdb.set_trace()
 class SDE2(SDE):
     '''
@@ -459,7 +461,7 @@ if __name__ == '__main__':
 
         target = tcst_map[args.crystal]
 
-        model, meshes = get_model(
+        model, meshes, C_device, rho0_tensor, rhoT_tensor = get_model(
             d,
             N,
             batchsize,
@@ -487,7 +489,27 @@ if __name__ == '__main__':
 
     inputs = np.float32(test[:, :d+1])
 
-    domain = inputs[(N**2)*2:, :]
+    # domain = inputs[(N**2)*2:, :]
+
+    plot_id = '%s_Tt=%.3f_rho_opt_bc_batch=%d_%d_%s_%d' % (
+        args.modelpt.replace(".pt", ""),
+        T_t,
+        batchsize,
+        args.diff_on_cpu,
+        args.interp_mode,
+        args.grid_n
+    )
+
+    minibatches = []
+    for i in range(4):
+        minibatches.append(
+            np.load('./exp5l_minibatch_000000%d.npy' % (i))[(N**2)*2:, :]
+        )
+    domain = np.vstack(minibatches)
+
+    # import ipdb; ipdb.set_trace()
+
+    inputs = np.vstack([inputs[:(N**2)*2, :], domain])
 
     print("inputs.shape", inputs.shape)
 
@@ -497,17 +519,60 @@ if __name__ == '__main__':
     control_data, tt_u = make_control_data(
         model, inputs, N, d, meshes, args, get_tcst)
 
+    collated = np.hstack((
+        domain_grids,
+        np.matrix(control_data['tt']['rho']).T,
+        np.matrix(control_data['tt']['0']).T,
+        np.matrix(control_data['tt']['1']).T,
+        np.matrix(control_data['tt']['psi']).T,
+    ))
+    sorted_collated = collated[np.argsort(collated[:, 2], 0)]
+    sorted_collated = sorted_collated[:, 0, :]
+    # np.save('all.npy', sorted_collated)
+
+    new = sorted_collated[900:54000-900, :]
+
+    tmp1 = np.hstack((
+        control_data['t0']['grid'],
+        np.matrix(rho0).T,
+        np.matrix(control_data['t0']['0']).T,
+        np.matrix(control_data['t0']['1']).T,
+        np.matrix(control_data['t0']['psi']).T,
+    ))
+    tmp2 = np.hstack((
+        control_data['tT']['grid'],
+        np.matrix(rhoT).T,
+        np.matrix(control_data['tT']['0']).T,
+        np.matrix(control_data['tT']['1']).T,
+        np.matrix(control_data['tT']['psi']).T,
+    ))
+
+    n = tmp2.shape[1]+1
+
+    tmp3 = np.zeros((484, n))
+    tmp3[:, :2] = tmp1[:,:2]
+    tmp3[:, 3:] = tmp1[:, 2:]
+
+    tmp4 = np.zeros((484, n))
+    tmp4[:, :2] = tmp2[:,:2]
+    tmp4[:, 2] = 200.0
+    tmp4[:, 3:] = tmp2[:, 2:]
+
+    all2 = np.vstack((tmp3, new, tmp4))
+    np.save('%s_all_rho_u1_u2_psi.npy' % (plot_id), all2)
+
+
     # import ipdb; ipdb.set_trace()
 
-    m = 0.0
-    b = 0.25
+    # m = 0.0
+    # b = 0.25
 
-    control_data['t0']['0'] = control_data['t0']['0'] * m + b
-    control_data['t0']['1'] = control_data['t0']['1'] * m + b
-    control_data['tT']['0'] = control_data['tT']['0'] * m + b
-    control_data['tT']['1'] = control_data['tT']['1'] * m + b
-    control_data['tt']['0'] = control_data['tt']['0'] * m + b
-    control_data['tt']['1'] = control_data['tt']['1'] * m + b
+    # control_data['t0']['0'] = control_data['t0']['0'] * m + b
+    # control_data['t0']['1'] = control_data['t0']['1'] * m + b
+    # control_data['tT']['0'] = control_data['tT']['0'] * m + b
+    # control_data['tT']['1'] = control_data['tT']['1'] * m + b
+    # control_data['tt']['0'] = control_data['tt']['0'] * m + b
+    # control_data['tt']['1'] = control_data['tt']['1'] * m + b
 
     if args.do_integration > 0:
         print("T_t", T_t)
@@ -551,6 +616,13 @@ if __name__ == '__main__':
     p = 1.0
 
     ########################################################
+
+    # computing sinkhorn distance
+    sinkhorn0 = SinkhornDistance(eps=0.1, max_iter=200)
+
+    import ipdb; ipdb.set_trace()
+    # rho0_dist, _, _ = sinkhorn0(C, y_pred.reshape(-1), rho_tensor)
+    # rhoT_dist, _, _ = sinkhorn0(C, y_pred.reshape(-1), rho_tensor)
 
     rho0_contour = axs[ax_i].contourf(
         meshes[0],
@@ -725,14 +797,7 @@ if __name__ == '__main__':
 
     c = Counter()
     fig.canvas.mpl_connect('key_press_event', lambda e: c.on_press_saveplot(e,
-            '%s_Tt=%.3f_rho_opt_bc_batch=%d_%d_%s_%d' % (
-                args.modelpt.replace(".pt", ""),
-                T_t,
-                batchsize,
-                args.diff_on_cpu,
-                args.interp_mode,
-                args.grid_n
-            )
+            plot_id
         )
     )
 

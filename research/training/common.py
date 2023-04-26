@@ -2774,6 +2774,9 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
 
     t0_u, tT_u, tt_u = get_u_func(test, output_tensor, inputs_tensor, args, batchsize)
 
+    # for tcst
+    tt_rho = test[2*batchsize:, inputs.shape[1] + 2 - 1]
+
     ################################################ grid_n overhead
 
     # we redo meshing in case grid_n != N
@@ -2796,16 +2799,24 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
 
     ################################################ bc rho
 
+    psi0 = t0[:, inputs.shape[1] + 1 - 1]
+    psiT = tT[:, inputs.shape[1] + 1 - 1]
+    psiTT = tt[:, inputs.shape[1] + 1 - 1]
+
+    ################################################ bc rho
+
     rho0 = t0[:, inputs.shape[1] + 2 - 1]
     rhoT = tT[:, inputs.shape[1] + 2 - 1]
     rhoTT = tt[:, inputs.shape[1] + 2 - 1]
-
-    ################################################ bc rho
 
     # import ipdb; ipdb.set_trace()
 
     print("np.where(rho0 < 0)", np.where(rho0 < 0)[0].shape[0])
     print("np.where(rhoT < 0)", np.where(rhoT < 0)[0].shape[0])
+
+    rho0 = np.nan_to_num(rho0)
+    rhoT = np.nan_to_num(rhoT)
+    rhoTT = np.nan_to_num(rhoTT)
 
     rho0 = np.where(rho0 < 0, 0, rho0)
     rhoT = np.where(rhoT < 0, 0, rhoT)
@@ -2836,9 +2847,6 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
           method=args.interp_mode)
         rhoT = rhoT_meshed.reshape(-1)
 
-    rho0 = np.nan_to_num(rho0)
-    rhoT = np.nan_to_num(rhoT)
-
     linspaces = []
     for i in range(d):
         linspaces.append(np.transpose(
@@ -2865,11 +2873,13 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
     t0_control_data = {
         'grid' : bc_grids,
         'rho' : rho0,
+        'psi' : psi0,
     }
 
     tT_control_data = {
         'grid' : bc_grids,
         'rho' : rhoT,
+        'psi' : psiT,
     }
 
     ########################################################
@@ -2974,6 +2984,8 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
             np.isnan(tt_di)), tt_di.size)
         tt_di = np.nan_to_num(tt_di)
 
+        # import ipdb; ipdb.set_trace()
+
         tt_control_data[str(d_i)] = tt_di.reshape(-1)
 
     tt_control_data['grid_tree'] = KDTree(domain_grids, leaf_size=2)
@@ -2985,6 +2997,14 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
       method=args.interp_mode)
     rhoTT_gd = np.nan_to_num(rhoTT_gd)
     tt_control_data['rho'] = rhoTT_gd.reshape(-1)
+
+    psiTT_gd = gd(
+      tuple(tt_list),
+      psiTT,
+      tuple(grid_n_meshes),
+      method=args.interp_mode)
+    psiTT_gd = np.nan_to_num(psiTT_gd)
+    tt_control_data['psi'] = psiTT_gd.reshape(-1)
 
     ########################################################
 
