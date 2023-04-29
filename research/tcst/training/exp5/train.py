@@ -205,7 +205,7 @@ def get_model(
     geom=dde.geometry.geometry_3d.Cuboid(
         [args.state_bound_min]*d,
         [args.state_bound_max]*d)
-    timedomain = dde.geometry.TimeDomain(0., T_t)
+    timedomain = dde.geometry.TimeDomain(T_0, T_t)
 
     if timemode == 0:
         geomtime = dde.geometry.GeometryXTime(geom, timedomain)

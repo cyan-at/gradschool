@@ -341,8 +341,9 @@ if __name__ == '__main__':
         type=str, required=True, help='')
     parser.add_argument('--mu_T',
         type=str, default="", help='')
-    parser.add_argument('--T_t',
-        type=float, default=5.0, help='')
+
+    parser.add_argument('--T_0', type=str, default="0", help='')
+    parser.add_argument('--T_t', type=str, default="200", help='')
     parser.add_argument('--a', type=str, default="-1,1,2", help='')
     parser.add_argument('--N', type=int, default=22, help='')
     parser.add_argument('--state_bound_min', type=float, default=0.1, help='')
@@ -414,6 +415,14 @@ if __name__ == '__main__':
 
     N = args.N
 
+    if len(args.T_0) > 0:
+        T_0 = float(args.T_0)
+    print("T_0", T_0)
+
+    if len(args.T_t) > 0:
+        T_t = float(args.T_t)
+    print("T_t", T_t)
+
     test = np.loadtxt(args.testdat)
 
     ################################################
@@ -471,6 +480,7 @@ if __name__ == '__main__':
             args.sigma,
             target,
             args.sigma,
+            T_0,
             T_t,
             args,
             sde.network_f,
@@ -501,13 +511,13 @@ if __name__ == '__main__':
     )
 
     minibatches = []
-    for i in range(4):
+    for i in range(5):
         minibatches.append(
-            np.load('./exp5l_minibatch_000000%d.npy' % (i))[(N**2)*2:, :]
+            np.load('./exp5n_minibatch_000000%d.npy' % (i))[(N**2)*2:, :]
         )
     domain = np.vstack(minibatches)
 
-    # import ipdb; ipdb.set_trace()
+    import ipdb; ipdb.set_trace()
 
     inputs = np.vstack([inputs[:(N**2)*2, :], domain])
 

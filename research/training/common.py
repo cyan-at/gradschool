@@ -2733,6 +2733,9 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
         batchsize = int(args.batchsize)
     print("batchsize", batchsize, "inputs.shape", inputs.shape, "d", d)
 
+    T_0 = inputs[batchsize-1, -1]
+    print("found T_0", T_0)
+
     T_t = inputs[batchsize, -1]
     print("found T_t", T_t)
 
@@ -2970,6 +2973,8 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
     tt_control_data = {
         'grid' : domain_grids,
     }
+
+    import ipdb; ipdb.set_trace()
 
     tt_list = [tt[:, d_i] for d_i in range(d+1)]
 
