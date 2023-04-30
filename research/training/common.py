@@ -2974,7 +2974,7 @@ def make_control_data(model, inputs, N, d, meshes, args, get_u_func=get_u):
         'grid' : domain_grids,
     }
 
-    import ipdb; ipdb.set_trace()
+    # import ipdb; ipdb.set_trace()
 
     tt_list = [tt[:, d_i] for d_i in range(d+1)]
 
