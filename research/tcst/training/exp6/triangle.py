@@ -19,6 +19,52 @@ state_bound_min = -0.3
 state_bound_max = 0.6
 M = 100
 
+class bcolors:
+  # https://godoc.org/github.com/whitedevops/colors
+  DEFAULT = "\033[39m"
+  BLACK = "\033[30m"
+  RED = "\033[31m"
+  GREEN = "\033[32m"
+  YELLOW = "\033[33m"
+  BLUE = "\033[34m"
+  MAGENTA = "\033[35m"
+  CYAN = "\033[36m"
+  LGRAY = "\033[37m"
+  DARKGRAY = "\033[90m"
+  FAIL = "\033[91m"
+  OKGREEN = '\033[92m'
+  WARNING = '\033[93m'
+  OKBLUE = '\033[94m'
+  HEADER = '\033[95m'
+  LIGHTCYAN = '\033[96m'
+  WHITE = "\033[97m"
+
+  ENDC = '\033[0m'
+  BOLD = '\033[1m'
+  DIM = "\033[2m"
+  UNDERLINE = '\033[4m'
+  BLINK = "\033[5m"
+  REVERSE = "\033[7m"
+  HIDDEN = "\033[8m"
+
+  BG_DEFAULT = "\033[49m"
+  BG_BLACK = "\033[40m"
+  BG_RED = "\033[41m"
+  BG_GREEN = "\033[42m"
+  BG_YELLOW = "\033[43m"
+  BG_BLUE = "\033[44m"
+  BG_MAGENTA = "\033[45m"
+  BG_CYAN = "\033[46m"
+  BG_GRAY = "\033[47m"
+  BG_DKGRAY = "\033[100m"
+  BG_LRED = "\033[101m"
+  BG_LGREEN = "\033[102m"
+  BG_LYELLOW = "\033[103m"
+  BG_LBLUE = "\033[104m"
+  BG_LMAGENTA = "\033[105m"
+  BG_LCYAN = "\033[106m"
+  BG_WHITE = "\033[107m"
+
 def capture_subprocess_output(subprocess_args):
     # Start subprocess
     # bufsize = 1 means output is line buffered
@@ -63,7 +109,7 @@ def capture_subprocess_output(subprocess_args):
     return (success, output)
 
 def train(T_0, T_t, population):
-    print("training from %d to %d" % (T_0, T_t))
+    print(bcolors.OKGREEN + "training from %d to %d, %s" % (T_0, T_t, population) + bcolors.ENDC)
 
     cmd = "./train.py --crystal bcc --state_bound_min %.3f --state_bound_max %.3f --bif %d --epochs %d --model_name test --train_distribution Sobol --T_0 %d --T_t %d --sigma 0.001" % (
         state_bound_min,
@@ -101,7 +147,7 @@ def train(T_0, T_t, population):
     return control_data, success
 
 def cl(T_0, T_t, control_data, population):
-    print("cl from %d to %d" % (T_0, T_t))
+    print(bcolors.OKGREEN + "cl from %d to %d, %s, %s" % (T_0, T_t, control_data, population) + bcolors.ENDC)
 
     cmd = "./closedloop.py --crystal bcc --state_bound_min %.3f --state_bound_max %.3f --bif %d --sigma 0.001 --epochs %d --model_name test --train_distribution Sobol --T_0 %d --T_t %d --M %d --control_data %s" % (
         state_bound_min,
