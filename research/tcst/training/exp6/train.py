@@ -518,6 +518,10 @@ if __name__ == '__main__':
     model_path = model.save(ck_path)
     print(model_path)
 
+    os.rename('./loss.dat', ('./%s_loss.dat' % model_name))
+    os.rename('./test.dat', ('./%s_train.dat' % model_name))
+    os.rename('./train.dat', ('./%s_test.dat' % model_name))
+
     ######################################
 
     test, T_t, rho0, rhoT, bc_grids, domain_grids, grid_n_meshes, control_data, tt_u = make_control_data(
