@@ -6,6 +6,7 @@ import io
 import selectors
 import subprocess
 import sys
+import argparse
 
 # triangle #s
 nums = [0, 1, 3, 6, 10, 15, 21, 28, 36, 45, 55, 66, 78, 91, 105, 120, 136, 153, 171, 190, 210]
@@ -13,7 +14,7 @@ nums = [0, 1, 3, 6, 10, 15, 21, 28, 36, 45, 55, 66, 78, 91, 105, 120, 136, 153, 
 T_t = 200
 i = 0
 
-epochs = 2 # 20000
+epochs = 20000
 bif = 3000
 state_bound_min = -0.3
 state_bound_max = 0.6
@@ -180,19 +181,27 @@ def cl(T_0, T_t, control_data, population):
 
     return population, success
 
-population = None
-while i < len(nums) and nums[i] < T_t:
-    # train from nums[i] to T_t
-    control_data, success = train(nums[i], T_t, population)
 
-    if not success:
-        raise Exception('bad')
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="")
+    parser.add_argument('--epochs', type=int, default=-1, help='')
+    args = parser.parse_args()
 
-    # cl from nums[i] to nums[i+1]
-    population, success = cl(nums[i], min(T_t, nums[i+1]), control_data, population)
+    epochs = args.epochs
 
-    if not success:
-        raise Exception('bad')
+    population = None
+    while i < len(nums) and nums[i] < T_t:
+        # train from nums[i] to T_t
+        control_data, success = train(nums[i], T_t, population)
 
-    i += 1
-    print("")
+        if not success:
+            raise Exception('bad')
+
+        # cl from nums[i] to nums[i+1]
+        population, success = cl(nums[i], min(T_t, nums[i+1]), control_data, population)
+
+        if not success:
+            raise Exception('bad')
+
+        i += 1
+        print("")
