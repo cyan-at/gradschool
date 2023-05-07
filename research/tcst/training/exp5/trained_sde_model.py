@@ -102,6 +102,72 @@ class SDE_3(nn.Module):
         return self.network_g.forward(input_vec)
 
 
+class SDE2(SDE_3):
+    def __init__(self, control_data):
+        super(SDE2, self).__init__()
+
+        self.control_data = control_data
+
+    def query_u(self, t, y):
+        if torch.abs(t - 0) < 1e-8:
+            t_key = 't0'
+        elif torch.abs(t - 1.0) < 1e-8:
+            t_key = 'tT'
+        else:
+            t_key = 'tt'
+        t_control_data = self.control_data[t_key]
+
+        query = y[0].detach().cpu().numpy()
+
+        if t_control_data['grid'].shape[1] == 2 + 1:
+            t2 = t.detach().cpu().numpy()
+            query = np.append(query, t2)
+
+        if 'grid_tree' in t_control_data:
+            _, closest_grid_idx = t_control_data['grid_tree'].query(
+                np.expand_dims(query, axis=0),
+                k=1)
+        else:
+            closest_grid_idx = np.linalg.norm(
+                query - t_control_data['grid'], ord=1, axis=1).argmin()
+
+        u1 = t_control_data['0'][closest_grid_idx]
+        u2 = t_control_data['1'][closest_grid_idx]
+
+        u_tensor = torch.tensor(np.array([u1, u2]), dtype=torch.float32)
+        u_tensor = u_tensor.reshape([-1, 2])
+
+        return u_tensor
+
+    # drift
+    def f(self, t, y): # ~D1
+        u_tensor = self.query_u(t, y)
+
+        t = torch.reshape(t, [-1, 1])
+        # need to cat the ramp rates on the input vector for y
+        input_vec = torch.cat([y, u_tensor, t], axis=1)
+
+        # print(self.network_f.forward(input_vec).shape)
+
+        return self.network_f.forward(input_vec)
+
+    # diffusion
+    def g(self, t, y): # ~D2
+        """
+        Output of g: should be a single tensor of size
+        (batch_size, d)
+        """
+        u_tensor = self.query_u(t, y)
+
+        t = torch.reshape(t, [-1, 1])
+
+        # need to cat the ramp rates on the input vector for g
+        input_vec = torch.cat([y, u_tensor, t], axis=1)
+
+        # print("g", self.network_g.forward(input_vec))
+
+        return self.network_g.forward(input_vec)
+
 def data_loader():
     ramp_rate_data = "hypercube_sample_4.npy"
     ramp_rate_np = np.load(ramp_rate_data)
@@ -171,6 +237,10 @@ def get_next_step_predictions(model, data_buffer, rows, ts, batch_size):
         r = torch.reshape(r, [-1, 2])
         start_val = data_buffer[rows, 0, 4:6]
         model.start_val = start_val
+
+        print("start_val", start_val)
+        print('r', r)
+
         model.r = r
         
         y_pred = torchsde.sdeint(model, y0, ts[time_step:time_step+2], dt=1e-1, method='euler')

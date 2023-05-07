@@ -3461,3 +3461,115 @@ tcst_map = {
     "fcc" : fcc,
     "sc" : sc
 }
+
+def do_integration2(control_data, d, T_0, T_t, mu_0, sigma_0, args, sde, sde2):
+    import torchsde
+
+    # dt = (T_t - T_0)/(args.bif)
+    # ts = np.arange(T_0, T_t + dt, dt)
+    ts = torch.linspace(T_0, T_t, int(T_t * 500), device=cuda0)
+    # ts = torch.linspace(T_0, 1, int(1 * 500), device=cuda0)
+
+    # import ipdb; ipdb.set_trace()
+
+    if len(args.population) > 0:
+        print("population specified, overriding mu_0")
+
+        population = np.load(args.population, allow_pickle=True)
+        initial_sample = population[:, :, -1]
+    else:
+        print("initial_sample is multivariate_normal")
+        initial_sample = np.random.multivariate_normal(
+            np.array(mu_0), np.eye(d)*sigma_0, args.M) # 100 x 3
+
+        print(sigma_0)
+
+    ##############################
+
+    all_results = {}
+
+    mus = np.zeros(d*2)
+    variances = np.zeros(d*2)
+
+    # without_control = np.empty(
+    #     (
+    #         initial_sample.shape[0],
+    #         initial_sample.shape[1],
+    #         len(ts),
+    #     ))
+
+    with_control = np.empty(
+        (
+            initial_sample.shape[0],
+            initial_sample.shape[1],
+            len(ts),
+        ))
+
+    initial_sample_tensor = torch.tensor(initial_sample,
+        dtype=torch.float32, device=cuda0)
+
+    # import ipdb; ipdb.set_trace()
+
+    ts = ts.to(cuda0)
+
+    for i in range(initial_sample_tensor.shape[0]):
+        y0 = initial_sample_tensor[i, :]
+        y0 = torch.reshape(y0, [1, -1])
+
+        # import ipdb; ipdb.set_trace()
+
+        bm = torchsde.BrownianInterval(
+            t0=float(T_0),
+            t1=float(T_t),
+            size=y0.shape,
+            device=cuda0,
+        )  # We need space-time Levy area to use the SRK solver
+
+        # y_pred = torchsde.sdeint(sde, y0, ts, method='euler', bm=bm, dt=1e-1).squeeze()
+        # # calculate predictions
+        # without_control[i, :, :] = y_pred.detach().cpu().numpy().T
+
+        y_pred = torchsde.sdeint(sde2, y0, ts, method='euler', bm=bm, dt=1e-1).squeeze()
+        with_control[i, :, :] = y_pred.detach().cpu().numpy().T
+
+        print(i)
+        print(y0)
+        print(y_pred[-1, :])
+
+    for d_i in range(d):
+        mus[2*d_i] = np.mean(with_control[:, d_i, -1])
+        variances[2*d_i] = np.var(with_control[:, d_i, -1])
+
+        # mus[2*d_i+1] = np.mean(without_control[:, d_i, -1])
+        # variances[2*d_i+1] = np.var(without_control[:, d_i, -1])
+
+    ts = ts.detach().cpu().numpy()
+
+    return ts, initial_sample, with_control, None,\
+        None, mus, variances
+
+from scipy.signal import hilbert, butter, filtfilt
+import scipy.stats
+from sklearn.neighbors import KernelDensity
+def population_to_pdf(population, state):
+    # population is nx2
+    b = np.sqrt(np.var(population)) / 2 # this seems to work well
+    kde = KernelDensity(kernel='gaussian', bandwidth=b).fit(population)
+    pdf = np.exp(kde.score_samples(state))
+
+    return pdf
+
+def square2d_pdfnormalize(pdf2d, l):
+    N = len(l)
+    tmp_cube = pdf2d.reshape((N, N))
+    buffer1 = np.zeros(N)
+    for i in range(N):
+        buffer1[i] = np.trapz(
+            tmp_cube[i, :],
+            x=l)
+        # buffer1[i] = trapz out x
+        # buffer1[i] = matrix[:, i]
+
+    total = np.trapz(buffer1, x=l)
+    # print("total", total)
+    return total
