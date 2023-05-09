@@ -186,11 +186,22 @@ def cl(T_0, T_t, control_data, population):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="")
     parser.add_argument('--epochs', type=int, default=-1, help='')
+
+    parser.add_argument('--population', type=str, default="", help='')
+    parser.add_argument('--int', type=str, default="", help='')
+
     args = parser.parse_args()
 
     epochs = args.epochs
 
+    i = 0
     population = None
+
+    if len(args.int) > 0:
+        i = int(i)
+    if len(args.population) > 0:
+        population = args.population
+
     while i < len(nums) and nums[i] < T_t:
         # train from nums[i] to T_t
         control_data, success = train(nums[i], T_t, population)
