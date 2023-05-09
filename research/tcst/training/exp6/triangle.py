@@ -199,6 +199,7 @@ if __name__ == '__main__':
 
     if len(args.int) > 0:
         i = int(i)
+        print("nums[i]", nums[i])
     if len(args.population) > 0:
         population = args.population
 

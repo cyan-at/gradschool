@@ -229,14 +229,14 @@ if __name__ == '__main__':
 
     with_control_fname, _ = Util.get_next_valid_name_increment(
         './',
-        args.control_data.replace(".npy", "").split("_control_data")[0] + '_with_control',
+        args.control_data.replace(".npy", "").split("_control_data")[0] + '_with_control_%d' % (T_t),
         0,
         '',
         'npy')
 
     with_control_plot_fname, _ = Util.get_next_valid_name_increment(
         './',
-        args.control_data.replace(".npy", "").split("_control_data")[0] + '_with_control',
+        args.control_data.replace(".npy", "").split("_control_data")[0] + '_with_control_%d' % (T_t),
         0,
         '',
         'png')
