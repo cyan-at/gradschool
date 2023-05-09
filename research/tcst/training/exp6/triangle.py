@@ -188,7 +188,7 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=-1, help='')
 
     parser.add_argument('--population', type=str, default="", help='')
-    parser.add_argument('--int', type=str, default="", help='')
+    parser.add_argument('--i', type=str, default="", help='')
 
     args = parser.parse_args()
 
@@ -197,11 +197,12 @@ if __name__ == '__main__':
     i = 0
     population = None
 
-    if len(args.int) > 0:
-        i = int(i)
+    if len(args.i) > 0:
+        i = int(args.i)
         print("nums[i]", nums[i])
     if len(args.population) > 0:
         population = args.population
+        print(population)
 
     while i < len(nums) and nums[i] < T_t:
         # train from nums[i] to T_t
