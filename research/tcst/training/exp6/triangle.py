@@ -11,6 +11,8 @@ import argparse
 # triangle #s
 nums = [0, 1, 3, 6, 10, 15, 21, 28, 36, 45, 55, 66, 78, 91, 105, 120, 136, 153, 171, 190, 210]
 
+nums = [0, 210]
+
 T_t = 200
 i = 0
 
@@ -126,7 +128,7 @@ def train(T_0, T_t, population):
     if (population is None):
         # cmd += " --mu_0 \"0.2, 0.2\""
         cmd.append("--mu_0")
-        cmd.append("0.2,0.2")
+        cmd.append("0.25,0.25")
     else:
         # cmd += " --population %s" % (population)
         cmd.append("--population")
@@ -166,7 +168,7 @@ def cl(T_0, T_t, control_data, population):
     if (population is None):
         # cmd += " --mu_0 \"0.2, 0.2\""
         cmd.append("--mu_0")
-        cmd.append("0.2,0.2")
+        cmd.append("0.25,0.25")
     else:
         # cmd += " --population %s" % (population)
         cmd.append("--population")

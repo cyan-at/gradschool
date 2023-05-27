@@ -292,7 +292,7 @@ if __name__ == '__main__':
     parser.add_argument('--N', type=int, default=22, help='')
     parser.add_argument('--state_bound_min', type=float, default=0.1, help='')
     parser.add_argument('--state_bound_max', type=float, default=0.5, help='')
-    parser.add_argument('--bound_u', type=int, default=0, help='')
+    parser.add_argument('--bound_u', type=float, default=0, help='')
 
     parser.add_argument('--mu_0', type=str, default="0.2,0.2", help='')
     # parser.add_argument('--mu_T', type=str, default="", help='')
