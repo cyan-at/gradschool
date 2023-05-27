@@ -114,7 +114,7 @@ def capture_subprocess_output(subprocess_args):
 def train(T_0, T_t, population):
     print(bcolors.OKGREEN + "training from %d to %d, %s" % (T_0, T_t, population) + bcolors.ENDC)
 
-    cmd = "./train.py --crystal bcc --state_bound_min %.3f --state_bound_max %.3f --bif %d --epochs %d --model_name %s --train_distribution Sobol --T_0 %d --T_t %d --sigma 0.001" % (
+    cmd = "./train.py --bound_u 5.0 --crystal bcc --state_bound_min %.3f --state_bound_max %.3f --bif %d --epochs %d --model_name %s --train_distribution Sobol --T_0 %d --T_t %d --sigma 0.001" % (
         state_bound_min,
         state_bound_max,
         bif,
