@@ -356,15 +356,22 @@ if __name__ == '__main__':
         if args.ni >= 0:
             ni = args.ni
 
-        sde = SDE()
+        sde = SDE_3()
         # state path to model information file
         # load model parameters
-        sde.load_state_dict(torch.load(args.modelpt))
+        sde_path = './'
+        files = glob.glob(
+            sde_path + "/27*.pt", 
+            recursive = False)
+        assert(len(files) == 1)
+        print("using model: ", files[0])
+        sde.load_state_dict(torch.load(files[0]))
+
         if torch.cuda.is_available():
             print("Using GPU.")
             sde = sde.to(cuda0)
         # set model to evaluation mode
-        sde.eval()
+        sde.eval()  
         sde.r = torch.tensor(np.array([0.0]*2), dtype=torch.float32)
         sde.r = sde.r.reshape([-1, 2])
 
@@ -393,12 +400,13 @@ if __name__ == '__main__':
         #     mu_0 = [float(x) for x in args.mu_0.split(",")]
         mu_0 = [float(x) for x in args.mu_0.strip().split(",")]
         print("mu_0", mu_0)
+        print("d", d)
 
         # mu_T = mu_T[:d]
 
-        target = target[:d]
+        # target = target[:d]
 
-        model, meshes = get_model(
+        model, meshes, _, _, _ = get_model(
             d,
             N,
             batchsize,
@@ -408,6 +416,7 @@ if __name__ == '__main__':
             args.sigma,
             target,
             args.sigma,
+            T_0,
             T_t,
             args,
             sde.network_f,
@@ -438,7 +447,7 @@ if __name__ == '__main__':
     test, T_t,\
     rho0, rhoT,\
     bc_grids, domain_grids, grid_n_meshes,\
-    control_data = make_control_data(
+    control_data, _ = make_control_data(
         model, inputs, N, d, meshes, args, get_u2)
 
     tmp = np.matrix(control_data['tt']['rho']).T
@@ -446,7 +455,7 @@ if __name__ == '__main__':
     sorted_collated = collated[np.argsort(collated[:, 2], 0)]
     np.save('sc.npy', sorted_collated[:, 0, :])
 
-    import ipdb; ipdb.set_trace()
+    # import ipdb; ipdb.set_trace()
 
     ########################################################
 
